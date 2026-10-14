@@ -72,7 +72,7 @@ class RoundedButton(tk.Canvas):
                  bg="#2563eb", fg="white", activebackground=None,
                  activeforeground=None, disabledbackground="#cbd5e1",
                  font=("Segoe UI", 11, "bold"), radius=14, state="normal",
-                 secondary_text=None, secondary_font=("Segoe UI", 10),
+                 secondary_text=None, secondary_font=("Segoe UI", 14),
                  **kwargs):
         super().__init__(
             master, width=width, height=height, bg=master.cget("bg"),
@@ -526,7 +526,7 @@ def abrir_resultado(
         cabecera_resultado.content,
         text=(f"Grupos - {grupo}" if etapa == "Grupo" and grupo
               else "Todos vs Todos" if etapa == "Todos" else etapa),
-        font=("Segoe UI", 10, "bold"),
+        font=("Segoe UI", 12, "bold"),
         fg="white", bg="#7f1d1d", padx=12, pady=7
     ).pack(side="right", padx=18)
 
@@ -614,7 +614,7 @@ def abrir_resultado(
         command=lambda: seleccionar_ganador(participante1),
         width=300, height=78, bg="#ffffff", fg="#17202a",
         activebackground="#dbeafe", activeforeground="#17202a",
-        font=("Segoe UI", 16, "bold"), secondary_font=("Segoe UI", 12),
+        font=("Segoe UI", 16, "bold"), secondary_font=("Segoe UI", 14),
         radius=16
     )
     boton1.pack(side="left", expand=True, fill="both", padx=(0, 7))
@@ -625,7 +625,7 @@ def abrir_resultado(
         command=lambda: seleccionar_ganador(participante2),
         width=300, height=78, bg="#ffffff", fg="#17202a",
         activebackground="#dbeafe", activeforeground="#17202a",
-        font=("Segoe UI", 16, "bold"), secondary_font=("Segoe UI", 10),
+        font=("Segoe UI", 16, "bold"), secondary_font=("Segoe UI", 14),
         radius=16
     )
     boton2.pack(side="left", expand=True, fill="both", padx=(7, 0))
@@ -1006,7 +1006,7 @@ def mostrar_batallas(contenedor):
     tarjeta1.grid_rowconfigure(4, weight=1)
     tk.Label(
         tarjeta1, text="ROBOT 1",
-        font=("Segoe UI", 9, "bold"), fg="#7a858e", bg="white"
+        font=("Segoe UI", 12, "bold"), fg="#7a858e", bg="white"
     ).grid(row=1, column=0, pady=(0, 2))
 
     tk.Label(
@@ -1050,7 +1050,7 @@ def mostrar_batallas(contenedor):
     tarjeta2.grid_rowconfigure(4, weight=1)
     tk.Label(
         tarjeta2, text="ROBOT 2",
-        font=("Segoe UI", 9, "bold"), fg="#7a858e", bg="white"
+        font=("Segoe UI", 12, "bold"), fg="#7a858e", bg="white"
     ).grid(row=1, column=0, pady=(0, 2))
 
     tk.Label(
@@ -1060,7 +1060,7 @@ def mostrar_batallas(contenedor):
 
     tk.Label(
         tarjeta2, text=nombre2,
-        font=("Segoe UI", 12), fg="#68737d", bg="white"
+        font=("Segoe UI", 14), fg="#68737d", bg="white"
     ).grid(row=3, column=0, pady=(2, 0))
 
     # --------------------------------------------------------
