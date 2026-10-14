@@ -2,11 +2,10 @@ import tkinter as tk
 from tkinter import messagebox
 import sqlite3
 import os
-import threading
 from tkinter import ttk
 from serial.tools import list_ports
 
-from Interfaz.esp32 import esp32
+from .esp32 import esp32
 
 
 # ============================================================
@@ -657,7 +656,7 @@ def abrir_resultado(
     )
 
     criterios = [
-        "Expulsión del dohyo",
+        "Expulsión del dojo",
         "Inmovilización",
         "Mayor cantidad de ataques",
         "Tiempo",
