@@ -656,10 +656,11 @@ def abrir_resultado(
     )
 
     criterios = [
-        "Expulsión del dojo",
-        "Inmovilización",
+        "Expulsión del Dojo",
+        "Oponente no encendió",
+        "Inactividad del oponente",
+        "Oponente no se presentó",
         "Mayor cantidad de ataques",
-        "Tiempo",
         "Decisión del juez"
     ]
 
