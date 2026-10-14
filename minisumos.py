@@ -1,0 +1,477 @@
+import tkinter as tk
+from tkinter import ttk
+import os
+from PIL import Image, ImageTk
+
+from Interfaz.registro import mostrar_registro, cerrar_registro
+from Interfaz.enfrentamientos import mostrar_enfrentamientos
+from Interfaz.batallas import mostrar_batallas
+
+# ============================================================
+# CONFIGURACIÓN PRINCIPAL
+# ============================================================
+
+ventana = tk.Tk()
+
+FONDO = "#FFFFFF"
+ROJO = "#C62828"
+ROJO_OSCURO = "#8E1B1B"
+ROJO_CLARO = "#FA7B55"
+GRIS_CLARO = "#E5E7EB"
+TEXTO = "#222222"
+
+ventana.title("MiniSumos RC")
+ventana.state("zoomed")
+ventana.configure(bg=FONDO)
+
+
+# ============================================================
+# RUTAS DE IMÁGENES
+# ============================================================
+
+carpeta_principal = os.path.dirname(
+    os.path.abspath(__file__)
+)
+
+ruta_logo_metarobots = os.path.join(
+    carpeta_principal,
+    "Imagenes",
+    "metarobots_logo.jpg"
+)
+
+ruta_logo_unillanos = os.path.join(
+    carpeta_principal,
+    "Imagenes",
+    "unillanos_logo.jpg"
+)
+
+
+# ============================================================
+# LOGO METAROBOTS
+# ============================================================
+
+imagen_metarobots = Image.open(
+    ruta_logo_metarobots
+)
+
+imagen_metarobots.thumbnail(
+    (80, 80),
+    Image.LANCZOS
+)
+
+logo_metarobots = ImageTk.PhotoImage(
+    imagen_metarobots
+)
+
+
+# ============================================================
+# LOGO UNILLANOS
+# ============================================================
+
+imagen_unillanos = Image.open(
+    ruta_logo_unillanos
+)
+
+imagen_unillanos.thumbnail(
+    (90, 90),
+    Image.LANCZOS
+)
+
+logo_unillanos = ImageTk.PhotoImage(
+    imagen_unillanos
+)
+
+
+# ============================================================
+# ESTILOS
+# ============================================================
+
+estilo = ttk.Style()
+estilo.theme_use("clam")
+
+
+# ============================================================
+# ENCABEZADO PRINCIPAL
+# ============================================================
+
+cabecera = tk.Frame(
+    ventana,
+    bg=FONDO,
+    height=105
+)
+
+cabecera.pack(
+    fill="x"
+)
+
+cabecera.pack_propagate(False)
+
+
+# ------------------------------------------------------------
+# LOGO METAROBOTS
+# ------------------------------------------------------------
+
+tk.Label(
+    cabecera,
+    image=logo_metarobots,
+    bg=FONDO
+).pack(
+    side="left",
+    padx=(30, 20)
+)
+
+
+# ------------------------------------------------------------
+# TÍTULO
+# ------------------------------------------------------------
+
+marco_titulo = tk.Frame(
+    cabecera,
+    bg=FONDO
+)
+
+marco_titulo.pack(
+    side="left",
+    expand=True
+)
+
+tk.Label(
+    marco_titulo,
+    text="MINI SUMOS RC - 2026 II",
+    font=("Arial", 30, "bold"),
+    fg=ROJO_OSCURO,
+    bg=FONDO
+).pack()
+
+tk.Label(
+    marco_titulo,
+    text="CATEGORÍA 1",
+    font=("Arial", 30, "bold"),
+    fg=ROJO_OSCURO,
+    bg=FONDO
+).pack(
+    pady=(3, 0)
+)
+
+
+# ------------------------------------------------------------
+# LOGO UNILLANOS
+# ------------------------------------------------------------
+
+tk.Label(
+    cabecera,
+    image=logo_unillanos,
+    bg=FONDO
+).pack(
+    side="right",
+    padx=(20, 30)
+)
+
+
+# ------------------------------------------------------------
+# LÍNEA DEL ENCABEZADO
+# ------------------------------------------------------------
+
+tk.Frame(
+    ventana,
+    bg=GRIS_CLARO,
+    height=1
+).pack(
+    fill="x"
+)
+
+
+# ============================================================
+# ZONA PRINCIPAL
+# ============================================================
+
+zona_principal = tk.Frame(
+    ventana,
+    bg=FONDO
+)
+
+zona_principal.pack(
+    fill="both",
+    expand=True
+)
+
+
+# ============================================================
+# MENÚ LATERAL
+# ============================================================
+
+menu = tk.Frame(
+    zona_principal,
+    bg=FONDO,
+    width=240
+)
+
+menu.pack(
+    side="left",
+    fill="y"
+)
+
+menu.pack_propagate(False)
+
+
+# ============================================================
+# TÍTULO DEL MENÚ
+# ============================================================
+
+tk.Label(
+    menu,
+    text="MENÚ",
+    font=("Arial", 20, "bold"),
+    fg=ROJO_OSCURO,
+    bg=FONDO
+).pack(
+    pady=(25, 15)
+)
+
+
+# ============================================================
+# ÁREA DE CONTENIDO
+# ============================================================
+
+area_contenido = tk.Frame(
+    zona_principal,
+    bg=FONDO
+)
+
+area_contenido.pack(
+    side="right",
+    fill="both",
+    expand=True
+)
+
+
+# ============================================================
+# CAMBIO DE PÁGINAS
+# ============================================================
+
+pagina_actual = None
+boton_actual = None
+
+
+def limpiar_contenido():
+
+    global pagina_actual
+
+    if pagina_actual is not None:
+        pagina_actual.destroy()
+
+    pagina_actual = tk.Frame(
+        area_contenido,
+        bg=FONDO
+    )
+
+    pagina_actual.pack(
+        fill="both",
+        expand=True
+    )
+
+    return pagina_actual
+
+
+# ============================================================
+# CAMBIAR ESTADO DE BOTONES
+# ============================================================
+
+def seleccionar_boton(boton):
+
+    global boton_actual
+
+    if boton_actual is not None:
+
+        boton_actual.config(
+            bg=FONDO,
+            fg=TEXTO
+        )
+
+    boton.config(
+        bg="#FDECEC",
+        fg=ROJO_OSCURO
+    )
+
+    boton_actual = boton
+
+
+# ============================================================
+# REGISTRO
+# ============================================================
+
+def mostrar_pagina_registro():
+
+    contenedor = limpiar_contenido()
+
+    mostrar_registro(
+        contenedor
+    )
+
+    seleccionar_boton(
+        botones_menu[0]
+    )
+
+
+# ============================================================
+# ENFRENTAMIENTOS
+# ============================================================
+
+def mostrar_pagina_enfrentamientos():
+
+    contenedor = limpiar_contenido()
+
+    mostrar_enfrentamientos(
+        contenedor
+    )
+
+    seleccionar_boton(
+        botones_menu[1]
+    )
+
+
+# ============================================================
+# BATALLAS
+# ============================================================
+
+def mostrar_pagina_batallas():
+    contenedor = limpiar_contenido()
+    mostrar_batallas(contenedor)
+    seleccionar_boton(botones_menu[2])
+
+
+# ============================================================
+# BOTONES DEL MENÚ
+# ============================================================
+
+botones_menu = []
+
+
+def crear_boton_menu(texto, comando):
+
+    contenedor_boton = tk.Frame(
+        menu,
+        bg=FONDO
+    )
+
+    contenedor_boton.pack(
+        fill="x"
+    )
+
+    boton = tk.Button(
+        contenedor_boton,
+        text=texto,
+        command=comando,
+        font=("Arial", 15, "bold"),
+        bg=FONDO,
+        fg=TEXTO,
+        activebackground="#FDECEC",
+        activeforeground=ROJO_OSCURO,
+        relief="flat",
+        bd=0,
+        cursor="hand2",
+        anchor="w",
+        padx=25
+    )
+
+    boton.pack(
+        fill="x",
+        ipady=15
+    )
+
+    # --------------------------------------------------------
+    # ANIMACIÓN HOVER
+    # --------------------------------------------------------
+
+    def entrar(event):
+
+        if boton != boton_actual:
+
+            boton.config(
+                bg="#FDECEC",
+                fg=ROJO_OSCURO
+            )
+
+    def salir(event):
+
+        if boton != boton_actual:
+
+            boton.config(
+                bg=FONDO,
+                fg=TEXTO
+            )
+
+    boton.bind(
+        "<Enter>",
+        entrar
+    )
+
+    boton.bind(
+        "<Leave>",
+        salir
+    )
+
+    # --------------------------------------------------------
+    # LÍNEA SEPARADORA
+    # --------------------------------------------------------
+
+    tk.Frame(
+        contenedor_boton,
+        bg=GRIS_CLARO,
+        height=1
+    ).pack(
+        fill="x"
+    )
+
+    botones_menu.append(
+        boton
+    )
+
+    return boton
+
+
+crear_boton_menu(
+    "REGISTRO",
+    mostrar_pagina_registro
+)
+
+crear_boton_menu(
+    "ENFRENTAMIENTOS",
+    mostrar_pagina_enfrentamientos
+)
+
+crear_boton_menu(
+    "BATALLAS",
+    mostrar_pagina_batallas
+)
+
+
+# ============================================================
+# CERRAR PROGRAMA
+# ============================================================
+
+def cerrar_programa():
+
+    cerrar_registro()
+
+    ventana.destroy()
+
+
+ventana.protocol(
+    "WM_DELETE_WINDOW",
+    cerrar_programa
+)
+
+
+# ============================================================
+# INICIAR EN REGISTRO
+# ============================================================
+
+mostrar_pagina_registro()
+
+
+# ============================================================
+# EJECUTAR
+# ============================================================
+
+ventana.mainloop()
