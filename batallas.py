@@ -874,7 +874,7 @@ def mostrar_batallas(contenedor):
     )
     selector_puerto = ttk.Combobox(
         zona_puerto, textvariable=puerto_var,
-        values=puertos_disponibles or ["Sin puertos disponibles"],
+        values=puertos_disponibles or ["No disponibles"],
         width=18, state="readonly", font=("Segoe UI", 11)
     )
     selector_puerto.pack(pady=(0, 4))
@@ -887,7 +887,7 @@ def mostrar_batallas(contenedor):
 
     def conectar_puerto(event=None, mostrar_error=False):
         puerto = puerto_var.get()
-        if puerto == "Sin puertos disponibles":
+        if puerto == "No disponibles":
             estado_conexion.config(text="● No conectado", fg="#d1d5db")
             return
         try:
@@ -908,7 +908,7 @@ def mostrar_batallas(contenedor):
         if not principal.winfo_exists():
             return
         encontrados = obtener_puertos_disponibles()
-        valores = encontrados or ["Sin puertos disponibles"]
+        valores = encontrados or ["No disponibles"]
         actual = puerto_var.get()
         selector_puerto.configure(values=valores)
         if actual not in valores:
