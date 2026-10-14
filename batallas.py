@@ -520,7 +520,7 @@ def abrir_resultado(
         text=f"RESULTADO • BATALLA {id_batalla}",
         font=("Segoe UI", 22, "bold"),
         fg="white", bg="#922b2b"
-    ).pack(side="left", padx=20, expand=True)
+    ).pack(side="left", padx=20)
 
     tk.Label(
         cabecera_resultado.content,
@@ -614,7 +614,7 @@ def abrir_resultado(
         command=lambda: seleccionar_ganador(participante1),
         width=300, height=78, bg="#ffffff", fg="#17202a",
         activebackground="#dbeafe", activeforeground="#17202a",
-        font=("Segoe UI", 16, "bold"), secondary_font=("Segoe UI", 10),
+        font=("Segoe UI", 16, "bold"), secondary_font=("Segoe UI", 12),
         radius=16
     )
     boton1.pack(side="left", expand=True, fill="both", padx=(0, 7))
@@ -908,6 +908,8 @@ def mostrar_batallas(contenedor):
     def conectar_puerto(event=None, mostrar_error=False):
         puerto = puerto_var.get()
         if puerto == "No disponible":
+            if getattr(esp32, "conectado", False):
+                esp32.desconectar()
             estado_conexion.config(text="● No conectado", fg="#d1d5db")
             return
         try:
@@ -931,13 +933,22 @@ def mostrar_batallas(contenedor):
         valores = encontrados or ["No disponible"]
         actual = puerto_var.get()
         selector_puerto.configure(values=valores)
-        if actual not in valores:
+
+        # Si Windows ya no detecta puertos, desconectar y limpiar el estado.
+        if not encontrados:
+            puerto_var.set("No disponible")
+            if getattr(esp32, "conectado", False):
+                esp32.desconectar()
+            estado_conexion.config(text="● No conectado", fg="#d1d5db")
+        elif actual not in valores:
             puerto_var.set(valores[0])
             if getattr(esp32, "conectado", False):
                 esp32.desconectar()
             estado_conexion.config(text="● No conectado", fg="#d1d5db")
-        if encontrados and not getattr(esp32, "conectado", False):
             conectar_puerto()
+        elif not getattr(esp32, "conectado", False):
+            conectar_puerto()
+
         principal.after(2500, refrescar_puertos)
 
     selector_puerto.bind(
@@ -1005,7 +1016,7 @@ def mostrar_batallas(contenedor):
 
     tk.Label(
         tarjeta1, text=nombre1,
-        font=("Segoe UI", 12), fg="#68737d", bg="white"
+        font=("Segoe UI", 14), fg="#68737d", bg="white"
     ).grid(row=3, column=0, pady=(2, 0))
 
     # --------------------------------------------------------
@@ -1049,7 +1060,7 @@ def mostrar_batallas(contenedor):
 
     tk.Label(
         tarjeta2, text=nombre2,
-        font=("Segoe UI", 10), fg="#68737d", bg="white"
+        font=("Segoe UI", 12), fg="#68737d", bg="white"
     ).grid(row=3, column=0, pady=(2, 0))
 
     # --------------------------------------------------------
@@ -1163,7 +1174,7 @@ def mostrar_batallas(contenedor):
             return
 
         tiempo, ataques1, ataques2 = esp32.obtener_datos()
-        if getattr(esp32, "conectado", False):
+        if puerto_var.get() != "No disponible" and getattr(esp32, "conectado", False):
             estado_conexion.config(text=f"● Conectado ({puerto_var.get()})", fg="#86efac")
         else:
             estado_conexion.config(text="● No conectado", fg="#d1d5db")
