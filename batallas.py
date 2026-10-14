@@ -113,7 +113,7 @@ class RoundedButton(tk.Canvas):
             fill="#f8fafc" if self.state == "disabled" else self.button_fg,
             font=self.font, justify="center"
         )
-        self.configure(cursor="arrow" if self.state == "disabled" else "hand2")
+        super().configure(cursor="arrow" if self.state == "disabled" else "hand2")
 
     def _entrar(self, event=None):
         self.hover = True
