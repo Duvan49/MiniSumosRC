@@ -580,13 +580,19 @@ def abrir_resultado(
 
     def seleccionar_ganador(valor):
         ganador.set(valor)
+        seleccionado1 = valor == participante1
+        seleccionado2 = valor == participante2
         boton1.config(
-            bg="#2563eb" if valor == participante1 else "#ffffff",
-            fg="white" if valor == participante1 else "#17202a"
+            bg="#2563eb" if seleccionado1 else "#ffffff",
+            fg="white" if seleccionado1 else "#17202a",
+            activebackground="#2563eb" if seleccionado1 else "#dbeafe",
+            activeforeground="white" if seleccionado1 else "#17202a"
         )
         boton2.config(
-            bg="#2563eb" if valor == participante2 else "#ffffff",
-            fg="white" if valor == participante2 else "#17202a"
+            bg="#2563eb" if seleccionado2 else "#ffffff",
+            fg="white" if seleccionado2 else "#17202a",
+            activebackground="#2563eb" if seleccionado2 else "#dbeafe",
+            activeforeground="white" if seleccionado2 else "#17202a"
         )
 
     boton1 = RoundedButton(
@@ -648,9 +654,12 @@ def abrir_resultado(
     def seleccionar_criterio(texto):
         criterio.set(texto)
         for nombre, boton in botones_criterio.items():
+            seleccionado = nombre == texto
             boton.config(
-                bg="#2563eb" if nombre == texto else "#ffffff",
-                fg="white" if nombre == texto else "#263238"
+                bg="#2563eb" if seleccionado else "#ffffff",
+                fg="white" if seleccionado else "#263238",
+                activebackground="#2563eb" if seleccionado else "#dbeafe",
+                activeforeground="white" if seleccionado else "#263238"
             )
 
     for texto in criterios:
@@ -816,6 +825,7 @@ def mostrar_batallas(contenedor):
     encabezado_interior = encabezado.content
     for columna in range(3):
         encabezado_interior.grid_columnconfigure(columna, weight=1, uniform="encabezado")
+    encabezado_interior.grid_rowconfigure(0, weight=1)
 
     modo_texto = (
         f"Grupos - {grupo}" if etapa == "Grupo" and grupo
@@ -845,7 +855,7 @@ def mostrar_batallas(contenedor):
 
     puertos_disponibles = obtener_puertos_disponibles()
     puerto_var = tk.StringVar(
-        value=puertos_disponibles[0] if puertos_disponibles else "Sin puertos disponibles"
+        value=puertos_disponibles[0] if puertos_disponibles else "No disponibles."
     )
     selector_puerto = ttk.Combobox(
         zona_puerto, textvariable=puerto_var,
@@ -911,7 +921,7 @@ def mostrar_batallas(contenedor):
         principal, fill="#e8eeee", outline="#e8eeee",
         radius=20, padding=5, height=44
     )
-    estado_frame.pack(pady=18)
+    estado_frame.pack(pady=10)
 
     estado_label = tk.Label(
         estado_frame.content, text=estado.upper(),
@@ -940,30 +950,27 @@ def mostrar_batallas(contenedor):
 
     tarjeta1_card = RoundedCard(
         combate, fill="#ffffff", outline="#d7dde2",
-        radius=22, padding=8, height=178
+        radius=20, padding=5, height=132
     )
-    tarjeta1_card.pack(side="left", expand=True, fill="both", ipady=8)
+    tarjeta1_card.pack(side="left", expand=True, fill="both")
     tarjeta1 = tarjeta1_card.content
 
+    tarjeta1.grid_rowconfigure(0, weight=1)
+    tarjeta1.grid_rowconfigure(4, weight=1)
     tk.Label(
-        tarjeta1,
-        text="ROBOT 1",
-        font=("Segoe UI", 10, "bold"),
-        fg="#7a858e",
-        bg="white"
-    ).pack(
-        pady=(10, 3)
-    )
+        tarjeta1, text="ROBOT 1",
+        font=("Segoe UI", 9, "bold"), fg="#7a858e", bg="white"
+    ).grid(row=1, column=0, pady=(0, 2))
 
     tk.Label(
         tarjeta1, text=robot1,
-        font=("Segoe UI", 21, "bold"), fg="#17202a", bg="white"
-    ).pack()
+        font=("Segoe UI", 19, "bold"), fg="#17202a", bg="white"
+    ).grid(row=2, column=0)
 
     tk.Label(
         tarjeta1, text=nombre1,
-        font=("Segoe UI", 12), fg="#68737d", bg="white"
-    ).pack(pady=(4, 10))
+        font=("Segoe UI", 10), fg="#68737d", bg="white"
+    ).grid(row=3, column=0, pady=(2, 0))
 
     # --------------------------------------------------------
     # VS
@@ -986,30 +993,27 @@ def mostrar_batallas(contenedor):
 
     tarjeta2_card = RoundedCard(
         combate, fill="#ffffff", outline="#d7dde2",
-        radius=22, padding=8, height=178
+        radius=20, padding=5, height=132
     )
-    tarjeta2_card.pack(side="left", expand=True, fill="both", ipady=8)
+    tarjeta2_card.pack(side="left", expand=True, fill="both")
     tarjeta2 = tarjeta2_card.content
 
+    tarjeta2.grid_rowconfigure(0, weight=1)
+    tarjeta2.grid_rowconfigure(4, weight=1)
     tk.Label(
-        tarjeta2,
-        text="ROBOT 2",
-        font=("Segoe UI", 10, "bold"),
-        fg="#7a858e",
-        bg="white"
-    ).pack(
-        pady=(10, 3)
-    )
+        tarjeta2, text="ROBOT 2",
+        font=("Segoe UI", 9, "bold"), fg="#7a858e", bg="white"
+    ).grid(row=1, column=0, pady=(0, 2))
 
     tk.Label(
         tarjeta2, text=robot2,
-        font=("Segoe UI", 21, "bold"), fg="#17202a", bg="white"
-    ).pack()
+        font=("Segoe UI", 19, "bold"), fg="#17202a", bg="white"
+    ).grid(row=2, column=0)
 
     tk.Label(
         tarjeta2, text=nombre2,
-        font=("Segoe UI", 12), fg="#68737d", bg="white"
-    ).pack(pady=(4, 10))
+        font=("Segoe UI", 10), fg="#68737d", bg="white"
+    ).grid(row=3, column=0, pady=(2, 0))
 
     # --------------------------------------------------------
     # PANEL TIEMPO / ATAQUES
@@ -1019,7 +1023,7 @@ def mostrar_batallas(contenedor):
         principal, fill="white", outline="#d7dde2",
         radius=22, padding=8, height=112
     )
-    datos_card.pack(fill="x", padx=60, pady=20)
+    datos_card.pack(fill="x", padx=60, pady=12)
     datos = datos_card.content
     for columna in range(3):
         datos.grid_columnconfigure(columna, weight=1, uniform="estadisticas")
