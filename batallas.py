@@ -591,7 +591,7 @@ def abrir_resultado(
 
     boton1 = RoundedButton(
         marco_ganadores,
-        text=f"{robot1}\\n{nombre1}",
+        text=f"{robot1}\n{nombre1}",
         command=lambda: seleccionar_ganador(participante1),
         width=300, height=78, bg="#ffffff", fg="#17202a",
         activebackground="#dbeafe", activeforeground="#17202a",
@@ -601,7 +601,7 @@ def abrir_resultado(
 
     boton2 = RoundedButton(
         marco_ganadores,
-        text=f"{robot2}\\n{nombre2}",
+        text=f"{robot2}\n{nombre2}",
         command=lambda: seleccionar_ganador(participante2),
         width=300, height=78, bg="#ffffff", fg="#17202a",
         activebackground="#dbeafe", activeforeground="#17202a",
