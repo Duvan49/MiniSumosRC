@@ -72,6 +72,7 @@ class RoundedButton(tk.Canvas):
                  bg="#2563eb", fg="white", activebackground=None,
                  activeforeground=None, disabledbackground="#cbd5e1",
                  font=("Segoe UI", 11, "bold"), radius=14, state="normal",
+                 secondary_text=None, secondary_font=("Segoe UI", 10),
                  **kwargs):
         super().__init__(
             master, width=width, height=height, bg=master.cget("bg"),
@@ -85,6 +86,8 @@ class RoundedButton(tk.Canvas):
         self.activeforeground = activeforeground or fg
         self.disabledbackground = disabledbackground
         self.font = font
+        self.secondary_text = secondary_text
+        self.secondary_font = secondary_font
         self.radius = radius
         self.state = state
         self.hover = False
@@ -108,11 +111,21 @@ class RoundedButton(tk.Canvas):
             smooth=True, splinesteps=24, fill=self._color_actual(),
             outline=self._color_actual()
         )
-        self.create_text(
-            ancho / 2, alto / 2, text=self.text,
-            fill="#f8fafc" if self.state == "disabled" else self.button_fg,
-            font=self.font, justify="center"
-        )
+        color_texto = "#f8fafc" if self.state == "disabled" else self.button_fg
+        if self.secondary_text is None:
+            self.create_text(
+                ancho / 2, alto / 2, text=self.text,
+                fill=color_texto, font=self.font, justify="center"
+            )
+        else:
+            self.create_text(
+                ancho / 2, alto * 0.39, text=self.text,
+                fill=color_texto, font=self.font, justify="center"
+            )
+            self.create_text(
+                ancho / 2, alto * 0.70, text=self.secondary_text,
+                fill=color_texto, font=self.secondary_font, justify="center"
+            )
         super().configure(cursor="arrow" if self.state == "disabled" else "hand2")
 
     def _entrar(self, event=None):
@@ -597,21 +610,23 @@ def abrir_resultado(
 
     boton1 = RoundedButton(
         marco_ganadores,
-        text=f"{robot1}\n{nombre1}",
+        text=robot1, secondary_text=nombre1,
         command=lambda: seleccionar_ganador(participante1),
         width=300, height=78, bg="#ffffff", fg="#17202a",
         activebackground="#dbeafe", activeforeground="#17202a",
-        font=("Segoe UI", 13, "bold"), radius=16
+        font=("Segoe UI", 16, "bold"), secondary_font=("Segoe UI", 10),
+        radius=16
     )
     boton1.pack(side="left", expand=True, fill="both", padx=(0, 7))
 
     boton2 = RoundedButton(
         marco_ganadores,
-        text=f"{robot2}\n{nombre2}",
+        text=robot2, secondary_text=nombre2,
         command=lambda: seleccionar_ganador(participante2),
         width=300, height=78, bg="#ffffff", fg="#17202a",
         activebackground="#dbeafe", activeforeground="#17202a",
-        font=("Segoe UI", 13, "bold"), radius=16
+        font=("Segoe UI", 16, "bold"), secondary_font=("Segoe UI", 10),
+        radius=16
     )
     boton2.pack(side="left", expand=True, fill="both", padx=(7, 0))
 
@@ -955,6 +970,7 @@ def mostrar_batallas(contenedor):
     tarjeta1_card.pack(side="left", expand=True, fill="both")
     tarjeta1 = tarjeta1_card.content
 
+    tarjeta1.grid_columnconfigure(0, weight=1)
     tarjeta1.grid_rowconfigure(0, weight=1)
     tarjeta1.grid_rowconfigure(4, weight=1)
     tk.Label(
@@ -969,7 +985,7 @@ def mostrar_batallas(contenedor):
 
     tk.Label(
         tarjeta1, text=nombre1,
-        font=("Segoe UI", 10), fg="#68737d", bg="white"
+        font=("Segoe UI", 12), fg="#68737d", bg="white"
     ).grid(row=3, column=0, pady=(2, 0))
 
     # --------------------------------------------------------
@@ -998,6 +1014,7 @@ def mostrar_batallas(contenedor):
     tarjeta2_card.pack(side="left", expand=True, fill="both")
     tarjeta2 = tarjeta2_card.content
 
+    tarjeta2.grid_columnconfigure(0, weight=1)
     tarjeta2.grid_rowconfigure(0, weight=1)
     tarjeta2.grid_rowconfigure(4, weight=1)
     tk.Label(
