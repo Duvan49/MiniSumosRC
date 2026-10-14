@@ -10,6 +10,144 @@ from Interfaz.esp32 import esp32
 
 
 # ============================================================
+# COMPONENTES VISUALES REDONDEADOS
+# ============================================================
+
+def _puntos_redondeados(x1, y1, x2, y2, radio):
+    radio = max(2, min(radio, (x2 - x1) / 2, (y2 - y1) / 2))
+    return [
+        x1 + radio, y1, x2 - radio, y1,
+        x2, y1, x2, y1 + radio,
+        x2, y2 - radio, x2, y2,
+        x2 - radio, y2, x1 + radio, y2,
+        x1, y2, x1, y2 - radio,
+        x1, y1 + radio, x1, y1
+    ]
+
+
+class RoundedCard(tk.Frame):
+    """Tarjeta con fondo redondeado y un frame interior para sus widgets."""
+    def __init__(self, master, fill="#ffffff", outline="#d7dde2",
+                 radius=18, padding=8, height=120, **kwargs):
+        super().__init__(master, bg=master.cget("bg"), bd=0,
+                         highlightthickness=0, **kwargs)
+        self.fill = fill
+        self.outline = outline
+        self.radius = radius
+        self.padding = padding
+        self.canvas = tk.Canvas(
+            self, bg=master.cget("bg"), bd=0, highlightthickness=0,
+            relief="flat", height=height
+        )
+        self.canvas.pack(fill="both", expand=True)
+        self.content = tk.Frame(self.canvas, bg=fill, bd=0,
+                                highlightthickness=0)
+        self.window_id = self.canvas.create_window(
+            padding, padding, anchor="nw", window=self.content
+        )
+        self.canvas.bind("<Configure>", self._redibujar)
+        self.after_idle(self._redibujar)
+
+    def _redibujar(self, event=None):
+        ancho = max(2, self.canvas.winfo_width())
+        alto = max(2, self.canvas.winfo_height())
+        p = min(self.padding, max(2, ancho // 5), max(2, alto // 5))
+        self.canvas.delete("fondo_redondeado")
+        self.canvas.create_polygon(
+            _puntos_redondeados(1, 1, ancho - 1, alto - 1, self.radius),
+            smooth=True, splinesteps=24, fill=self.fill,
+            outline=self.outline, width=1, tags="fondo_redondeado"
+        )
+        self.canvas.tag_lower("fondo_redondeado")
+        self.canvas.coords(self.window_id, p, p)
+        self.canvas.itemconfigure(
+            self.window_id, width=max(1, ancho - 2 * p),
+            height=max(1, alto - 2 * p)
+        )
+
+
+class RoundedButton(tk.Canvas):
+    """Botón dibujado en Canvas para mantener esquinas redondeadas."""
+    def __init__(self, master, text="", command=None, width=150, height=44,
+                 bg="#2563eb", fg="white", activebackground=None,
+                 activeforeground=None, disabledbackground="#cbd5e1",
+                 font=("Segoe UI", 11, "bold"), radius=14, state="normal",
+                 **kwargs):
+        super().__init__(
+            master, width=width, height=height, bg=master.cget("bg"),
+            bd=0, highlightthickness=0, relief="flat", cursor="hand2"
+        )
+        self.text = text
+        self.command = command
+        self.button_bg = bg
+        self.button_fg = fg
+        self.activebackground = activebackground or bg
+        self.activeforeground = activeforeground or fg
+        self.disabledbackground = disabledbackground
+        self.font = font
+        self.radius = radius
+        self.state = state
+        self.hover = False
+        self.bind("<Configure>", self._dibujar)
+        self.bind("<Enter>", self._entrar)
+        self.bind("<Leave>", self._salir)
+        self.bind("<Button-1>", self._clic)
+        self.after_idle(self._dibujar)
+
+    def _color_actual(self):
+        if self.state == "disabled":
+            return self.disabledbackground
+        return self.activebackground if self.hover else self.button_bg
+
+    def _dibujar(self, event=None):
+        self.delete("all")
+        ancho = max(2, self.winfo_width())
+        alto = max(2, self.winfo_height())
+        self.create_polygon(
+            _puntos_redondeados(1, 1, ancho - 1, alto - 1, self.radius),
+            smooth=True, splinesteps=24, fill=self._color_actual(),
+            outline=self._color_actual()
+        )
+        self.create_text(
+            ancho / 2, alto / 2, text=self.text,
+            fill="#f8fafc" if self.state == "disabled" else self.button_fg,
+            font=self.font, justify="center"
+        )
+        self.configure(cursor="arrow" if self.state == "disabled" else "hand2")
+
+    def _entrar(self, event=None):
+        self.hover = True
+        self._dibujar()
+
+    def _salir(self, event=None):
+        self.hover = False
+        self._dibujar()
+
+    def _clic(self, event=None):
+        if self.state != "disabled" and callable(self.command):
+            self.command()
+
+    def config(self, cnf=None, **kwargs):
+        if isinstance(cnf, dict):
+            kwargs = {**cnf, **kwargs}
+        atributos = {
+            "command": "command", "text": "text", "bg": "button_bg",
+            "fg": "button_fg", "activebackground": "activebackground",
+            "activeforeground": "activeforeground",
+            "disabledbackground": "disabledbackground",
+            "font": "font", "state": "state"
+        }
+        for key, attr in atributos.items():
+            if key in kwargs:
+                setattr(self, attr, kwargs.pop(key))
+        if kwargs:
+            super().configure(**kwargs)
+        self._dibujar()
+
+    configure = config
+
+
+# ============================================================
 # BASE DE DATOS
 # ============================================================
 
@@ -358,20 +496,23 @@ def abrir_resultado(
     # ENCABEZADO ROJO DEL RESULTADO
     # --------------------------------------------------------
 
-    cabecera_resultado = tk.Frame(principal, bg="#922b2b", height=90)
+    cabecera_resultado = RoundedCard(
+        principal, fill="#922b2b", outline="#922b2b",
+        radius=22, padding=8, height=90
+    )
     cabecera_resultado.pack(fill="x", pady=(0, 18))
-    cabecera_resultado.pack_propagate(False)
 
     tk.Label(
-        cabecera_resultado,
+        cabecera_resultado.content,
         text=f"RESULTADO • BATALLA {id_batalla}",
         font=("Segoe UI", 22, "bold"),
         fg="white", bg="#922b2b"
     ).pack(side="left", padx=20, expand=True)
 
     tk.Label(
-        cabecera_resultado,
-        text=grupo or etapa,
+        cabecera_resultado.content,
+        text=(f"Grupos - {grupo}" if etapa == "Grupo" and grupo
+              else "Todos vs Todos" if etapa == "Todos" else etapa),
         font=("Segoe UI", 10, "bold"),
         fg="white", bg="#7f1d1d", padx=12, pady=7
     ).pack(side="right", padx=18)
@@ -380,20 +521,14 @@ def abrir_resultado(
     # DATOS
     # --------------------------------------------------------
 
-    datos = tk.Frame(
-        principal,
-        bg="white",
-        highlightbackground="#d9dee3",
-        highlightthickness=1
+    datos = RoundedCard(
+        principal, fill="white", outline="#d9dee3",
+        radius=20, padding=8, height=94
     )
-
-    datos.pack(
-        fill="x",
-        pady=(0, 20)
-    )
+    datos.pack(fill="x", pady=(0, 20))
 
     for columna in range(3):
-        datos.grid_columnconfigure(columna, weight=1)
+        datos.content.grid_columnconfigure(columna, weight=1)
 
     estadisticas = [
         ("ATAQUES R1", str(ataques1)),
@@ -403,13 +538,13 @@ def abrir_resultado(
 
     for columna, (titulo, valor) in enumerate(estadisticas):
         tk.Label(
-            datos, text=titulo,
+            datos.content, text=titulo,
             font=("Segoe UI", 9, "bold"),
             fg="#7a858e", bg="white"
         ).grid(row=0, column=columna, padx=18, pady=(12, 0), sticky="ew")
 
         tk.Label(
-            datos, text=valor,
+            datos.content, text=valor,
             font=("Segoe UI", 18, "bold"),
             fg="#17202a", bg="white"
         ).grid(row=1, column=columna, padx=18, pady=(0, 12), sticky="ew")
@@ -440,53 +575,39 @@ def abrir_resultado(
         fill="x"
     )
 
-    boton1 = tk.Radiobutton(
+    boton1 = None
+    boton2 = None
+
+    def seleccionar_ganador(valor):
+        ganador.set(valor)
+        boton1.config(
+            bg="#2563eb" if valor == participante1 else "#ffffff",
+            fg="white" if valor == participante1 else "#17202a"
+        )
+        boton2.config(
+            bg="#2563eb" if valor == participante2 else "#ffffff",
+            fg="white" if valor == participante2 else "#17202a"
+        )
+
+    boton1 = RoundedButton(
         marco_ganadores,
-        text=f"{nombre1}\n{robot1}",
-        variable=ganador,
-        value=participante1,
-        indicatoron=False,
-        font=("Segoe UI", 13, "bold"),
-        height=3,
-        bg="white",
-        fg="#17202a",
-        selectcolor="#dbeafe",
-        activebackground="#eef6ff",
-        relief="solid",
-        bd=1,
-        cursor="hand2"
+        text=f"{robot1}\\n{nombre1}",
+        command=lambda: seleccionar_ganador(participante1),
+        width=300, height=78, bg="#ffffff", fg="#17202a",
+        activebackground="#dbeafe", activeforeground="#17202a",
+        font=("Segoe UI", 13, "bold"), radius=16
     )
+    boton1.pack(side="left", expand=True, fill="both", padx=(0, 7))
 
-    boton1.pack(
-        side="left",
-        expand=True,
-        fill="both",
-        padx=(0, 7)
-    )
-
-    boton2 = tk.Radiobutton(
+    boton2 = RoundedButton(
         marco_ganadores,
-        text=f"{nombre2}\n{robot2}",
-        variable=ganador,
-        value=participante2,
-        indicatoron=False,
-        font=("Segoe UI", 13, "bold"),
-        height=3,
-        bg="white",
-        fg="#17202a",
-        selectcolor="#dbeafe",
-        activebackground="#eef6ff",
-        relief="solid",
-        bd=1,
-        cursor="hand2"
+        text=f"{robot2}\\n{nombre2}",
+        command=lambda: seleccionar_ganador(participante2),
+        width=300, height=78, bg="#ffffff", fg="#17202a",
+        activebackground="#dbeafe", activeforeground="#17202a",
+        font=("Segoe UI", 13, "bold"), radius=16
     )
-
-    boton2.pack(
-        side="left",
-        expand=True,
-        fill="both",
-        padx=(7, 0)
-    )
+    boton2.pack(side="left", expand=True, fill="both", padx=(7, 0))
 
     # --------------------------------------------------------
     # CRITERIO
@@ -522,29 +643,28 @@ def abrir_resultado(
         "Decisión del juez"
     ]
 
-    for texto in criterios:
+    botones_criterio = {}
 
-        boton = tk.Radiobutton(
+    def seleccionar_criterio(texto):
+        criterio.set(texto)
+        for nombre, boton in botones_criterio.items():
+            boton.config(
+                bg="#2563eb" if nombre == texto else "#ffffff",
+                fg="white" if nombre == texto else "#263238"
+            )
+
+    for texto in criterios:
+        boton = RoundedButton(
             marco_criterios,
             text=texto,
-            variable=criterio,
-            value=texto,
-            indicatoron=False,
-            font=("Segoe UI", 11, "bold"),
-            height=1,
-            bg="white",
-            fg="#263238",
-            selectcolor="#dbeafe",
-            activebackground="#eef6ff",
-            relief="solid",
-            bd=1,
-            cursor="hand2"
+            command=lambda opcion=texto: seleccionar_criterio(opcion),
+            width=620, height=38,
+            bg="#ffffff", fg="#263238",
+            activebackground="#dbeafe", activeforeground="#263238",
+            font=("Segoe UI", 11, "bold"), radius=13
         )
-
-        boton.pack(
-            fill="x",
-            pady=2
-        )
+        boton.pack(fill="x", pady=3)
+        botones_criterio[texto] = boton
 
     # --------------------------------------------------------
     # REGISTRAR
@@ -687,61 +807,52 @@ def mostrar_batallas(contenedor):
     # ENCABEZADO
     # --------------------------------------------------------
 
-    encabezado = tk.Frame(
-        principal,
-        bg="#922b2b",
-        height=110
+    encabezado = RoundedCard(
+        principal, fill="#922b2b", outline="#922b2b",
+        radius=24, padding=10, height=112
     )
+    encabezado.pack(fill="x", padx=18, pady=(8, 0))
 
-    encabezado.pack(
-        fill="x"
+    encabezado_interior = encabezado.content
+    for columna in range(3):
+        encabezado_interior.grid_columnconfigure(columna, weight=1, uniform="encabezado")
+
+    modo_texto = (
+        f"Grupos - {grupo}" if etapa == "Grupo" and grupo
+        else "Todos vs Todos" if etapa == "Todos"
+        else etapa
     )
-
-    encabezado.pack_propagate(False)
+    tk.Label(
+        encabezado_interior, text=modo_texto,
+        font=("Segoe UI", 12, "bold"), fg="#fbeaea", bg="#922b2b",
+        anchor="w"
+    ).grid(row=0, column=0, sticky="w", padx=(18, 6), pady=8)
 
     tk.Label(
-        encabezado,
-        text=f"BATALLA {id_batalla}",
-        font=("Segoe UI", 28, "bold"),
-        fg="white",
-        bg="#922b2b"
-    ).pack(
-        side="left",
-        padx=40
+        encabezado_interior, text=f"BATALLA {id_batalla}",
+        font=("Segoe UI", 26, "bold"), fg="white", bg="#922b2b",
+        anchor="center"
+    ).grid(row=0, column=1, sticky="nsew", padx=4, pady=8)
+
+    zona_puerto = tk.Frame(encabezado_interior, bg="#922b2b")
+    zona_puerto.grid(row=0, column=2, sticky="e", padx=(6, 18), pady=5)
+
+    def obtener_puertos_disponibles():
+        try:
+            return [p.device for p in list_ports.comports()]
+        except Exception:
+            return []
+
+    puertos_disponibles = obtener_puertos_disponibles()
+    puerto_var = tk.StringVar(
+        value=puertos_disponibles[0] if puertos_disponibles else "Sin puertos disponibles"
     )
-
-    informacion = etapa
-
-    if grupo:
-        informacion += f"   •   {grupo}"
-
-    informacion += f"   •   Ronda {ronda}"
-
-    tk.Label(
-        encabezado,
-        text=informacion,
-        font=("Segoe UI", 11),
-        fg="#fbeaea",
-        bg="#922b2b"
-    ).pack(
-        side="right",
-        padx=40
-    )
-
-    # Selector de puerto y estado real de conexión
-    zona_puerto = tk.Frame(encabezado, bg="#922b2b")
-    zona_puerto.pack(side="right", padx=(10, 22), pady=8)
-
-    puertos_disponibles = [p.device for p in list_ports.comports()]
-    if not puertos_disponibles:
-        puertos_disponibles = ["COM4"]
-
-    puerto_var = tk.StringVar(value=puertos_disponibles[0])
     selector_puerto = ttk.Combobox(
         zona_puerto, textvariable=puerto_var,
-        values=puertos_disponibles, width=12, state="readonly"
+        values=puertos_disponibles or ["Sin puertos disponibles"],
+        width=18, state="readonly", font=("Segoe UI", 11)
     )
-    selector_puerto.pack(pady=(0, 3))
+    selector_puerto.pack(pady=(0, 4))
 
     estado_conexion = tk.Label(
         zona_puerto, text="● No conectado",
@@ -749,20 +860,15 @@ def mostrar_batallas(contenedor):
     )
     estado_conexion.pack()
 
-    def refrescar_puertos():
-        encontrados = [p.device for p in list_ports.comports()]
-        if not encontrados:
-            encontrados = ["COM4"]
-        actual = puerto_var.get()
-        selector_puerto.configure(values=encontrados)
-        if actual not in encontrados:
-            puerto_var.set(encontrados[0])
-
     def conectar_puerto(event=None, mostrar_error=False):
+        puerto = puerto_var.get()
+        if puerto == "Sin puertos disponibles":
+            estado_conexion.config(text="● No conectado", fg="#d1d5db")
+            return
         try:
-            correcto = esp32.conectar(puerto_var.get())
+            correcto = esp32.conectar(puerto)
             if correcto:
-                estado_conexion.config(text=f"● Conectado ({puerto_var.get()})", fg="#86efac")
+                estado_conexion.config(text=f"● Conectado ({puerto})", fg="#86efac")
             else:
                 estado_conexion.config(text="● No conectado", fg="#d1d5db")
         except Exception as error:
@@ -773,35 +879,45 @@ def mostrar_batallas(contenedor):
                     parent=contenedor.winfo_toplevel()
                 )
 
+    def refrescar_puertos():
+        if not principal.winfo_exists():
+            return
+        encontrados = obtener_puertos_disponibles()
+        valores = encontrados or ["Sin puertos disponibles"]
+        actual = puerto_var.get()
+        selector_puerto.configure(values=valores)
+        if actual not in valores:
+            puerto_var.set(valores[0])
+            if getattr(esp32, "conectado", False):
+                esp32.desconectar()
+            estado_conexion.config(text="● No conectado", fg="#d1d5db")
+        if encontrados and not getattr(esp32, "conectado", False):
+            conectar_puerto()
+        principal.after(2500, refrescar_puertos)
+
     selector_puerto.bind(
         "<<ComboboxSelected>>",
         lambda evento: conectar_puerto(evento, True)
     )
-    conectar_puerto()
+    if puertos_disponibles:
+        conectar_puerto()
+    principal.after(2500, refrescar_puertos)
 
     # --------------------------------------------------------
     # ESTADO
     # --------------------------------------------------------
 
-    estado_frame = tk.Frame(
-        principal,
-        bg="#f3f5f7"
+    estado_frame = RoundedCard(
+        principal, fill="#e8eeee", outline="#e8eeee",
+        radius=20, padding=5, height=44
     )
-
-    estado_frame.pack(
-        pady=18
-    )
+    estado_frame.pack(pady=18)
 
     estado_label = tk.Label(
-        estado_frame,
-        text=estado.upper(),
-        font=("Segoe UI", 11, "bold"),
-        fg="#17202a",
-        bg="#e8eeee",
-        padx=25,
-        pady=7
+        estado_frame.content, text=estado.upper(),
+        font=("Segoe UI", 11, "bold"), fg="#17202a",
+        bg="#e8eeee", padx=25, pady=5
     )
-
     estado_label.pack()
 
     # --------------------------------------------------------
@@ -822,19 +938,12 @@ def mostrar_batallas(contenedor):
     # TARJETA ROBOT 1
     # --------------------------------------------------------
 
-    tarjeta1 = tk.Frame(
-        combate,
-        bg="#ffffff",
-        highlightbackground="#d7dde2",
-        highlightthickness=1
+    tarjeta1_card = RoundedCard(
+        combate, fill="#ffffff", outline="#d7dde2",
+        radius=22, padding=8, height=178
     )
-
-    tarjeta1.pack(
-        side="left",
-        expand=True,
-        fill="both",
-        ipady=18
-    )
+    tarjeta1_card.pack(side="left", expand=True, fill="both", ipady=8)
+    tarjeta1 = tarjeta1_card.content
 
     tk.Label(
         tarjeta1,
@@ -847,22 +956,14 @@ def mostrar_batallas(contenedor):
     )
 
     tk.Label(
-        tarjeta1,
-        text=nombre1,
-        font=("Segoe UI", 21, "bold"),
-        fg="#17202a",
-        bg="white"
+        tarjeta1, text=robot1,
+        font=("Segoe UI", 21, "bold"), fg="#17202a", bg="white"
     ).pack()
 
     tk.Label(
-        tarjeta1,
-        text=robot1,
-        font=("Segoe UI", 12),
-        fg="#68737d",
-        bg="white"
-    ).pack(
-        pady=(4, 10)
-    )
+        tarjeta1, text=nombre1,
+        font=("Segoe UI", 12), fg="#68737d", bg="white"
+    ).pack(pady=(4, 10))
 
     # --------------------------------------------------------
     # VS
@@ -883,19 +984,12 @@ def mostrar_batallas(contenedor):
     # TARJETA ROBOT 2
     # --------------------------------------------------------
 
-    tarjeta2 = tk.Frame(
-        combate,
-        bg="#ffffff",
-        highlightbackground="#d7dde2",
-        highlightthickness=1
+    tarjeta2_card = RoundedCard(
+        combate, fill="#ffffff", outline="#d7dde2",
+        radius=22, padding=8, height=178
     )
-
-    tarjeta2.pack(
-        side="left",
-        expand=True,
-        fill="both",
-        ipady=18
-    )
+    tarjeta2_card.pack(side="left", expand=True, fill="both", ipady=8)
+    tarjeta2 = tarjeta2_card.content
 
     tk.Label(
         tarjeta2,
@@ -908,123 +1002,57 @@ def mostrar_batallas(contenedor):
     )
 
     tk.Label(
-        tarjeta2,
-        text=nombre2,
-        font=("Segoe UI", 21, "bold"),
-        fg="#17202a",
-        bg="white"
+        tarjeta2, text=robot2,
+        font=("Segoe UI", 21, "bold"), fg="#17202a", bg="white"
     ).pack()
 
     tk.Label(
-        tarjeta2,
-        text=robot2,
-        font=("Segoe UI", 12),
-        fg="#68737d",
-        bg="white"
-    ).pack(
-        pady=(4, 10)
-    )
+        tarjeta2, text=nombre2,
+        font=("Segoe UI", 12), fg="#68737d", bg="white"
+    ).pack(pady=(4, 10))
 
     # --------------------------------------------------------
     # PANEL TIEMPO / ATAQUES
     # --------------------------------------------------------
 
-    datos = tk.Frame(
-        principal,
-        bg="white",
-        highlightbackground="#d7dde2",
-        highlightthickness=1
+    datos_card = RoundedCard(
+        principal, fill="white", outline="#d7dde2",
+        radius=22, padding=8, height=112
     )
+    datos_card.pack(fill="x", padx=60, pady=20)
+    datos = datos_card.content
+    for columna in range(3):
+        datos.grid_columnconfigure(columna, weight=1, uniform="estadisticas")
 
-    datos.pack(
-        fill="x",
-        padx=60,
-        pady=20
-    )
-
-    # Tiempo
     tk.Label(
-        datos,
-        text="◷  TIEMPO",
-        font=("Segoe UI", 9, "bold"),
-        fg="#7a858e",
-        bg="white"
-    ).grid(
-        row=0,
-        column=0,
-        pady=(12, 0)
-    )
-
-    tiempo_label = tk.Label(
-        datos,
-        text="--:--",
-        font=("Segoe UI", 25, "bold"),
-        fg="#17202a",
-        bg="white"
-    )
-
-    tiempo_label.grid(
-        row=1,
-        column=0,
-        padx=70,
-        pady=(0, 12)
-    )
-
-    # Ataques 1
-    tk.Label(
-        datos,
-        text="⚔  ATAQUES R1",
-        font=("Segoe UI", 9, "bold"),
-        fg="#7a858e",
-        bg="white"
-    ).grid(
-        row=0,
-        column=1,
-        pady=(12, 0)
-    )
-
+        datos, text="⚔  ATAQUES R1",
+        font=("Segoe UI", 9, "bold"), fg="#7a858e", bg="white"
+    ).grid(row=0, column=0, pady=(12, 0), sticky="ew")
     ataques1_label = tk.Label(
-        datos,
-        text="0",
-        font=("Segoe UI", 25, "bold"),
-        fg="#17202a",
-        bg="white"
+        datos, text="0", font=("Segoe UI", 25, "bold"),
+        fg="#17202a", bg="white"
     )
+    ataques1_label.grid(row=1, column=0, padx=18, pady=(0, 12), sticky="ew")
 
-    ataques1_label.grid(
-        row=1,
-        column=1,
-        padx=70,
-        pady=(0, 12)
-    )
-
-    # Ataques 2
     tk.Label(
-        datos,
-        text="⚔  ATAQUES R2",
-        font=("Segoe UI", 9, "bold"),
-        fg="#7a858e",
-        bg="white"
-    ).grid(
-        row=0,
-        column=2,
-        pady=(12, 0)
+        datos, text="◷  TIEMPO",
+        font=("Segoe UI", 9, "bold"), fg="#7a858e", bg="white"
+    ).grid(row=0, column=1, pady=(12, 0), sticky="ew")
+    tiempo_label = tk.Label(
+        datos, text="00:00", font=("Segoe UI", 25, "bold"),
+        fg="#17202a", bg="white"
     )
+    tiempo_label.grid(row=1, column=1, padx=18, pady=(0, 12), sticky="ew")
 
+    tk.Label(
+        datos, text="⚔  ATAQUES R2",
+        font=("Segoe UI", 9, "bold"), fg="#7a858e", bg="white"
+    ).grid(row=0, column=2, pady=(12, 0), sticky="ew")
     ataques2_label = tk.Label(
-        datos,
-        text="0",
-        font=("Segoe UI", 25, "bold"),
-        fg="#17202a",
-        bg="white"
+        datos, text="0", font=("Segoe UI", 25, "bold"),
+        fg="#17202a", bg="white"
     )
-
-    ataques2_label.grid(
-        row=1,
-        column=2,
-        padx=70,
-        pady=(0, 12)
-    )
+    ataques2_label.grid(row=1, column=2, padx=18, pady=(0, 12), sticky="ew")
 
     # --------------------------------------------------------
     # CONTROLES
@@ -1039,64 +1067,29 @@ def mostrar_batallas(contenedor):
         pady=5
     )
 
-    boton_iniciar = tk.Button(
-        controles,
-        text="▶  INICIAR",
-        command=None,
-        font=("Segoe UI", 11, "bold"),
-        width=13,
-        height=2,
-        bg="#2563eb",
-        fg="white",
-        activebackground="#1d4ed8",
-        activeforeground="white",
-        relief="flat",
-        cursor="hand2"
+    boton_iniciar = RoundedButton(
+        controles, text="▶  INICIAR", command=None,
+        width=150, height=48, bg="#16a34a", fg="white",
+        activebackground="#15803d", activeforeground="white",
+        font=("Segoe UI", 11, "bold"), radius=16
     )
-
-    boton_pausar = tk.Button(
-        controles,
-        text="Ⅱ  PAUSAR",
-        command=None,
-        font=("Segoe UI", 11, "bold"),
-        width=13,
-        height=2,
-        bg="#e9a23b",
-        fg="white",
-        activebackground="#d18b28",
-        activeforeground="white",
-        relief="flat",
-        cursor="hand2"
+    boton_pausar = RoundedButton(
+        controles, text="Ⅱ  PAUSAR", command=None,
+        width=150, height=48, bg="#e9a23b", fg="white",
+        activebackground="#d18b28", activeforeground="white",
+        font=("Segoe UI", 11, "bold"), radius=16
     )
-
-    boton_continuar = tk.Button(
-        controles,
-        text="▶  CONTINUAR",
-        command=None,
-        font=("Segoe UI", 11, "bold"),
-        width=13,
-        height=2,
-        bg="#2563eb",
-        fg="white",
-        activebackground="#1d4ed8",
-        activeforeground="white",
-        relief="flat",
-        cursor="hand2"
+    boton_continuar = RoundedButton(
+        controles, text="▶  CONTINUAR", command=None,
+        width=150, height=48, bg="#2563eb", fg="white",
+        activebackground="#1d4ed8", activeforeground="white",
+        font=("Segoe UI", 11, "bold"), radius=16
     )
-
-    boton_finalizar = tk.Button(
-        controles,
-        text="■  FINALIZAR",
-        command=None,
-        font=("Segoe UI", 11, "bold"),
-        width=13,
-        height=2,
-        bg="#dc3545",
-        fg="white",
-        activebackground="#b91c2b",
-        activeforeground="white",
-        relief="flat",
-        cursor="hand2"
+    boton_finalizar = RoundedButton(
+        controles, text="■  FINALIZAR", command=None,
+        width=150, height=48, bg="#dc3545", fg="white",
+        activebackground="#b91c2b", activeforeground="white",
+        font=("Segoe UI", 11, "bold"), radius=16
     )
 
     boton_iniciar.pack(
