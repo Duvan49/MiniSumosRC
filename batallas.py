@@ -401,10 +401,9 @@ def centrar_ventana(ventana, ancho, alto):
     ventana.update_idletasks()
 
     pantalla_ancho = ventana.winfo_screenwidth()
-    pantalla_alto = ventana.winfo_screenheight()
 
     x = (pantalla_ancho - ancho) // 2
-    y = (pantalla_alto - alto) // 2
+    y = 0  # Pegada al borde superior de la pantalla
 
     ventana.geometry(
         f"{ancho}x{alto}+{x}+{y}"
