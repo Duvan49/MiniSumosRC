@@ -870,12 +870,32 @@ def mostrar_batallas(contenedor):
 
     puertos_disponibles = obtener_puertos_disponibles()
     puerto_var = tk.StringVar(
-        value=puertos_disponibles[0] if puertos_disponibles else "No disponibles."
+        value=puertos_disponibles[0] if puertos_disponibles else "No disponible"
     )
+    estilo_puertos = ttk.Style()
+    estilo_puertos.configure(
+        "Puerto.TCombobox",
+        fieldbackground="#e5e7eb",
+        background="#e5e7eb",
+        foreground="#374151",
+        selectbackground="#e5e7eb",
+        selectforeground="#374151",
+        padding=4
+    )
+    estilo_puertos.map(
+        "Puerto.TCombobox",
+        fieldbackground=[("readonly", "#e5e7eb"), ("!disabled", "#e5e7eb")],
+        background=[("readonly", "#e5e7eb"), ("!disabled", "#e5e7eb")],
+        foreground=[("readonly", "#374151"), ("!disabled", "#374151")],
+        selectbackground=[("readonly", "#e5e7eb")],
+        selectforeground=[("readonly", "#374151")]
+    )
+
     selector_puerto = ttk.Combobox(
         zona_puerto, textvariable=puerto_var,
-        values=puertos_disponibles or ["No disponibles"],
-        width=18, state="readonly", font=("Segoe UI", 11)
+        values=puertos_disponibles or ["No disponible"],
+        width=15, state="readonly", font=("Segoe UI", 11),
+        justify="center", style="Puerto.TCombobox"
     )
     selector_puerto.pack(pady=(0, 4))
 
@@ -887,7 +907,7 @@ def mostrar_batallas(contenedor):
 
     def conectar_puerto(event=None, mostrar_error=False):
         puerto = puerto_var.get()
-        if puerto == "No disponibles":
+        if puerto == "No disponible":
             estado_conexion.config(text="● No conectado", fg="#d1d5db")
             return
         try:
@@ -908,7 +928,7 @@ def mostrar_batallas(contenedor):
         if not principal.winfo_exists():
             return
         encontrados = obtener_puertos_disponibles()
-        valores = encontrados or ["No disponibles"]
+        valores = encontrados or ["No disponible"]
         actual = puerto_var.get()
         selector_puerto.configure(values=valores)
         if actual not in valores:
