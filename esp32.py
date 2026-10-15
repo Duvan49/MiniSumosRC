@@ -320,7 +320,7 @@ class ComunicacionESP32:
     def iniciar_batalla(self, id_batalla, robot1, robot2):
         """Envía el comando de inicio y prepara los datos locales."""
         def limpiar_campo(valor):
-            return str(valor).replace("|", "/").replace("\\n", " ").replace("\\r", " ").strip()
+            return str(valor).replace("|", "/").replace("\n", " ").replace("\r", " ").strip()
 
         id_texto = limpiar_campo(id_batalla)
         robot1_texto = limpiar_campo(robot1)
@@ -346,7 +346,7 @@ class ComunicacionESP32:
     def finalizar_batalla(self, ganador, criterio):
         """Envía el resultado final a la ESP32."""
         def limpiar_campo(valor):
-            return str(valor).replace("|", "/").replace("\\n", " ").replace("\\r", " ").strip()
+            return str(valor).replace("|", "/").replace("\n", " ").replace("\r", " ").strip()
 
         ganador_texto = limpiar_campo(ganador)
         criterio_texto = limpiar_campo(criterio)
