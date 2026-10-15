@@ -8,7 +8,7 @@
     - GPIO 19: ataque del Robot 2 (conectar pulsador entre GPIO19 y GND)
 
   Los pines usan INPUT_PULLUP. Cada botón se valida con una máquina de estados
-  en loop(): debe permanecer estable 30 ms al presionar o soltar para aceptar
+  en loop(): debe permanecer estable 70 ms al presionar o soltar para aceptar
   el cambio. Cada ciclo completo de presión cuenta como máximo un ataque.
 
   Protocolo desde Python:
@@ -71,7 +71,7 @@ uint32_t inicioTramoMs = 0;
 uint32_t inicioCuentaRegresivaMs = 0;
 uint32_t ultimoEnvioMs = 0;
 
-constexpr uint32_t DURACION_CUENTA_REGRESIVA_MS = 3000;
+constexpr uint32_t DURACION_CUENTA_REGRESIVA_MS = 4000;  // 3, 2, 1 y 0; un segundo cada uno
 
 // -------------------- MÁQUINAS DE ESTADOS DE LOS BOTONES --------------------
 
@@ -152,7 +152,7 @@ void enviarDatos() {
   Serial.print("TIEMPO=");
   if (estado == CUENTA_REGRESIVA) {
     const uint32_t transcurrido = static_cast<uint32_t>(millis() - inicioCuentaRegresivaMs);
-    const uint32_t restante = (DURACION_CUENTA_REGRESIVA_MS - transcurrido + 999) / 1000;
+    const uint32_t restante = (DURACION_CUENTA_REGRESIVA_MS - 1 - transcurrido) / 1000;
     Serial.println(restante);
   } else {
     Serial.println(tiempoComoTexto(obtenerTiempoMs()));
@@ -213,7 +213,7 @@ void procesarComando(String linea) {
     congelarTiempo();
     tiempoAcumuladoMs = 0;
     reiniciarContadores();
-    // Mostrar 3, 2, 1 durante tres segundos antes de iniciar el cronómetro.
+    // Mostrar 3, 2, 1 y 0 durante un segundo cada uno antes del cronómetro.
     estado = CUENTA_REGRESIVA;
     inicioCuentaRegresivaMs = millis();
     conteoHabilitado = false;
