@@ -1390,8 +1390,6 @@ def mostrar_batallas(contenedor):
             actualizar_datos
         )
 
-    actualizar_datos()
-
     # --------------------------------------------------------
     # INICIAR
     # --------------------------------------------------------
@@ -1600,3 +1598,6 @@ def mostrar_batallas(contenedor):
         boton_finalizar.config(
             state="normal"
         )
+
+    # Se inicia el refresco cuando todos los callbacks ya están definidos.
+    actualizar_datos()
