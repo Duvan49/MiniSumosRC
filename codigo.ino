@@ -7,9 +7,9 @@
     - GPIO 18: ataque del Robot 1 (conectar pulsador entre GPIO18 y GND)
     - GPIO 19: ataque del Robot 2 (conectar pulsador entre GPIO19 y GND)
 
-  Los pines usan INPUT_PULLUP y detección FALLING: se cuenta al presionar, una vez.
-  No se imprime desde las interrupciones; los contadores se actualizan allí
-  y se envían por Serial desde loop().
+  Los pines usan INPUT_PULLUP. Cada botón se valida con una máquina de estados
+  en loop(): debe permanecer estable 30 ms al presionar o soltar para aceptar
+  el cambio. Cada ciclo completo de presión cuenta como máximo un ataque.
 
   Protocolo desde Python:
     INICIAR|<id_batalla>|<robot1>|<robot2>
@@ -30,7 +30,7 @@
 
 constexpr uint8_t PIN_BOTON_R1 = 18;
 constexpr uint8_t PIN_BOTON_R2 = 19;
-constexpr uint32_t ANTIRREBOTE_US = 300000;  // 300 ms
+constexpr uint32_t ANTIRREBOTE_MS = 30;  // Estabilidad requerida al presionar/soltar
 constexpr uint64_t DURACION_MAXIMA_MS = 120000;  // 2 minutos
 constexpr uint32_t INTERVALO_ENVIO_MS = 10;  // Actualizar cronómetro cada 10 ms
 
@@ -52,36 +52,49 @@ String robot2 = "";
 
 volatile uint32_t ataques1 = 0;
 volatile uint32_t ataques2 = 0;
-volatile uint32_t ultimoPulso1 = 0;
-volatile uint32_t ultimoPulso2 = 0;
 volatile bool conteoHabilitado = false;
+
+// Máquina de estados independiente para cada botón.
+struct BotonAtaque {
+  uint8_t pin;
+  bool lecturaAnterior;
+  bool estadoEstable;
+  uint32_t instanteCambio;
+};
+
+BotonAtaque botonR1 = {PIN_BOTON_R1, HIGH, HIGH, 0};
+BotonAtaque botonR2 = {PIN_BOTON_R2, HIGH, HIGH, 0};
 
 uint64_t tiempoAcumuladoMs = 0;
 uint32_t inicioTramoMs = 0;
 uint32_t ultimoEnvioMs = 0;
 
-// -------------------- INTERRUPCIONES --------------------
+// -------------------- MÁQUINAS DE ESTADOS DE LOS BOTONES --------------------
 
-// Los botones usan INPUT_PULLUP: al presionar pasan a LOW.
-// Solo se cuenta el flanco FALLING (HIGH -> LOW), una vez por pulsación.
-void IRAM_ATTR contarAtaqueR1() {
-  const uint32_t ahora = micros();
+// INPUT_PULLUP: LOW significa presionado.
+// Solo se cuenta al confirmar una transición estable a LOW.
+// Para volver a contar, primero debe confirmarse una liberación estable.
+void actualizarBoton(BotonAtaque &boton, volatile uint32_t &contador) {
+  const bool lectura = digitalRead(boton.pin);
+  const uint32_t ahora = millis();
 
-  if (!conteoHabilitado) return;
-  if (static_cast<uint32_t>(ahora - ultimoPulso1) < ANTIRREBOTE_US) return;
+  // Cualquier cambio reinicia el temporizador de estabilidad.
+  if (lectura != boton.lecturaAnterior) {
+    boton.lecturaAnterior = lectura;
+    boton.instanteCambio = ahora;
+  }
 
-  ultimoPulso1 = ahora;
-  ataques1++;
-}
+  // Ignorar transiciones hasta que la lectura permanezca estable.
+  if (static_cast<uint32_t>(ahora - boton.instanteCambio) >= ANTIRREBOTE_MS) {
+    if (lectura != boton.estadoEstable) {
+      boton.estadoEstable = lectura;
 
-void IRAM_ATTR contarAtaqueR2() {
-  const uint32_t ahora = micros();
-
-  if (!conteoHabilitado) return;
-  if (static_cast<uint32_t>(ahora - ultimoPulso2) < ANTIRREBOTE_US) return;
-
-  ultimoPulso2 = ahora;
-  ataques2++;
+      // Contar solo la presión confirmada, nunca al soltar.
+      if (boton.estadoEstable == LOW && conteoHabilitado) {
+        contador++;
+      }
+    }
+  }
 }
 
 // -------------------- TIEMPO --------------------
@@ -190,9 +203,6 @@ void procesarComando(String linea) {
     congelarTiempo();
     tiempoAcumuladoMs = 0;
     reiniciarContadores();
-    // Permite contar la primera pulsación válida inmediatamente.
-    ultimoPulso1 = micros() - ANTIRREBOTE_US;
-    ultimoPulso2 = micros() - ANTIRREBOTE_US;
     estado = EN_CURSO;
     inicioTramoMs = millis();
     conteoHabilitado = true;
@@ -286,9 +296,6 @@ void setup() {
   pinMode(PIN_BOTON_R1, INPUT_PULLUP);
   pinMode(PIN_BOTON_R2, INPUT_PULLUP);
 
-  attachInterrupt(digitalPinToInterrupt(PIN_BOTON_R1), contarAtaqueR1, FALLING);
-  attachInterrupt(digitalPinToInterrupt(PIN_BOTON_R2), contarAtaqueR2, FALLING);
-
   Serial.println("ESP32 lista - MiniSumos RC");
   Serial.println("Boton R1: GPIO18 | Boton R2: GPIO19");
 }
@@ -310,6 +317,10 @@ void loop() {
     Serial.println("Finalizado - A la espera del ganador");
     enviarDatos();
   }
+
+  // Actualizar ambas máquinas de estados en cada iteración.
+  actualizarBoton(botonR1, ataques1);
+  actualizarBoton(botonR2, ataques2);
 
   const uint32_t ahora = millis();
   if (estado != ESPERANDO && estado != FINALIZADA &&
