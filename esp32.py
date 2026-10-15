@@ -47,7 +47,7 @@ class ComunicacionESP32:
         self._lock = threading.RLock()
         self._write_lock = threading.Lock()
 
-        self._tiempo = "00:00"
+        self._tiempo = "0:00:00"
         self._ataques1 = 0
         self._ataques2 = 0
 
@@ -61,6 +61,7 @@ class ComunicacionESP32:
         self._criterio = ""
         self._tiempo_final = ""
         self._mensajes = deque(maxlen=100)
+        self._evento_pendiente = None
 
     # -------------------- PUERTOS Y CONEXIÓN --------------------
 
@@ -225,6 +226,11 @@ class ComunicacionESP32:
                 elif clave == "AVISO":
                     self._estado = valor
                     procesada = True
+                elif clave == "EVENTO":
+                    self._evento_pendiente = valor.strip().upper()
+                    if self._evento_pendiente == "TIEMPO_LIMITE":
+                        self._estado = "Esperando ganador"
+                    procesada = True
 
             if procesada:
                 return
@@ -288,6 +294,13 @@ class ComunicacionESP32:
                 "ataques2": self._ataques2,
             }
 
+    def consumir_evento(self):
+        """Devuelve un evento pendiente una sola vez y lo elimina."""
+        with self._lock:
+            evento = self._evento_pendiente
+            self._evento_pendiente = None
+            return evento
+
     def obtener_ultimo_mensaje(self):
         with self._lock:
             return self._ultimo_mensaje
@@ -304,7 +317,7 @@ class ComunicacionESP32:
     def reiniciar_datos(self):
         """Limpia telemetría y metadatos antes de iniciar otra batalla."""
         with self._lock:
-            self._tiempo = "00:00"
+            self._tiempo = "0:00:00"
             self._ataques1 = 0
             self._ataques2 = 0
             self._batalla_id = ""
@@ -314,6 +327,7 @@ class ComunicacionESP32:
             self._criterio = ""
             self._tiempo_final = ""
             self._ultimo_error = ""
+            self._evento_pendiente = None
 
     # -------------------- COMANDOS DE BATALLA --------------------
 
