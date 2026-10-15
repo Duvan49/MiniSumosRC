@@ -7,7 +7,7 @@ Este módulo es responsable de:
 - Exponer los datos de forma segura para la interfaz Tkinter.
 
 Protocolo de telemetría (ESP32 -> Python):
-    TIEMPO=0:00:25
+    TIEMPO=0:25:00 (minutos:segundos:centésimas)
     ATAQUES1=3
     ATAQUES2=2
 
