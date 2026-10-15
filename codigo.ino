@@ -19,7 +19,7 @@
     FINALIZAR|<ganador>|<criterio>
 
   Protocolo hacia Python:
-    TIEMPO=mm:ss
+    TIEMPO=h:mm:ss
     ATAQUES1=n
     ATAQUES2=n
 */
@@ -30,7 +30,8 @@
 
 constexpr uint8_t PIN_BOTON_R1 = 18;
 constexpr uint8_t PIN_BOTON_R2 = 19;
-constexpr uint32_t ANTIRREBOTE_US = 180000;  // 180 ms
+constexpr uint32_t ANTIRREBOTE_US = 300000;  // 300 ms
+constexpr uint64_t DURACION_MAXIMA_MS = 120000;  // 2 minutos
 constexpr uint32_t INTERVALO_ENVIO_MS = 250;
 
 // -------------------- ESTADO DE LA BATALLA --------------------
@@ -61,6 +62,8 @@ uint32_t ultimoEnvioMs = 0;
 
 // -------------------- INTERRUPCIONES --------------------
 
+// Los botones usan INPUT_PULLUP: al presionar pasan a LOW y al soltar a HIGH.
+ // Solo se cuenta el flanco RISING (LOW -> HIGH), con 300 ms de antirrebote.
 void IRAM_ATTR contarAtaqueR1() {
   const uint32_t ahora = micros();
 
@@ -92,11 +95,13 @@ uint64_t obtenerTiempoMs() {
 
 String tiempoComoTexto(uint64_t tiempoMs) {
   const uint64_t totalSegundos = tiempoMs / 1000ULL;
-  const uint64_t minutos = totalSegundos / 60ULL;
+  const uint64_t horas = totalSegundos / 3600ULL;
+  const uint64_t minutos = (totalSegundos / 60ULL) % 60ULL;
   const uint64_t segundos = totalSegundos % 60ULL;
 
   char texto[24];
-  snprintf(texto, sizeof(texto), "%02llu:%02llu",
+  snprintf(texto, sizeof(texto), "%llu:%02llu:%02llu",
+           static_cast<unsigned long long>(horas),
            static_cast<unsigned long long>(minutos),
            static_cast<unsigned long long>(segundos));
   return String(texto);
@@ -185,6 +190,9 @@ void procesarComando(String linea) {
     congelarTiempo();
     tiempoAcumuladoMs = 0;
     reiniciarContadores();
+    // Permite que la primera liberación válida pueda contarse inmediatamente.
+    ultimoPulso1 = micros() - ANTIRREBOTE_US;
+    ultimoPulso2 = micros() - ANTIRREBOTE_US;
     estado = EN_CURSO;
     inicioTramoMs = millis();
     conteoHabilitado = true;
@@ -278,8 +286,8 @@ void setup() {
   pinMode(PIN_BOTON_R1, INPUT_PULLUP);
   pinMode(PIN_BOTON_R2, INPUT_PULLUP);
 
-  attachInterrupt(digitalPinToInterrupt(PIN_BOTON_R1), contarAtaqueR1, FALLING);
-  attachInterrupt(digitalPinToInterrupt(PIN_BOTON_R2), contarAtaqueR2, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PIN_BOTON_R1), contarAtaqueR1, RISING);
+  attachInterrupt(digitalPinToInterrupt(PIN_BOTON_R2), contarAtaqueR2, RISING);
 
   Serial.println("ESP32 lista - MiniSumos RC");
   Serial.println("Boton R1: GPIO18 | Boton R2: GPIO19");
@@ -289,6 +297,17 @@ void loop() {
   while (Serial.available() > 0) {
     String linea = Serial.readStringUntil('\n');
     procesarComando(linea);
+  }
+
+  // Al llegar a 2 minutos, la ESP32 congela el cronómetro y pide a Python
+  // abrir el mismo diálogo que se abre al pulsar FINALIZAR.
+  if (estado == EN_CURSO && obtenerTiempoMs() >= DURACION_MAXIMA_MS) {
+    congelarTiempo();
+    estado = PAUSA_FIN;
+    conteoHabilitado = false;
+    Serial.println("EVENTO=TIEMPO_LIMITE");
+    Serial.println("Finalizado - A la espera del ganador");
+    enviarDatos();
   }
 
   const uint32_t ahora = millis();
