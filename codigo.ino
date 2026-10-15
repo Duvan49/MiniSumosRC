@@ -19,7 +19,7 @@
     FINALIZAR|<ganador>|<criterio>
 
   Protocolo hacia Python:
-    TIEMPO=h:mm:ss
+    TIEMPO=m:ss:cc (minutos:segundos:centésimas)
     ATAQUES1=n
     ATAQUES2=n
 */
@@ -32,7 +32,7 @@ constexpr uint8_t PIN_BOTON_R1 = 18;
 constexpr uint8_t PIN_BOTON_R2 = 19;
 constexpr uint32_t ANTIRREBOTE_US = 300000;  // 300 ms
 constexpr uint64_t DURACION_MAXIMA_MS = 120000;  // 2 minutos
-constexpr uint32_t INTERVALO_ENVIO_MS = 250;
+constexpr uint32_t INTERVALO_ENVIO_MS = 10;  // Actualizar cronómetro cada 10 ms
 
 // -------------------- ESTADO DE LA BATALLA --------------------
 
@@ -94,16 +94,16 @@ uint64_t obtenerTiempoMs() {
 }
 
 String tiempoComoTexto(uint64_t tiempoMs) {
-  const uint64_t totalSegundos = tiempoMs / 1000ULL;
-  const uint64_t horas = totalSegundos / 3600ULL;
-  const uint64_t minutos = (totalSegundos / 60ULL) % 60ULL;
-  const uint64_t segundos = totalSegundos % 60ULL;
+  const uint64_t totalCentisegundos = tiempoMs / 10ULL;
+  const uint64_t minutos = totalCentisegundos / 6000ULL;
+  const uint64_t segundos = (totalCentisegundos / 100ULL) % 60ULL;
+  const uint64_t centesimas = totalCentisegundos % 100ULL;
 
   char texto[24];
   snprintf(texto, sizeof(texto), "%llu:%02llu:%02llu",
-           static_cast<unsigned long long>(horas),
            static_cast<unsigned long long>(minutos),
-           static_cast<unsigned long long>(segundos));
+           static_cast<unsigned long long>(segundos),
+           static_cast<unsigned long long>(centesimas));
   return String(texto);
 }
 
@@ -303,6 +303,7 @@ void loop() {
   // abrir el mismo diálogo que se abre al pulsar FINALIZAR.
   if (estado == EN_CURSO && obtenerTiempoMs() >= DURACION_MAXIMA_MS) {
     congelarTiempo();
+    tiempoAcumuladoMs = DURACION_MAXIMA_MS;  // Mostrar exactamente 2:00:00
     estado = PAUSA_FIN;
     conteoHabilitado = false;
     Serial.println("EVENTO=TIEMPO_LIMITE");
