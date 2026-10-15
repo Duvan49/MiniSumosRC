@@ -1354,6 +1354,9 @@ def mostrar_batallas(contenedor):
     # --------------------------------------------------------
 
     finalizacion_automatica_activada = False
+    # En una batalla pendiente, la interfaz muestra cero aunque la ESP32
+    # conserve todavía los datos de la batalla anterior.
+    datos_de_batalla_activa = estado != "Pendiente"
 
     def actualizar_datos():
 
@@ -1368,6 +1371,9 @@ def mostrar_batallas(contenedor):
             finalizar(automatica=True)
 
         tiempo, ataques1, ataques2 = esp32.obtener_datos()
+        if not datos_de_batalla_activa:
+            tiempo, ataques1, ataques2 = "0:00:00", 0, 0
+
         if puerto_var.get() != "No disponible" and getattr(esp32, "conectado", False):
             estado_conexion.config(text=f"● Conectado ({puerto_var.get()})", fg="#86efac")
         else:
@@ -1396,6 +1402,8 @@ def mostrar_batallas(contenedor):
 
     def iniciar():
 
+        nonlocal datos_de_batalla_activa
+
         # Primero se confirma que el comando pudo enviarse a la ESP32.
         enviado = esp32.iniciar_batalla(id_batalla, robot1, robot2)
         if not enviado:
@@ -1405,6 +1413,10 @@ def mostrar_batallas(contenedor):
                 parent=contenedor.winfo_toplevel()
             )
             return
+
+        # INICIAR hace que la ESP32 reinicie tiempo y ataques. Desde este
+        # momento la interfaz vuelve a mostrar los datos recibidos de la placa.
+        datos_de_batalla_activa = True
 
         actualizar_estado(
             id_batalla,
