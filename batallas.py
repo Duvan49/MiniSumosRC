@@ -3,8 +3,6 @@ from tkinter import messagebox
 import sqlite3
 import os
 from tkinter import ttk
-from serial.tools import list_ports
-
 from .esp32 import esp32
 from .llaves import actualizar_llaves_tras_resultado
 
@@ -771,9 +769,6 @@ def abrir_resultado(
             f"FINALIZAR|{nombre_ganador}|{criterio_serial}"
         )
 
-        # Reiniciamos los datos para la siguiente batalla
-        esp32.reiniciar_datos()
-
         ventana.grab_release()
         ventana.destroy()
 
@@ -1059,7 +1054,7 @@ def mostrar_batallas(contenedor):
 
     def obtener_puertos_disponibles():
         try:
-            return [p.device for p in list_ports.comports()]
+            return esp32.listar_puertos()
         except Exception:
             return []
 
