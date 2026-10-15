@@ -30,7 +30,7 @@
 
 constexpr uint8_t PIN_BOTON_R1 = 18;
 constexpr uint8_t PIN_BOTON_R2 = 19;
-constexpr uint32_t ANTIRREBOTE_MS = 30;  // Estabilidad requerida al presionar/soltar
+constexpr uint32_t ANTIRREBOTE_MS = 70;  // Estabilidad requerida al presionar/soltar
 constexpr uint64_t DURACION_MAXIMA_MS = 120000;  // 2 minutos
 constexpr uint32_t INTERVALO_ENVIO_MS = 10;  // Actualizar cronómetro cada 10 ms
 
@@ -40,6 +40,7 @@ enum EstadoBatalla {
   ESPERANDO,
   EN_CURSO,
   PAUSADA,
+  CUENTA_REGRESIVA,
   PAUSA_FIN,
   FINALIZADA
 };
@@ -67,7 +68,10 @@ BotonAtaque botonR2 = {PIN_BOTON_R2, HIGH, HIGH, 0};
 
 uint64_t tiempoAcumuladoMs = 0;
 uint32_t inicioTramoMs = 0;
+uint32_t inicioCuentaRegresivaMs = 0;
 uint32_t ultimoEnvioMs = 0;
+
+constexpr uint32_t DURACION_CUENTA_REGRESIVA_MS = 3000;
 
 // -------------------- MÁQUINAS DE ESTADOS DE LOS BOTONES --------------------
 
@@ -146,7 +150,13 @@ void enviarDatos() {
   interrupts();
 
   Serial.print("TIEMPO=");
-  Serial.println(tiempoComoTexto(obtenerTiempoMs()));
+  if (estado == CUENTA_REGRESIVA) {
+    const uint32_t transcurrido = static_cast<uint32_t>(millis() - inicioCuentaRegresivaMs);
+    const uint32_t restante = (DURACION_CUENTA_REGRESIVA_MS - transcurrido + 999) / 1000;
+    Serial.println(restante);
+  } else {
+    Serial.println(tiempoComoTexto(obtenerTiempoMs()));
+  }
   Serial.print("ATAQUES1=");
   Serial.println(copiaAtaques1);
   Serial.print("ATAQUES2=");
@@ -203,9 +213,10 @@ void procesarComando(String linea) {
     congelarTiempo();
     tiempoAcumuladoMs = 0;
     reiniciarContadores();
-    estado = EN_CURSO;
-    inicioTramoMs = millis();
-    conteoHabilitado = true;
+    // Mostrar 3, 2, 1 durante tres segundos antes de iniciar el cronómetro.
+    estado = CUENTA_REGRESIVA;
+    inicioCuentaRegresivaMs = millis();
+    conteoHabilitado = false;
     imprimirInicio();
     enviarDatos();
     ultimoEnvioMs = millis();
@@ -213,7 +224,15 @@ void procesarComando(String linea) {
   }
 
   if (comando == "PAUSAR") {
-    if (estado == EN_CURSO) {
+    if (estado == CUENTA_REGRESIVA) {
+      // Si se pausa durante la preparación, cancelar la cuenta atrás y
+      // dejar la batalla pausada desde cero.
+      tiempoAcumuladoMs = 0;
+      conteoHabilitado = false;
+      estado = PAUSADA;
+      Serial.println("Pausado");
+      enviarDatos();
+    } else if (estado == EN_CURSO) {
       congelarTiempo();
       estado = PAUSADA;
       Serial.println("Pausado");
@@ -304,6 +323,17 @@ void loop() {
   while (Serial.available() > 0) {
     String linea = Serial.readStringUntil('\n');
     procesarComando(linea);
+  }
+
+  // Terminar la cuenta atrás e iniciar el cronómetro real en la ESP32.
+  if (estado == CUENTA_REGRESIVA &&
+      static_cast<uint32_t>(millis() - inicioCuentaRegresivaMs) >= DURACION_CUENTA_REGRESIVA_MS) {
+    tiempoAcumuladoMs = 0;
+    inicioTramoMs = millis();
+    estado = EN_CURSO;
+    conteoHabilitado = true;
+    enviarDatos();  // El tiempo real comienza en 0:00:00.
+    ultimoEnvioMs = millis();
   }
 
   // Al llegar a 2 minutos, la ESP32 congela el cronómetro y pide a Python
