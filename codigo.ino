@@ -25,7 +25,6 @@
 */
 
 #include <Arduino.h>
-#include <BluetoothSerial.h>
 
 // -------------------- CONFIGURACIÓN --------------------
 
@@ -33,10 +32,7 @@ constexpr uint8_t PIN_BOTON_R1 = 18;
 constexpr uint8_t PIN_BOTON_R2 = 19;
 constexpr uint32_t ANTIRREBOTE_MS = 70;  // Estabilidad requerida al presionar/soltar
 constexpr uint64_t DURACION_MAXIMA_MS = 120000;  // 2 minutos
-constexpr uint32_t INTERVALO_ENVIO_MS = 10;  // Actualizar cronómetro USB cada 10 ms
-constexpr uint32_t INTERVALO_BLUETOOTH_MS = 100;  // Telemetría visual: 10 actualizaciones/s
-
-BluetoothSerial SerialBT;
+constexpr uint32_t INTERVALO_ENVIO_MS = 10;  // Actualizar cronómetro cada 10 ms
 
 // -------------------- ESTADO DE LA BATALLA --------------------
 
@@ -54,8 +50,6 @@ EstadoBatalla estado = ESPERANDO;
 String idBatalla = "";
 String robot1 = "";
 String robot2 = "";
-String ganadorBatalla = "";
-String criterioBatalla = "";
 
 volatile uint32_t ataques1 = 0;
 volatile uint32_t ataques2 = 0;
@@ -76,7 +70,6 @@ uint64_t tiempoAcumuladoMs = 0;
 uint32_t inicioTramoMs = 0;
 uint32_t inicioCuentaRegresivaMs = 0;
 uint32_t ultimoEnvioMs = 0;
-uint32_t ultimoEnvioBluetoothMs = 0;
 
 constexpr uint32_t DURACION_CUENTA_REGRESIVA_MS = 4000;  // 3, 2, 1 y 0; un segundo cada uno
 
@@ -179,57 +172,6 @@ void imprimirInicio() {
   Serial.println(robot2);
 }
 
-// -------------------- TELEMETRÍA BLUETOOTH (SOLO ENVÍO) --------------------
-
-// Envía una única línea estructurada para que una futura pantalla Android pueda
-// interpretar el estado. Bluetooth nunca recibe comandos ni controla la batalla.
-// Formato: PANTALLA|estado|id|robot1|robot2|tiempo|ataques1|ataques2|ganador|criterio
-const char* nombreEstadoBluetooth() {
-  switch (estado) {
-    case ESPERANDO: return "ESPERANDO";
-    case CUENTA_REGRESIVA: return "CUENTA_REGRESIVA";
-    case EN_CURSO: return "EN_CURSO";
-    case PAUSADA: return "PAUSADA";
-    case PAUSA_FIN: return "RESULTADO_PENDIENTE";
-    case FINALIZADA: return "FINALIZADA";
-    default: return "DESCONOCIDO";
-  }
-}
-
-void enviarPantallaBluetooth() {
-  // Si no hay teléfono conectado, no se hace ningún trabajo de transmisión.
-  if (!SerialBT.hasClient()) return;
-
-  uint32_t copiaAtaques1;
-  uint32_t copiaAtaques2;
-  noInterrupts();
-  copiaAtaques1 = ataques1;
-  copiaAtaques2 = ataques2;
-  interrupts();
-
-  String tiempo;
-  if (estado == CUENTA_REGRESIVA) {
-    const uint32_t transcurrido = static_cast<uint32_t>(millis() - inicioCuentaRegresivaMs);
-    const uint32_t restante = transcurrido < DURACION_CUENTA_REGRESIVA_MS
-      ? (DURACION_CUENTA_REGRESIVA_MS - 1 - transcurrido) / 1000
-      : 0;
-    tiempo = String(restante);
-  } else {
-    tiempo = tiempoComoTexto(obtenerTiempoMs());
-  }
-
-  SerialBT.print("PANTALLA|");
-  SerialBT.print(nombreEstadoBluetooth()); SerialBT.print('|');
-  SerialBT.print(idBatalla); SerialBT.print('|');
-  SerialBT.print(robot1); SerialBT.print('|');
-  SerialBT.print(robot2); SerialBT.print('|');
-  SerialBT.print(tiempo); SerialBT.print('|');
-  SerialBT.print(copiaAtaques1); SerialBT.print('|');
-  SerialBT.print(copiaAtaques2); SerialBT.print('|');
-  SerialBT.print(ganadorBatalla); SerialBT.print('|');
-  SerialBT.println(criterioBatalla);
-}
-
 // -------------------- COMANDOS SERIE --------------------
 
 void procesarComando(String linea) {
@@ -270,8 +212,6 @@ void procesarComando(String linea) {
 
     congelarTiempo();
     tiempoAcumuladoMs = 0;
-    ganadorBatalla = "";
-    criterioBatalla = "";
     reiniciarContadores();
     // Mostrar 3, 2, 1 y 0 durante un segundo cada uno antes del cronómetro.
     estado = CUENTA_REGRESIVA;
@@ -349,8 +289,6 @@ void procesarComando(String linea) {
     String criterio = linea.substring(separador2 + 1);
     ganador.trim();
     criterio.trim();
-    ganadorBatalla = ganador;
-    criterioBatalla = criterio;
 
     estado = FINALIZADA;
     conteoHabilitado = false;
@@ -374,14 +312,11 @@ void procesarComando(String linea) {
 
 void setup() {
   Serial.begin(115200);
-  // Bluetooth clásico solo transmite telemetría; no acepta comandos del teléfono.
-  SerialBT.begin("MiniSumos RC");
   pinMode(PIN_BOTON_R1, INPUT_PULLUP);
   pinMode(PIN_BOTON_R2, INPUT_PULLUP);
 
   Serial.println("ESP32 lista - MiniSumos RC");
   Serial.println("Boton R1: GPIO18 | Boton R2: GPIO19");
-  Serial.println("Bluetooth visual: MiniSumos RC (solo envio)");
 }
 
 void loop() {
@@ -418,11 +353,6 @@ void loop() {
   actualizarBoton(botonR2, ataques2);
 
   const uint32_t ahora = millis();
-  if (static_cast<uint32_t>(ahora - ultimoEnvioBluetoothMs) >= INTERVALO_BLUETOOTH_MS) {
-    ultimoEnvioBluetoothMs = ahora;
-    enviarPantallaBluetooth();
-  }
-
   if (estado != ESPERANDO && estado != FINALIZADA &&
       static_cast<uint32_t>(ahora - ultimoEnvioMs) >= INTERVALO_ENVIO_MS) {
     ultimoEnvioMs = ahora;
