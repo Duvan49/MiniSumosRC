@@ -7,7 +7,7 @@
     - GPIO 18: ataque del Robot 1 (conectar pulsador entre GPIO18 y GND)
     - GPIO 19: ataque del Robot 2 (conectar pulsador entre GPIO19 y GND)
 
-  Los pines usan INPUT_PULLUP y detección FALLING.
+  Los pines usan INPUT_PULLUP y detección FALLING: se cuenta al presionar, una vez.
   No se imprime desde las interrupciones; los contadores se actualizan allí
   y se envían por Serial desde loop().
 
@@ -62,8 +62,8 @@ uint32_t ultimoEnvioMs = 0;
 
 // -------------------- INTERRUPCIONES --------------------
 
-// Los botones usan INPUT_PULLUP: al presionar pasan a LOW y al soltar a HIGH.
- // Solo se cuenta el flanco RISING (LOW -> HIGH), con 300 ms de antirrebote.
+// Los botones usan INPUT_PULLUP: al presionar pasan a LOW.
+// Solo se cuenta el flanco FALLING (HIGH -> LOW), una vez por pulsación.
 void IRAM_ATTR contarAtaqueR1() {
   const uint32_t ahora = micros();
 
@@ -190,7 +190,7 @@ void procesarComando(String linea) {
     congelarTiempo();
     tiempoAcumuladoMs = 0;
     reiniciarContadores();
-    // Permite que la primera liberación válida pueda contarse inmediatamente.
+    // Permite contar la primera pulsación válida inmediatamente.
     ultimoPulso1 = micros() - ANTIRREBOTE_US;
     ultimoPulso2 = micros() - ANTIRREBOTE_US;
     estado = EN_CURSO;
@@ -286,8 +286,8 @@ void setup() {
   pinMode(PIN_BOTON_R1, INPUT_PULLUP);
   pinMode(PIN_BOTON_R2, INPUT_PULLUP);
 
-  attachInterrupt(digitalPinToInterrupt(PIN_BOTON_R1), contarAtaqueR1, RISING);
-  attachInterrupt(digitalPinToInterrupt(PIN_BOTON_R2), contarAtaqueR2, RISING);
+  attachInterrupt(digitalPinToInterrupt(PIN_BOTON_R1), contarAtaqueR1, FALLING);
+  attachInterrupt(digitalPinToInterrupt(PIN_BOTON_R2), contarAtaqueR2, FALLING);
 
   Serial.println("ESP32 lista - MiniSumos RC");
   Serial.println("Boton R1: GPIO18 | Boton R2: GPIO19");
