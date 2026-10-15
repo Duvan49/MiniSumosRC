@@ -478,7 +478,7 @@ def abrir_resultado(
     tiempo, ataques1, ataques2 = esp32.obtener_datos()
 
     # Si ESP32 no tiene datos, usamos los de BD
-    if tiempo == "--:--" and tiempo_bd:
+    if tiempo in ("--:--", "0:00:00") and tiempo_bd:
         tiempo = tiempo_bd
 
     if ataques1 == 0 and ataques1_bd:
@@ -1276,7 +1276,7 @@ def mostrar_batallas(contenedor):
         font=("Segoe UI", 9, "bold"), fg="#7a858e", bg="white"
     ).grid(row=0, column=1, pady=(12, 0), sticky="ew")
     tiempo_label = tk.Label(
-        datos, text="00:00", font=("Segoe UI", 25, "bold"),
+        datos, text="0:00:00", font=("Segoe UI", 25, "bold"),
         fg="#17202a", bg="white"
     )
     tiempo_label.grid(row=1, column=1, padx=18, pady=(0, 12), sticky="ew")
@@ -1353,10 +1353,19 @@ def mostrar_batallas(contenedor):
     # ACTUALIZACIÓN ESP32
     # --------------------------------------------------------
 
+    finalizacion_automatica_activada = False
+
     def actualizar_datos():
+
+        nonlocal finalizacion_automatica_activada
 
         if not principal.winfo_exists():
             return
+
+        evento = esp32.consumir_evento()
+        if evento == "TIEMPO_LIMITE" and not finalizacion_automatica_activada:
+            finalizacion_automatica_activada = True
+            finalizar(automatica=True)
 
         tiempo, ataques1, ataques2 = esp32.obtener_datos()
         if puerto_var.get() != "No disponible" and getattr(esp32, "conectado", False):
@@ -1478,10 +1487,19 @@ def mostrar_batallas(contenedor):
     # FINALIZAR
     # --------------------------------------------------------
 
-    def finalizar():
+    def finalizar(automatica=False):
 
-        # Congela el combate mientras el juez selecciona ganador y criterio.
-        esp32.pausar_para_resultado()
+        nonlocal finalizacion_automatica_activada
+
+        # Evita abrir dos diálogos si coinciden el evento automático y el clic.
+        if finalizacion_automatica_activada and not automatica:
+            return
+        finalizacion_automatica_activada = True
+
+        # En el límite de tiempo la ESP32 ya congeló el cronómetro.
+        # En el cierre manual enviamos el mismo comando de pausa final.
+        if not automatica:
+            esp32.pausar_para_resultado()
 
         boton_iniciar.config(
             state="disabled"
