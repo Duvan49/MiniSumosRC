@@ -1389,12 +1389,7 @@ def mostrar_batallas(contenedor):
 
     def iniciar():
 
-        actualizar_estado(
-            id_batalla,
-            "En curso"
-        )
-
-        # La construcción y el envío del protocolo se delegan a esp32.py.
+        # Primero se confirma que el comando pudo enviarse a la ESP32.
         enviado = esp32.iniciar_batalla(id_batalla, robot1, robot2)
         if not enviado:
             messagebox.showwarning(
@@ -1403,6 +1398,11 @@ def mostrar_batallas(contenedor):
                 parent=contenedor.winfo_toplevel()
             )
             return
+
+        actualizar_estado(
+            id_batalla,
+            "En curso"
+        )
 
         estado_label.config(
             text="EN CURSO"
