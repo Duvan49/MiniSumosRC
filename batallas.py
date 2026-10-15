@@ -760,14 +760,9 @@ def abrir_resultado(
             ataques2
         )
 
-        # Solo después de registrar el ganador cerramos definitivamente la batalla
-        # en la ESP32 y le enviamos el nombre del ganador y el criterio.
+        # Solo después de registrar el resultado se cierra la batalla en la ESP32.
         nombre_ganador = robot1 if ganador_id == participante1 else robot2
-        nombre_ganador = str(nombre_ganador).replace("|", "/")
-        criterio_serial = str(criterio_texto).replace("|", "/")
-        esp32.enviar(
-            f"FINALIZAR|{nombre_ganador}|{criterio_serial}"
-        )
+        esp32.finalizar_batalla(nombre_ganador, criterio_texto)
 
         ventana.grab_release()
         ventana.destroy()
@@ -1399,14 +1394,15 @@ def mostrar_batallas(contenedor):
             "En curso"
         )
 
-        esp32.reiniciar_datos()
-
-        # El firmware necesita identificar la batalla y los robots que compiten.
-        nombre_robot1 = str(robot1).replace("|", "/")
-        nombre_robot2 = str(robot2).replace("|", "/")
-        esp32.enviar(
-            f"INICIAR|{id_batalla}|{nombre_robot1}|{nombre_robot2}"
-        )
+        # La construcción y el envío del protocolo se delegan a esp32.py.
+        enviado = esp32.iniciar_batalla(id_batalla, robot1, robot2)
+        if not enviado:
+            messagebox.showwarning(
+                "ESP32 no conectada",
+                "No se pudo enviar el comando de inicio. Revisa el puerto serie.",
+                parent=contenedor.winfo_toplevel()
+            )
+            return
 
         estado_label.config(
             text="EN CURSO"
@@ -1439,9 +1435,7 @@ def mostrar_batallas(contenedor):
             "Pausada"
         )
 
-        esp32.enviar(
-            "PAUSAR"
-        )
+        esp32.pausar_batalla()
 
         estado_label.config(
             text="PAUSADA"
@@ -1466,9 +1460,7 @@ def mostrar_batallas(contenedor):
             "En curso"
         )
 
-        esp32.enviar(
-            "CONTINUAR"
-        )
+        esp32.continuar_batalla()
 
         estado_label.config(
             text="EN CURSO"
@@ -1489,7 +1481,7 @@ def mostrar_batallas(contenedor):
     def finalizar():
 
         # Congela el combate mientras el juez selecciona ganador y criterio.
-        esp32.enviar("PAUSA_FIN")
+        esp32.pausar_para_resultado()
 
         boton_iniciar.config(
             state="disabled"
