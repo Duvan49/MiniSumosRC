@@ -315,6 +315,45 @@ class ComunicacionESP32:
             self._tiempo_final = ""
             self._ultimo_error = ""
 
+    # -------------------- COMANDOS DE BATALLA --------------------
+
+    def iniciar_batalla(self, id_batalla, robot1, robot2):
+        """Envía el comando de inicio y prepara los datos locales."""
+        def limpiar_campo(valor):
+            return str(valor).replace("|", "/").replace("\\n", " ").replace("\\r", " ").strip()
+
+        id_texto = limpiar_campo(id_batalla)
+        robot1_texto = limpiar_campo(robot1)
+        robot2_texto = limpiar_campo(robot2)
+        if not id_texto or not robot1_texto or not robot2_texto:
+            return False
+
+        self.reiniciar_datos()
+        return self.enviar(
+            f"INICIAR|{id_texto}|{robot1_texto}|{robot2_texto}"
+        )
+
+    def pausar_batalla(self):
+        return self.enviar("PAUSAR")
+
+    def continuar_batalla(self):
+        return self.enviar("CONTINUAR")
+
+    def pausar_para_resultado(self):
+        """Congela el combate mientras el juez elige ganador y criterio."""
+        return self.enviar("PAUSA_FIN")
+
+    def finalizar_batalla(self, ganador, criterio):
+        """Envía el resultado final a la ESP32."""
+        def limpiar_campo(valor):
+            return str(valor).replace("|", "/").replace("\\n", " ").replace("\\r", " ").strip()
+
+        ganador_texto = limpiar_campo(ganador)
+        criterio_texto = limpiar_campo(criterio)
+        if not ganador_texto or not criterio_texto:
+            return False
+        return self.enviar(f"FINALIZAR|{ganador_texto}|{criterio_texto}")
+
     # -------------------- ESCRITURA --------------------
 
     def enviar(self, comando):
