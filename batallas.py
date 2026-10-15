@@ -750,13 +750,25 @@ def abrir_resultado(
 
             return
 
+        # Guardamos primero el resultado en Python.
+        ganador_id = ganador.get()
+        criterio_texto = criterio.get()
         registrar_resultado(
             id_batalla,
-            ganador.get(),
-            criterio.get(),
+            ganador_id,
+            criterio_texto,
             tiempo,
             ataques1,
             ataques2
+        )
+
+        # Solo después de registrar el ganador cerramos definitivamente la batalla
+        # en la ESP32 y le enviamos el nombre del ganador y el criterio.
+        nombre_ganador = robot1 if ganador_id == participante1 else robot2
+        nombre_ganador = str(nombre_ganador).replace("|", "/")
+        criterio_serial = str(criterio_texto).replace("|", "/")
+        esp32.enviar(
+            f"FINALIZAR|{nombre_ganador}|{criterio_serial}"
         )
 
         # Reiniciamos los datos para la siguiente batalla
@@ -1394,8 +1406,11 @@ def mostrar_batallas(contenedor):
 
         esp32.reiniciar_datos()
 
+        # El firmware necesita identificar la batalla y los robots que compiten.
+        nombre_robot1 = str(robot1).replace("|", "/")
+        nombre_robot2 = str(robot2).replace("|", "/")
         esp32.enviar(
-            "INICIAR"
+            f"INICIAR|{id_batalla}|{nombre_robot1}|{nombre_robot2}"
         )
 
         estado_label.config(
@@ -1478,10 +1493,8 @@ def mostrar_batallas(contenedor):
 
     def finalizar():
 
-        # SIN CONFIRMACIÓN
-        esp32.enviar(
-            "FINALIZAR"
-        )
+        # Congela el combate mientras el juez selecciona ganador y criterio.
+        esp32.enviar("PAUSA_FIN")
 
         boton_iniciar.config(
             state="disabled"
