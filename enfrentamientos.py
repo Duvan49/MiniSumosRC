@@ -253,19 +253,14 @@ def cantidad_clasificados(cantidad):
 # ============================================================
 
 def cantidad_grupos(cantidad):
-
-    grupos = round(cantidad / 4)
-
-    if grupos < 2:
-        grupos = 2
-
-    while cantidad / grupos < 3 and grupos > 1:
-        grupos -= 1
-
-    while cantidad / grupos > 5:
-        grupos += 1
-
-    return grupos
+    """
+    Prioriza grupos de 4 y evita grupos de 5.
+    Se usa el menor número de grupos que permite que cada grupo tenga
+    como máximo 4 participantes y, para cantidades desde 6, al menos 3.
+    La asignación intercalada reparte los sobrantes de forma equilibrada:
+    por ejemplo, 10 -> 4, 3, 3; 18 -> 4, 4, 4, 3, 3.
+    """
+    return (cantidad + 3) // 4
 
 
 # ============================================================
