@@ -749,6 +749,12 @@ def mostrar_enfrentamientos(contenedor):
         filas = [fila for fila in todas if fila[1] == etapa_inicial]
         firma = tuple(p[0] for p in participantes)
         tabla.delete(*tabla.get_children())
+        # En todos contra todos no hay grupos; se oculta la columna para evitar confusión.
+        tabla["displaycolumns"] = (
+            ("numero", "etapa", "robot1", "robot2", "estado")
+            if etapa_inicial in ("Todos", "Final")
+            else columnas
+        )
 
         for numero, etapa, grupo, robot1, robot2, estado_fila in filas:
             if etapa == "Todos":
