@@ -120,6 +120,9 @@ def mostrar_eliminatorias(contenedor):
             actualizar_boton_avance(rondas)
         if not rondas:
             canvas_llaves.delete("all")
+            canvas_llaves.configure(scrollregion=(0, 0, 1, 1))
+            marco_llaves.pack_forget()
+            mensaje_vacio.pack(fill="both", expand=True, pady=30)
             try:
                 base_dir = os.path.dirname(os.path.abspath(__file__))
                 if os.path.basename(base_dir).lower() == "interfaz":
@@ -128,111 +131,33 @@ def mostrar_eliminatorias(contenedor):
                     base_dir, "BasesDeDatos", "competencia.db"
                 ))) as conexion:
                     cursor = conexion.cursor()
-                    cursor.execute("""
-                        SELECT e.participante1, p1.robot, p1.nombre,
-                               e.participante2, p2.robot, p2.nombre,
-                               e.ganador, e.estado
-                        FROM enfrentamientos e
-                        LEFT JOIN participantes p1 ON p1.id = e.participante1
-                        LEFT JOIN participantes p2 ON p2.id = e.participante2
-                        WHERE e.etapa = 'Final'
-                        ORDER BY e.id
-                    """)
-                    finales = cursor.fetchall()
+                    cursor.execute("SELECT COUNT(*) FROM grupo_participantes")
+                    hay_grupos = cursor.fetchone()[0] > 0
+                    cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Grupo'")
+                    total_grupos = cursor.fetchone()[0]
+                    cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Grupo' AND estado != 'Completado'")
+                    pendientes_grupos = cursor.fetchone()[0]
+                    cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Todos'")
+                    total_todos = cursor.fetchone()[0]
             except sqlite3.Error as error:
-                print(f"No se pudo leer la final: {error}")
-                finales = []
+                print(f"No se pudo consultar el estado de eliminatorias: {error}")
+                hay_grupos, total_grupos, pendientes_grupos, total_todos = False, 0, 0, 0
 
-            if not finales:
-                canvas_llaves.configure(scrollregion=(0, 0, 1, 1))
-                marco_llaves.pack_forget()
-                mensaje_vacio.pack(fill="both", expand=True, pady=30)
-                try:
-                    with closing(sqlite3.connect(os.path.join(base_dir, "BasesDeDatos", "competencia.db"))) as conexion:
-                        cursor = conexion.cursor()
-                        cursor.execute("SELECT COUNT(*) FROM grupo_participantes")
-                        hay_grupos = cursor.fetchone()[0] > 0
-                        cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Grupo'")
-                        total_grupos = cursor.fetchone()[0]
-                        cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Grupo' AND estado != 'Completado'")
-                        pendientes_grupos = cursor.fetchone()[0]
-                        cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Todos'")
-                        total_todos = cursor.fetchone()[0]
-                    if hay_grupos:
-                        if total_grupos and pendientes_grupos == 0:
-                            texto = "La fase de grupos terminó. Las llaves se mostrarán aquí cuando las generes desde Clasificaciones."
-                        else:
-                            texto = "Llaves por definir. Cuando termine la fase de grupos, revisa Clasificaciones para generarlas."
-                    elif total_todos:
-                        texto = "En esta competencia no habrá cuadro eliminatorio. Al terminar todos contra todos, la final se prepara desde Clasificaciones."
-                    else:
-                        texto = "Todavía no se han generado llaves eliminatorias para esta competencia."
-                except sqlite3.Error:
-                    texto = "Todavía no hay llaves eliminatorias disponibles."
-                mensaje_vacio.config(text=texto)
-                actualizar_boton_avance([])
-                return False
+            if hay_grupos and total_grupos and pendientes_grupos == 0:
+                texto = "La fase de grupos terminó. Revisa Clasificaciones y genera las llaves para que aparezcan aquí."
+            elif hay_grupos:
+                texto = "Llaves por definir. Cuando finalice la fase de grupos, podrás revisar la clasificación y generar el cuadro eliminatorio."
+            elif total_todos:
+                texto = "En esta competencia no habrá cuadro eliminatorio. Al finalizar todos contra todos, la final se habilita desde Clasificaciones."
+            else:
+                texto = "En esta competencia no hay eliminatorias generadas."
+            mensaje_vacio.config(text=texto)
+            actualizar_boton_avance([])
+            return False
 
-            mensaje_vacio.pack_forget()
-            if not marco_llaves.winfo_manager():
-                marco_llaves.pack(fill="both", expand=True)
-            canvas_llaves.update_idletasks()
-            ancho_tarjeta, alto_tarjeta = 260, 58
-            x1, x2, x3 = 30, 350, 670
-            centro_y = max(canvas_llaves.winfo_height(), 420) / 2
-            altura_total = max(canvas_llaves.winfo_height(), 420)
-            canvas_llaves.create_rectangle(
-                x1, centro_y - alto_tarjeta / 2, x1 + ancho_tarjeta, centro_y + alto_tarjeta / 2,
-                fill="#FFFFFF", outline="#CBD5E1", width=2
-            )
-            canvas_llaves.create_rectangle(
-                x2, centro_y - alto_tarjeta / 2, x2 + ancho_tarjeta, centro_y + alto_tarjeta / 2,
-                fill="#FFFFFF", outline="#CBD5E1", width=2
-            )
-            final = finales[-1]
-            p1, robot1, nombre1, p2, robot2, nombre2, ganador, estado = final
-            canvas_llaves.create_text(
-                x1 + 10, centro_y - 8, text=robot1 or "Por definir",
-                anchor="w", fill="#166534" if ganador == p1 and ganador is not None else "#334155",
-                font=("Arial", 10, "bold"), width=ancho_tarjeta - 20
-            )
-            canvas_llaves.create_text(
-                x1 + 10, centro_y + 12, text=nombre1 or "",
-                anchor="w", fill="#64748B", font=("Arial", 8), width=ancho_tarjeta - 20
-            )
-            canvas_llaves.create_text(
-                x2 + 10, centro_y - 8, text=robot2 or "Por definir",
-                anchor="w", fill="#166534" if ganador == p2 and ganador is not None else "#334155",
-                font=("Arial", 10, "bold"), width=ancho_tarjeta - 20
-            )
-            canvas_llaves.create_text(
-                x2 + 10, centro_y + 12, text=nombre2 or "",
-                anchor="w", fill="#64748B", font=("Arial", 8), width=ancho_tarjeta - 20
-            )
-            canvas_llaves.create_line(
-                x1 + ancho_tarjeta, centro_y, x2, centro_y,
-                fill="#16A34A" if ganador is not None else "#94A3B8", width=2
-            )
-            ganador_robot = robot1 if ganador == p1 and ganador is not None else robot2 if ganador == p2 and ganador is not None else "Por definir"
-            ganador_nombre = nombre1 if ganador == p1 and ganador is not None else nombre2 if ganador == p2 and ganador is not None else "Ganador del torneo"
-            fondo = "#DCFCE7" if ganador is not None else "#F8FAFC"
-            borde = "#16A34A" if ganador is not None else "#CBD5E1"
-            texto = "#166534" if ganador is not None else "#64748B"
-            canvas_llaves.create_rectangle(
-                x3, centro_y - alto_tarjeta / 2, x3 + ancho_tarjeta, centro_y + alto_tarjeta / 2,
-                fill=fondo, outline=borde, width=2
-            )
-            canvas_llaves.create_text(
-                x3 + 10, centro_y - 8, text=ganador_robot or "Por definir",
-                anchor="w", fill=texto, font=("Arial", 10, "bold"), width=ancho_tarjeta - 20
-            )
-            canvas_llaves.create_text(
-                x3 + 10, centro_y + 12, text=ganador_nombre or "",
-                anchor="w", fill=texto, font=("Arial", 8), width=ancho_tarjeta - 20
-            )
-            canvas_llaves.configure(scrollregion=(0, 0, 970, altura_total))
-            return True
-
+        mensaje_vacio.pack_forget()
+        if not marco_llaves.winfo_manager():
+            marco_llaves.pack(fill="both", expand=True)
         canvas_llaves.update_idletasks()
         canvas_llaves.delete("all")
 
