@@ -149,26 +149,24 @@ def _estadisticas(cursor):
         s["ha_competido"] = s["combates"] > 0
     return stats, directos
 
-def _comparar(a, b, directos):
+def _comparar(a, b, directos=None):
+    """Desempata por puntos, menor tiempo promedio, ataques y victorias."""
     if a["puntos"] != b["puntos"]:
         return -1 if a["puntos"] > b["puntos"] else 1
+
     ta, tb = a["tiempo_promedio"], b["tiempo_promedio"]
-    if ta is not None or tb is not None:
-        ta = float("inf") if ta is None else ta
-        tb = float("inf") if tb is None else tb
-        if ta != tb:
-            return -1 if ta < tb else 1
+    ta = float("inf") if ta is None else ta
+    tb = float("inf") if tb is None else tb
+    if ta != tb:
+        return -1 if ta < tb else 1
+
     if a["porcentaje_ataques"] != b["porcentaje_ataques"]:
         return -1 if a["porcentaje_ataques"] > b["porcentaje_ataques"] else 1
+
     if a["porcentaje_victorias"] != b["porcentaje_victorias"]:
         return -1 if a["porcentaje_victorias"] > b["porcentaje_victorias"] else 1
-    directo = directos.get(frozenset((a["id"], b["id"])))
-    if directo == a["id"]:
-        return -1
-    if directo == b["id"]:
-        return 1
-    return (a["id"] > b["id"]) - (a["id"] < b["id"])
 
+    return (a["id"] > b["id"]) - (a["id"] < b["id"])
 
 def obtener_tabla_clasificacion():
     """Ranking general provisional y en tiempo real, independiente de los grupos."""
