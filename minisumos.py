@@ -2,21 +2,12 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import os
 from PIL import Image, ImageTk
-
-try:
-    from registro import mostrar_registro, cerrar_registro
-    from enfrentamientos import mostrar_enfrentamientos
-    from batallas import mostrar_batallas
-    from grupos import mostrar_grupos
-    from clasificaciones import mostrar_clasificaciones
-    from eliminatorias import mostrar_eliminatorias
-except ImportError:
-    from Interfaz.registro import mostrar_registro, cerrar_registro
-    from Interfaz.enfrentamientos import mostrar_enfrentamientos
-    from Interfaz.batallas import mostrar_batallas
-    from Interfaz.grupos import mostrar_grupos
-    from Interfaz.clasificaciones import mostrar_clasificaciones
-    from Interfaz.eliminatorias import mostrar_eliminatorias
+from registro import mostrar_registro, cerrar_registro
+from enfrentamientos import mostrar_enfrentamientos
+from batallas import mostrar_batallas
+from grupos import mostrar_grupos
+from clasificaciones import mostrar_clasificaciones
+from eliminatorias import mostrar_eliminatorias
 
 # ============================================================
 # CONFIGURACIÓN PRINCIPAL
@@ -40,21 +31,12 @@ ventana.configure(bg=FONDO)
 # RUTAS DE IMÁGENES
 # ============================================================
 
-carpeta_principal = os.path.dirname(
-    os.path.abspath(__file__)
-)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(BASE_DIR).lower() == "interfaz":
+    BASE_DIR = os.path.dirname(BASE_DIR)
 
-ruta_logo_metarobots = os.path.join(
-    carpeta_principal,
-    "Imagenes",
-    "metarobots_logo.jpg"
-)
-
-ruta_logo_unillanos = os.path.join(
-    carpeta_principal,
-    "Imagenes",
-    "unillanos_logo.jpg"
-)
+ruta_logo_metarobots = os.path.join(BASE_DIR,"Imagenes", "metarobots_logo.jpg")
+ruta_logo_unillanos = os.path.join(BASE_DIR,"Imagenes", "unillanos_logo.jpg")
 
 
 # ============================================================

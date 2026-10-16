@@ -3,13 +3,7 @@ import sqlite3
 from contextlib import closing
 import tkinter as tk
 from tkinter import ttk
-
-try:
-    from .llaves import (
-        obtener_tabla_clasificacion,
-    )
-except ImportError:
-    from llaves import obtener_tabla_clasificacion
+from llaves import obtener_tabla_clasificacion
 
 FONDO = "#FFFFFF"
 ROJO = "#C62828"

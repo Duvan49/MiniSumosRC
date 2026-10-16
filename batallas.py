@@ -3,12 +3,8 @@ from tkinter import messagebox
 import sqlite3
 import os
 from tkinter import ttk
-try:
-    from .esp32 import esp32
-    from .llaves import (actualizar_llaves_tras_resultado, generar_llaves_manualmente, generar_final_todos_manualmente, avanzar_ronda_manualmente)
-except ImportError:
-    from esp32 import esp32
-    from llaves import (actualizar_llaves_tras_resultado, generar_llaves_manualmente, generar_final_todos_manualmente, avanzar_ronda_manualmente)
+from esp32 import esp32
+from llaves import (actualizar_llaves_tras_resultado, generar_llaves_manualmente, generar_final_todos_manualmente, avanzar_ronda_manualmente)
 
 
 # ============================================================

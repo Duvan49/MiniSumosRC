@@ -3,11 +3,7 @@ import sqlite3
 from contextlib import closing
 import tkinter as tk
 from tkinter import ttk
-
-try:
-    from .llaves import obtener_datos_llaves
-except ImportError:
-    from llaves import obtener_datos_llaves
+from llaves import obtener_datos_llaves
 
 FONDO = "#FFFFFF"
 ROJO_OSCURO = "#8E1B1B"
