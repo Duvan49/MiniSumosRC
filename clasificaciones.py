@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 try:
-    from llaves import (
+    from .llaves import (
         obtener_tabla_clasificacion,
         generar_llaves_manualmente,
         generar_final_todos_manualmente,
@@ -26,11 +26,10 @@ ROJO_FONDO = "#FEE2E2"
 ROJO_TEXTO = "#991B1B"
 GRIS = "#666666"
 
-RUTA_BD = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "BasesDeDatos",
-    "competencia.db",
-)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(BASE_DIR).lower() == "interfaz":
+    BASE_DIR = os.path.dirname(BASE_DIR)
+RUTA_BD = os.path.join(BASE_DIR, "BasesDeDatos", "competencia.db")
 
 def estado_fase():
     with closing(sqlite3.connect(RUTA_BD)) as conexion:
