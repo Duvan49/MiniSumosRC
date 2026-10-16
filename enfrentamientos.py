@@ -687,55 +687,47 @@ def obtener_enfrentamientos():
 # ============================================================
 
 def mostrar_enfrentamientos(contenedor):
-    """Muestra exclusivamente los enfrentamientos de la fase inicial."""
+    """Pantalla exclusiva para los enfrentamientos de la fase inicial."""
     for widget in contenedor.winfo_children():
         widget.destroy()
 
     contenido = tk.Frame(contenedor, bg=FONDO)
-    contenido.pack(fill="both", expand=True, padx=36, pady=28)
+    contenido.pack(fill="both", expand=True, padx=40, pady=30)
 
     tk.Label(
-        contenido, text="ENFRENTAMIENTOS INICIALES",
-        font=("Arial", 20, "bold"), fg=ROJO_OSCURO, bg=FONDO
-    ).pack(anchor="w", pady=(0, 6))
-
-    tk.Label(
-        contenido,
-        text="Esta pantalla conserva únicamente el calendario de la fase inicial.",
-        font=("Arial", 11), fg=GRIS, bg=FONDO
-    ).pack(anchor="w", pady=(0, 18))
-
-    marco_botones = tk.Frame(contenido, bg=FONDO)
-    marco_botones.pack(fill="x", pady=(0, 14))
+        contenido, text="ENFRENTAMIENTOS",
+        font=("Arial", 18, "bold"), fg="#000000", bg=FONDO
+    ).pack(anchor="w", pady=(0, 20))
 
     estilo = ttk.Style()
     estilo.configure(
-        "Enfrentamientos.Treeview",
-        font=("Arial", 12), rowheight=38,
+        "Enfrentamientos.Treeview", font=("Arial", 13), rowheight=42,
         background=BLANCO, foreground=TEXTO, fieldbackground=BLANCO
     )
     estilo.configure(
         "Enfrentamientos.Treeview.Heading",
-        font=("Arial", 11, "bold"), foreground=BLANCO, background=ROJO
+        font=("Arial", 12, "bold"), foreground=BLANCO, background=ROJO
     )
 
-    marco_tabla = tk.Frame(contenido, bg=BLANCO, highlightbackground="#D0D5DA", highlightthickness=1)
+    marco_botones = tk.Frame(contenido, bg=FONDO)
+    marco_botones.pack(fill="x", pady=(0, 15))
+
+    marco_tabla = tk.Frame(
+        contenido, bg=BLANCO,
+        highlightbackground="#D0D5DA", highlightthickness=1
+    )
     marco_tabla.pack(fill="both", expand=True)
 
-    columnas = ("id", "etapa", "grupo", "robot1", "robot2", "estado")
+    columnas = ("numero", "etapa", "grupo", "robot1", "robot2", "estado")
     tabla = ttk.Treeview(
         marco_tabla, columns=columnas, show="headings",
         style="Enfrentamientos.Treeview"
     )
-    encabezados = [
-        ("id", "N.º", 65),
-        ("etapa", "FASE", 140),
-        ("grupo", "GRUPO", 145),
-        ("robot1", "ROBOT 1", 230),
-        ("robot2", "ROBOT 2", 230),
-        ("estado", "ESTADO", 140),
-    ]
-    for col, titulo, ancho in encabezados:
+    for col, titulo, ancho in [
+        ("numero", "N.º", 65), ("etapa", "FASE", 160),
+        ("grupo", "GRUPO", 145), ("robot1", "ROBOT 1", 230),
+        ("robot2", "ROBOT 2", 230), ("estado", "ESTADO", 140)
+    ]:
         tabla.heading(col, text=titulo)
         tabla.column(col, width=ancho, anchor="center", stretch=True)
 
@@ -744,12 +736,9 @@ def mostrar_enfrentamientos(contenedor):
     tabla.pack(side="left", fill="both", expand=True)
     barra.pack(side="right", fill="y")
 
-    estado = tk.Label(contenido, text="", font=("Arial", 10), fg=GRIS, bg=FONDO)
-    estado.pack(anchor="w", pady=(10, 0))
-
     def cargar():
-        tabla.delete(*tabla.get_children())
-        cantidad = len(obtener_participantes_validos())
+        participantes = obtener_participantes_validos()
+        cantidad = len(participantes)
         todas = obtener_enfrentamientos()
 
         if cantidad == 2:
@@ -760,74 +749,72 @@ def mostrar_enfrentamientos(contenedor):
             etapa_inicial = "Grupo"
 
         filas = [fila for fila in todas if fila[1] == etapa_inicial]
+        firma = tuple(p[0] for p in participantes)
+        tabla.delete(*tabla.get_children())
+
         for numero, etapa, grupo, robot1, robot2, estado_fila in filas:
             if etapa == "Todos":
-                etapa_mostrar = "Todos contra todos"
+                fase = "Todos contra todos"
             elif etapa == "Final" and cantidad == 2:
-                etapa_mostrar = f"Serie final • Batalla {numero}"
+                fase = f"Serie final • Batalla {numero}"
             else:
-                etapa_mostrar = etapa
+                fase = etapa
             tabla.insert(
                 "", "end",
-                values=(numero, etapa_mostrar, grupo or "—", robot1, robot2, estado_fila)
+                values=(numero, fase, grupo or "—", robot1 or "—", robot2 or "—", estado_fila)
             )
+        return firma, filas
 
-        if not filas:
-            estado.config(
-                text="No hay enfrentamientos iniciales. Registra participantes válidos y prepara la competencia.",
-                fg=GRIS
-            )
-        else:
-            estado.config(
-                text=f"{len(filas)} enfrentamientos iniciales • la lista no cambia a clasificación ni a eliminatorias.",
-                fg=GRIS
-            )
-
-    def preparar():
+    def reiniciar():
         participantes = obtener_participantes_validos()
         cantidad = len(participantes)
         if cantidad < 2:
             messagebox.showwarning(
                 "Participantes insuficientes",
-                "Se necesitan al menos 2 participantes que cumplan todos los requisitos.",
+                "Se necesitan al menos 2 participantes válidos.",
                 parent=contenedor.winfo_toplevel()
             )
             return
-
-        confirmar = messagebox.askyesno(
-            "Preparar competencia",
-            f"Hay {cantidad} participantes válidos.\n\nSe generará nuevamente la fase inicial y se borrarán los resultados anteriores.\n\n¿Deseas continuar?",
+        if not messagebox.askyesno(
+            "Reiniciar fase inicial",
+            "Se generará de nuevo la fase inicial con los participantes válidos actuales. "
+            "Se borrarán los resultados y las eliminatorias existentes. ¿Continuar?",
             parent=contenedor.winfo_toplevel()
-        )
-        if not confirmar:
+        ):
             return
-
         exito, mensaje = preparar_competencia()
         if exito:
             cargar()
-            messagebox.showinfo(
-                "Competencia preparada",
-                f"{mensaje}\n\nEnfrentamientos iniciales: {len(obtener_enfrentamientos()) if cantidad == 2 else sum(1 for fila in obtener_enfrentamientos() if fila[1] == ('Todos' if cantidad <= 5 else 'Grupo'))}",
+        else:
+            messagebox.showwarning(
+                "No se pudo reiniciar", mensaje,
                 parent=contenedor.winfo_toplevel()
             )
-        else:
-            messagebox.showwarning("No se pudo preparar", mensaje, parent=contenedor.winfo_toplevel())
 
     ttk.Button(
-        marco_botones, text="PREPARAR COMPETENCIA",
-        command=preparar
-    ).pack(side="left", padx=(0, 10), ipady=4)
+        marco_botones, text="REINICIAR FASE INICIAL",
+        command=reiniciar, style="Generar.TButton"
+    ).pack(side="left")
 
-    ttk.Button(
-        marco_botones, text="ACTUALIZAR ESTADOS",
-        command=cargar
-    ).pack(side="left", ipady=4)
+    firma_anterior, _ = cargar()
 
     def actualizar_periodicamente():
+        nonlocal firma_anterior
         if not contenido.winfo_exists():
             return
-        cargar()
-        contenido.after(2500, actualizar_periodicamente)
+        try:
+            firma_actual, filas = cargar()
+            if firma_actual != firma_anterior:
+                # Si aún no se han registrado resultados, sincronizar el calendario
+                # con la lista nueva sin interrumpir una competencia ya iniciada.
+                hay_actividad = any(fila[5] != "Pendiente" for fila in filas)
+                if not hay_actividad and len(firma_actual) >= 2:
+                    exito, _ = preparar_competencia()
+                    if exito:
+                        firma_actual, _ = cargar()
+                firma_anterior = firma_actual
+        except (sqlite3.Error, IndexError, TypeError) as error:
+            print(f"No se pudo actualizar la fase inicial: {error}")
+        contenido.after(1500, actualizar_periodicamente)
 
-    cargar()
-    contenido.after(2500, actualizar_periodicamente)
+    contenido.after(1500, actualizar_periodicamente)
