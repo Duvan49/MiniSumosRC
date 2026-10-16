@@ -1000,6 +1000,8 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 wraplength=820, justify="center"
             ).pack(pady=(0, 24))
 
+            boton_continuar = None
+
             def continuar_desde_batallas():
                 if accion_tipo == "llaves":
                     exito, mensaje = generar_llaves_manualmente()
@@ -1009,23 +1011,39 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                     exito, mensaje = avanzar_ronda_manualmente()
 
                 if exito:
-                    mostrar_batallas(
-                        contenedor,
-                        al_terminar_fase=al_terminar_fase
-                    )
+                    if accion_tipo == "llaves" and al_terminar_fase:
+                        boton_continuar.config(
+                            state="disabled",
+                            text="ABRIENDO ELIMINATORIAS..."
+                        )
+                        al_terminar_fase("eliminatorias", mensaje, 0)
+                    else:
+                        mostrar_batallas(
+                            contenedor,
+                            al_terminar_fase=al_terminar_fase
+                        )
                 else:
                     messagebox.showwarning(
                         "No se puede continuar", mensaje,
                         parent=contenedor.winfo_toplevel()
                     )
 
-            tk.Button(
+            bloquear_continuar = (
+                resultado_recien_guardado
+                and bool(destino_fase)
+                and not campeon
+            )
+
+            boton_continuar = tk.Button(
                 principal, text="CONTINUAR",
                 command=continuar_desde_batallas,
                 font=("Segoe UI", 13, "bold"), bg="#C62828", fg="#FFFFFF",
                 activebackground="#8E1B1B", activeforeground="#FFFFFF",
-                relief="flat", bd=0, cursor="hand2", padx=30, pady=13
-            ).pack()
+                disabledforeground="#FFFFFF",
+                relief="flat", bd=0, cursor="hand2", padx=30, pady=13,
+                state="disabled" if bloquear_continuar else "normal"
+            )
+            boton_continuar.pack()
         else:
             tk.Label(
                 principal, text="COMPETENCIA",
