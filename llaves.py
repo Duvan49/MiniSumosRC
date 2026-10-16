@@ -60,61 +60,74 @@ def _segundos_a_tiempo(segundos):
 
 
 def _estadisticas(cursor):
+    """Calcula estadísticas parciales usando únicamente batallas ya completadas."""
+    cursor.execute("""
+        SELECT p.id, p.robot, COALESCE(gp.grupo_id, NULL), COALESCE(g.nombre, '')
+        FROM participantes p
+        LEFT JOIN grupo_participantes gp ON gp.participante_id = p.id
+        LEFT JOIN grupos g ON g.id = gp.grupo_id
+        ORDER BY p.id
+    """)
+    stats = {}
+    for pid, robot, gid, grupo in cursor.fetchall():
+        stats[pid] = {
+            "id": pid,
+            "grupo_id": gid,
+            "grupo": grupo if gid is not None else "Todos contra todos",
+            "robot": robot or "—",
+            "puntos": 0,
+            "victorias": 0,
+            "combates": 0,
+            "tiempo_total": 0,
+            "tiempos_validos": 0,
+            "ataques_propios": 0,
+            "ataques_totales": 0,
+        }
+
     cursor.execute("""
         SELECT e.id, e.etapa, e.grupo_id, e.participante1, e.participante2,
                e.ganador, e.estado, e.tiempo,
                COALESCE(e.ataques1, 0), COALESCE(e.ataques2, 0),
-               p1.robot, p2.robot, COALESCE(g.nombre, '')
+               p1.robot, p2.robot
         FROM enfrentamientos e
         JOIN participantes p1 ON p1.id = e.participante1
         JOIN participantes p2 ON p2.id = e.participante2
-        LEFT JOIN grupos g ON g.id = e.grupo_id
-        WHERE e.etapa IN ('Grupo', 'Todos')
+        WHERE e.etapa IN ('Grupo', 'Todos') AND e.estado = 'Completado'
         ORDER BY e.id
     """)
     combates = cursor.fetchall()
-    if not combates or any(f[6] != "Completado" for f in combates):
-        return None
-
-    cursor.execute("""
-        SELECT gp.participante_id, gp.grupo_id, p.robot, g.nombre
-        FROM grupo_participantes gp
-        JOIN participantes p ON p.id = gp.participante_id
-        JOIN grupos g ON g.id = gp.grupo_id
-    """)
-    stats = {}
-    for pid, gid, robot, grupo in cursor.fetchall():
-        stats[pid] = {
-            "id": pid, "grupo_id": gid, "grupo": grupo, "robot": robot,
-            "puntos": 0, "victorias": 0, "combates": 0,
-            "tiempo_total": 0, "tiempos_validos": 0,
-            "ataques_propios": 0, "ataques_totales": 0,
-        }
-
     directos = {}
+
     for (bid, etapa, grupo_id, p1, p2, ganador, estado, tiempo,
-         ataques1, ataques2, robot1, robot2, grupo) in combates:
-        if etapa == "Todos":
-            for pid, robot in ((p1, robot1), (p2, robot2)):
-                stats.setdefault(pid, {
-                    "id": pid, "grupo_id": None, "grupo": "Todos contra todos",
-                    "robot": robot, "puntos": 0, "victorias": 0, "combates": 0,
-                    "tiempo_total": 0, "tiempos_validos": 0,
+         ataques1, ataques2, robot1, robot2) in combates:
+        # Salvaguarda para bases con registros de participantes que ya no estén
+        # en la tabla principal del ranking.
+        for pid, robot in ((p1, robot1), (p2, robot2)):
+            if pid not in stats:
+                stats[pid] = {
+                    "id": pid, "grupo_id": grupo_id,
+                    "grupo": "Todos contra todos" if etapa == "Todos" else "",
+                    "robot": robot or "—", "puntos": 0, "victorias": 0,
+                    "combates": 0, "tiempo_total": 0, "tiempos_validos": 0,
                     "ataques_propios": 0, "ataques_totales": 0,
-                })
+                }
+
         s1, s2 = stats[p1], stats[p2]
         s1["combates"] += 1
         s2["combates"] += 1
-        s1["ataques_propios"] += max(0, int(ataques1 or 0))
-        s2["ataques_propios"] += max(0, int(ataques2 or 0))
-        total_ataques = max(0, int(ataques1 or 0)) + max(0, int(ataques2 or 0))
+        a1, a2 = max(0, int(ataques1 or 0)), max(0, int(ataques2 or 0))
+        s1["ataques_propios"] += a1
+        s2["ataques_propios"] += a2
+        total_ataques = a1 + a2
         s1["ataques_totales"] += total_ataques
         s2["ataques_totales"] += total_ataques
+
         segundos = _tiempo_a_segundos(tiempo)
         if segundos is not None:
             for s in (s1, s2):
                 s["tiempo_total"] += segundos
                 s["tiempos_validos"] += 1
+
         if ganador in (p1, p2):
             stats[ganador]["victorias"] += 1
             stats[ganador]["puntos"] += 1
@@ -133,8 +146,8 @@ def _estadisticas(cursor):
             100 * s["victorias"] / s["combates"]
             if s["combates"] else 0.0
         )
+        s["ha_competido"] = s["combates"] > 0
     return stats, directos
-
 
 def _comparar(a, b, directos):
     if a["puntos"] != b["puntos"]:
@@ -158,102 +171,57 @@ def _comparar(a, b, directos):
 
 
 def obtener_tabla_clasificacion():
-    """Filas visuales por puesto y grupo; cupos decididos por rendimiento."""
+    """Ranking general provisional y en tiempo real, independiente de los grupos."""
     conexion = conectar()
     try:
         cursor = conexion.cursor()
-        resultado = _estadisticas(cursor)
-        if resultado is None:
-            return None
-        stats, directos = resultado
-        cursor.execute("SELECT COUNT(*) FROM grupo_participantes")
-        hay_grupos = cursor.fetchone()[0] > 0
+        stats, directos = _estadisticas(cursor)
+        if not stats:
+            return []
 
-        if hay_grupos:
-            por_grupo = {}
-            for s in stats.values():
-                if s["grupo_id"] is not None:
-                    por_grupo.setdefault(s["grupo_id"], []).append(s)
-            ranking = []
-            for miembros in por_grupo.values():
-                miembros.sort(key=cmp_to_key(lambda a, b: _comparar(a, b, directos)))
-                for posicion, s in enumerate(miembros, 1):
-                    fila = dict(s)
-                    fila["posicion_grupo"] = posicion
-                    ranking.append(fila)
-            # Orden visible: todos los primeros puestos por grupo A, B, C;
-            # después todos los segundos, y así sucesivamente.
-            ranking.sort(key=lambda r: (
-                r["posicion_grupo"], r["grupo"].casefold(), r["robot"].casefold()
+        ranking = sorted(
+            stats.values(),
+            key=cmp_to_key(lambda a, b: (
+                -1 if a["ha_competido"] and not b["ha_competido"]
+                else 1 if b["ha_competido"] and not a["ha_competido"]
+                else _comparar(a, b, directos)
             ))
-            cantidad_total = len(stats)
-            cupos = min(cantidad_clasificados(cantidad_total), len(ranking))
+        )
 
-            # Para decidir quién entra si los cupos se terminan dentro de una
-            # posición, comparar estadísticas entre los integrantes de esa posición.
-            seleccionados = set()
-            posiciones = sorted({r["posicion_grupo"] for r in ranking})
-            for posicion in posiciones:
-                nivel = [r for r in ranking if r["posicion_grupo"] == posicion]
-                nivel.sort(key=cmp_to_key(lambda a, b: _comparar(a, b, directos)))
-                for fila in nivel:
-                    if len(seleccionados) >= cupos:
-                        break
-                    seleccionados.add(fila["id"])
-                if len(seleccionados) >= cupos:
-                    break
-        else:
-            ranking = sorted(stats.values(), key=cmp_to_key(lambda a, b: _comparar(a, b, directos)))
-            for posicion, fila in enumerate(ranking, 1):
-                fila["posicion_grupo"] = posicion
-            cupos = 2
-            seleccionados = {r["id"] for r in ranking[:cupos]}
+        cursor.execute("SELECT COUNT(*) FROM participantes")
+        cantidad_total = cursor.fetchone()[0]
+        cupos = min(cantidad_clasificados(cantidad_total), len(ranking)) if cantidad_total >= 6 else min(2, len(ranking))
 
-        for fila in ranking:
-            fila["clasifica"] = fila["id"] in seleccionados
+        for posicion, fila in enumerate(ranking, 1):
+            fila["posicion_grupo"] = posicion
+            fila["posicion"] = posicion
+            fila["clasifica"] = posicion <= cupos
             fila["tiempo_mostrar"] = _segundos_a_tiempo(fila["tiempo_promedio"])
         return ranking
     finally:
         conexion.close()
 
-
 def _obtener_clasificados(cursor):
+    """Selecciona los mejores del ranking general, sin cuotas por grupo."""
     resultado = _estadisticas(cursor)
     if resultado is None:
         return None
     stats, directos = resultado
-    cursor.execute("SELECT COUNT(*) FROM grupo_participantes")
-    hay_grupos = cursor.fetchone()[0] > 0
-    if not hay_grupos:
-        ranking = sorted(stats.values(), key=cmp_to_key(lambda a, b: _comparar(a, b, directos)))
-        return [(s["id"], None) for s in ranking[:2]]
-
-    por_grupo = {}
-    for s in stats.values():
-        if s["grupo_id"] is not None:
-            por_grupo.setdefault(s["grupo_id"], []).append(s)
-    ranking = []
-    for gid, miembros in por_grupo.items():
-        miembros.sort(key=cmp_to_key(lambda a, b: _comparar(a, b, directos)))
-        for posicion, s in enumerate(miembros, 1):
-            fila = dict(s)
-            fila["posicion"] = posicion
-            ranking.append(fila)
-
-    # La siembra prioriza el puesto de grupo. Entre robots que ocuparon
-    # el mismo puesto, desempata el rendimiento global acordado.
-    ranking.sort(key=lambda r: r["posicion"])
-    orden_siembra = []
-    for posicion in sorted({r["posicion"] for r in ranking}):
-        nivel = [r for r in ranking if r["posicion"] == posicion]
-        nivel.sort(key=cmp_to_key(lambda a, b: _comparar(a, b, directos)))
-        orden_siembra.extend(nivel)
-
-    cursor.execute("SELECT COUNT(*) FROM grupo_participantes")
+    ranking = sorted(
+        stats.values(),
+        key=cmp_to_key(lambda a, b: (
+            -1 if a["ha_competido"] and not b["ha_competido"]
+            else 1 if b["ha_competido"] and not a["ha_competido"]
+            else _comparar(a, b, directos)
+        ))
+    )
+    cursor.execute("SELECT COUNT(*) FROM participantes")
     cantidad_total = cursor.fetchone()[0]
-    cupos = min(cantidad_clasificados(cantidad_total), len(orden_siembra))
-    return [(r["id"], r["grupo_id"]) for r in orden_siembra[:cupos]]
-
+    if cantidad_total <= 5:
+        cantidad_cupos = 2
+    else:
+        cantidad_cupos = min(cantidad_clasificados(cantidad_total), cantidad_total)
+    return [(fila["id"], fila["grupo_id"]) for fila in ranking[:cantidad_cupos]]
 
 def _orden_siembra(cantidad):
     orden = [1, 2]
@@ -500,3 +468,59 @@ def generar_final_todos_manualmente():
         return False, f"No se pudo generar la final: {error}"
     finally:
         conexion.close()
+
+
+def avanzar_fase_automatica():
+    """Crea la siguiente fase cuando todos los combates iniciales están completados."""
+    conexion = conectar()
+    try:
+        cursor = conexion.cursor()
+        cursor.execute("SELECT COUNT(*) FROM grupo_participantes")
+        hay_grupos = cursor.fetchone()[0] > 0
+
+        if hay_grupos:
+            cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Grupo'")
+            total = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Grupo' AND estado != 'Completado'")
+            pendientes = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM llaves")
+            llaves_existentes = cursor.fetchone()[0]
+            conexion.close()
+            if total > 0 and pendientes == 0 and not llaves_existentes:
+                return _generar_llaves()
+            return False, "La fase de grupos aún no ha terminado."
+        
+        cursor.execute("SELECT COUNT(*) FROM participantes")
+        cantidad = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Todos'")
+        total = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Todos' AND estado != 'Completado'")
+        pendientes = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Final'")
+        final_existente = cursor.fetchone()[0]
+        if cantidad < 3 or cantidad > 5 or total == 0 or pendientes > 0 or final_existente:
+            conexion.close()
+            return False, "La fase inicial aún no ha terminado o no requiere una final automática."
+
+        clasificados = _obtener_clasificados(cursor)
+        if not clasificados or len(clasificados) < 2:
+            conexion.close()
+            return False, "No se pudieron determinar los dos mejores participantes."
+        cursor.execute("""
+            INSERT INTO enfrentamientos
+                (etapa, grupo_id, participante1, participante2, estado, ronda)
+            VALUES ('Final', NULL, ?, ?, 'Pendiente', 1)
+        """, (clasificados[0][0], clasificados[1][0]))
+        conexion.commit()
+        return True, "Final generada automáticamente entre los dos primeros del ranking."
+    except Exception as error:
+        try:
+            conexion.rollback()
+        except Exception:
+            pass
+        return False, f"No se pudo generar automáticamente la siguiente fase: {error}"
+    finally:
+        try:
+            conexion.close()
+        except Exception:
+            pass
