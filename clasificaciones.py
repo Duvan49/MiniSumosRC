@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from contextlib import closing
 import tkinter as tk
 from tkinter import ttk
 
@@ -24,7 +25,7 @@ RUTA_BD = os.path.join(
 )
 
 def cantidad_participantes():
-    with sqlite3.connect(RUTA_BD) as conexion:
+    with closing(sqlite3.connect(RUTA_BD)) as conexion:
         cursor = conexion.cursor()
         cursor.execute("SELECT COUNT(*) FROM participantes")
         return cursor.fetchone()[0]
