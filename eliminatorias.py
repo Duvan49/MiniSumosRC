@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from contextlib import closing
 import tkinter as tk
 from tkinter import ttk
 
@@ -62,10 +63,10 @@ def mostrar_eliminatorias(contenedor):
             # no un cuadro de llaves. Se muestra aquí para mantener Enfrentamientos
             # dedicado exclusivamente al calendario inicial.
             try:
-                with sqlite3.connect(os.path.join(
+                with closing(sqlite3.connect(os.path.join(
                     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                     "BasesDeDatos", "competencia.db"
-                )) as conexion:
+                ))) as conexion:
                     cursor = conexion.cursor()
                     cursor.execute("""
                         SELECT e.participante1, p1.robot, p1.nombre,
