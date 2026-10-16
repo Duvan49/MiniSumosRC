@@ -4,6 +4,8 @@ import sqlite3
 from functools import cmp_to_key
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(BASE_DIR).lower() == "interfaz":
+    BASE_DIR = os.path.dirname(BASE_DIR)
 RUTA_BD = os.path.join(BASE_DIR, "BasesDeDatos", "competencia.db")
 
 
