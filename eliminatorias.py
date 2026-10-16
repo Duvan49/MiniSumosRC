@@ -1,7 +1,6 @@
 import os
 import sqlite3
 from contextlib import closing
-from contextlib import closing
 import tkinter as tk
 from tkinter import ttk
 
@@ -27,7 +26,7 @@ def mostrar_eliminatorias(contenedor):
 
     tk.Label(
         principal, text="ELIMINATORIAS",
-        font=("Arial", 18, "bold"), fg="#000000", bg=FONDO
+        font=("Arial", 20, "bold"), fg="#8E1B1B", bg=FONDO
     ).pack(anchor="w", pady=(0, 20))
 
     marco_llaves = tk.Frame(principal, bg=FONDO)
@@ -48,7 +47,7 @@ def mostrar_eliminatorias(contenedor):
             canvas_llaves.delete("all")
             try:
                 with closing(sqlite3.connect(os.path.join(
-                    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                    os.path.dirname(os.path.abspath(__file__)),
                     "BasesDeDatos", "competencia.db"
                 ))) as conexion:
                     cursor = conexion.cursor()
