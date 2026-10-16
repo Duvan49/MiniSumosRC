@@ -352,11 +352,12 @@ def mostrar_pagina_batallas():
     seleccionar_boton(botones_menu[5])
 
     def al_terminar_fase(pagina, mensaje):
-        messagebox.showinfo("Fase finalizada", mensaje, parent=ventana)
-        if pagina == "clasificaciones":
-            mostrar_pagina_clasificaciones()
-        else:
-            mostrar_pagina_eliminatorias()
+        def redirigir():
+            if pagina == "clasificaciones":
+                mostrar_pagina_clasificaciones()
+            else:
+                mostrar_pagina_eliminatorias()
+        ventana.after(3000, redirigir)
 
     mostrar_batallas(contenedor, al_terminar_fase=al_terminar_fase)
 
