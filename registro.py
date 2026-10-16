@@ -8,11 +8,10 @@ import os
 # BASE DE DATOS
 # ============================================================
 
-ruta_bd = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "BasesDeDatos",
-    "competencia.db"
-)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(BASE_DIR).lower() == "interfaz":
+    BASE_DIR = os.path.dirname(BASE_DIR)
+ruta_bd = os.path.join(BASE_DIR, "BasesDeDatos", "competencia.db")
 
 conexion = sqlite3.connect(ruta_bd)
 cursor = conexion.cursor()
@@ -53,7 +52,10 @@ def confirmar_y_limpiar_competencia(accion, parent=None):
 
     # Se limpian las referencias antiguas antes de modificar participantes.
     try:
-        from enfrentamientos import limpiar_competencia_anterior
+        try:
+            from .enfrentamientos import limpiar_competencia_anterior
+        except ImportError:
+            from enfrentamientos import limpiar_competencia_anterior
         limpiar_competencia_anterior()
     except Exception as error:
         messagebox.showerror(
@@ -69,7 +71,10 @@ def confirmar_y_limpiar_competencia(accion, parent=None):
 def regenerar_calendario_participantes(parent=None):
     """Genera un calendario nuevo con la lista actual de participantes."""
     try:
-        from enfrentamientos import preparar_competencia
+        try:
+            from .enfrentamientos import preparar_competencia
+        except ImportError:
+            from enfrentamientos import preparar_competencia
         exito, mensaje = preparar_competencia()
         if not exito:
             messagebox.showwarning(
