@@ -72,7 +72,23 @@ def mostrar_clasificaciones(contenedor):
     tk.Label(
         principal, text="CLASIFICACIONES",
         font=("Arial", 20, "bold"), fg=ROJO_OSCURO, bg=FONDO
-    ).pack(anchor="w", pady=(0, 20))
+    ).pack(anchor="w", pady=(0, 14))
+
+    marco_acciones = tk.Frame(principal, bg=FONDO)
+    marco_acciones.pack(fill="x", pady=(0, 12))
+
+    estado_texto = tk.Label(
+        marco_acciones, text="", font=("Arial", 10),
+        bg=FONDO, fg=GRIS, anchor="w"
+    )
+    estado_texto.pack(side="left", fill="x", expand=True)
+
+    boton_continuar = tk.Button(
+        marco_acciones, text="", font=("Arial", 10, "bold"),
+        bg=ROJO, fg="#FFFFFF", activebackground=ROJO_OSCURO,
+        activeforeground="#FFFFFF", relief="flat", bd=0,
+        cursor="hand2", padx=16, pady=9
+    )
 
     marco = tk.Frame(principal, bg=FONDO)
     marco.pack(fill="both", expand=True)
@@ -100,28 +116,70 @@ def mostrar_clasificaciones(contenedor):
     tabla.tag_configure("eliminado", background=ROJO_FONDO, foreground=ROJO_TEXTO)
     tabla.tag_configure("sin_jugar", background="#FFFFFF", foreground="#64748B")
 
+    def continuar_fase(tipo):
+        if tipo == "llaves":
+            exito, mensaje = generar_llaves_manualmente()
+        else:
+            exito, mensaje = generar_final_todos_manualmente()
+
+        if exito:
+            messagebox.showinfo("Fase preparada", mensaje, parent=contenedor.winfo_toplevel())
+            mostrar_clasificaciones(contenedor)
+        else:
+            messagebox.showwarning("No se pudo continuar", mensaje, parent=contenedor.winfo_toplevel())
+
+    def actualizar_acciones(estado):
+        boton_continuar.pack_forget()
+        estado_texto.config(text="")
+        if estado["hay_grupos"]:
+            if estado["total_grupos"] and estado["pendientes_grupos"] == 0 and not estado["total_llaves"]:
+                estado_texto.config(text="La fase de grupos terminó. Revisa la clasificación y genera las llaves.")
+                boton_continuar.config(
+                    text="GENERAR LLAVES",
+                    command=lambda: continuar_fase("llaves")
+                )
+                boton_continuar.pack(side="right")
+            elif estado["total_grupos"]:
+                estado_texto.config(text="La clasificación se actualiza a medida que se completan las batallas de grupos.")
+        elif estado["total_todos"] and estado["pendientes_todos"] == 0 and not estado["total_finales"]:
+            estado_texto.config(text="Todos contra todos terminó. Revisa la clasificación antes de generar la final.")
+            boton_continuar.config(
+                text="CONTINUAR CON LA FINAL",
+                command=lambda: continuar_fase("final")
+            )
+            boton_continuar.pack(side="right")
+        elif estado["total_todos"]:
+            estado_texto.config(text="La clasificación se actualiza a medida que se completan los combates.")
+
     def cargar():
         try:
             filas = obtener_tabla_clasificacion() or []
+            estado = estado_fase()
         except (sqlite3.Error, KeyError, TypeError) as error:
             print(f"No se pudo actualizar la clasificación: {error}")
             return
 
+        actualizar_acciones(estado)
         tabla.delete(*tabla.get_children())
+        hay_grupos = estado["hay_grupos"]
+
         for fila in filas:
-            if not fila.get("ha_competido"):
+            if hay_grupos:
                 grupo = (fila.get("grupo") or "").replace("Grupo ", "")
                 if grupo == "Todos contra todos":
-                    grupo = "Todos"
+                    grupo = ""
+                if not fila.get("ha_competido"):
+                    grupo = ""
+            else:
+                grupo = "N/A"
+
+            if not fila.get("ha_competido"):
                 valores = (
                     f'{fila.get("posicion", fila.get("posicion_grupo", "—"))}°',
-                    grupo, "", "", "", "", ""
+                    grupo, fila.get("robot") or "—", "", "", "", ""
                 )
                 tag = "sin_jugar"
             else:
-                grupo = (fila.get("grupo") or "").replace("Grupo ", "")
-                if grupo == "Todos contra todos":
-                    grupo = "Todos"
                 valores = (
                     f'{fila.get("posicion", fila.get("posicion_grupo", "—"))}°',
                     grupo,
