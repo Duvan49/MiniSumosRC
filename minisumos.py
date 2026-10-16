@@ -3,20 +3,12 @@ from tkinter import ttk
 import os
 from PIL import Image, ImageTk
 
-try:
-    from Interfaz.registro import mostrar_registro, cerrar_registro
-    from Interfaz.enfrentamientos import mostrar_enfrentamientos
-    from Interfaz.batallas import mostrar_batallas
-    from Interfaz.grupos import mostrar_grupos
-    from Interfaz.clasificaciones import mostrar_clasificaciones
-    from Interfaz.eliminatorias import mostrar_eliminatorias
-except ImportError:
-    from registro import mostrar_registro, cerrar_registro
-    from enfrentamientos import mostrar_enfrentamientos
-    from batallas import mostrar_batallas
-    from grupos import mostrar_grupos
-    from clasificaciones import mostrar_clasificaciones
-    from eliminatorias import mostrar_eliminatorias
+from registro import mostrar_registro, cerrar_registro
+from enfrentamientos import mostrar_enfrentamientos
+from batallas import mostrar_batallas
+from grupos import mostrar_grupos
+from clasificaciones import mostrar_clasificaciones
+from eliminatorias import mostrar_eliminatorias
 
 # ============================================================
 # CONFIGURACIÓN PRINCIPAL
