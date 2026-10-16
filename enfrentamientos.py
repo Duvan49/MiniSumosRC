@@ -696,7 +696,7 @@ def mostrar_enfrentamientos(contenedor):
 
     tk.Label(
         contenido, text="ENFRENTAMIENTOS",
-        font=("Arial", 18, "bold"), fg="#000000", bg=FONDO
+        font=("Arial", 20, "bold"), fg="#8E1B1B", bg=FONDO
     ).pack(anchor="w", pady=(0, 20))
 
     estilo = ttk.Style()
@@ -736,6 +736,9 @@ def mostrar_enfrentamientos(contenedor):
     tabla.pack(side="left", fill="both", expand=True)
     barra.pack(side="right", fill="y")
 
+    tabla.tag_configure("completado", background="#DCFCE7", foreground="#166534")
+    tabla.tag_configure("pendiente", background="#F1F5F9", foreground="#475569")
+
     def cargar():
         participantes = obtener_participantes_validos()
         cantidad = len(participantes)
@@ -761,7 +764,8 @@ def mostrar_enfrentamientos(contenedor):
                 fase = etapa
             tabla.insert(
                 "", "end",
-                values=(numero, fase, grupo or "—", robot1 or "—", robot2 or "—", estado_fila)
+                values=(numero, fase, grupo or "—", robot1 or "—", robot2 or "—", estado_fila),
+                tags=("completado" if estado_fila == "Completado" else "pendiente",)
             )
         return firma, filas
 
@@ -791,10 +795,18 @@ def mostrar_enfrentamientos(contenedor):
                 parent=contenedor.winfo_toplevel()
             )
 
-    ttk.Button(
+    boton_reiniciar = tk.Button(
         marco_botones, text="REINICIAR FASE INICIAL",
-        command=reiniciar, style="Generar.TButton"
-    ).pack(side="left")
+        command=reiniciar, font=("Arial", 11, "bold"),
+        bg="#C62828", fg="#FFFFFF",
+        activebackground="#8E1B1B", activeforeground="#FFFFFF",
+        relief="flat", bd=0, cursor="hand2", padx=18, pady=10
+    )
+    boton_reiniciar.pack(side="left")
+    boton_reiniciar.bind("<Enter>", lambda evento: boton_reiniciar.config(bg="#A91F1F"))
+    boton_reiniciar.bind("<Leave>", lambda evento: boton_reiniciar.config(bg="#C62828"))
+    boton_reiniciar.bind("<ButtonPress-1>", lambda evento: boton_reiniciar.config(bg="#761616"))
+    boton_reiniciar.bind("<ButtonRelease-1>", lambda evento: boton_reiniciar.config(bg="#A91F1F"))
 
     firma_anterior, _ = cargar()
 
