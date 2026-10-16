@@ -5,10 +5,10 @@ import os
 from tkinter import ttk
 try:
     from .esp32 import esp32
-    from .llaves import actualizar_llaves_tras_resultado
+    from .llaves import actualizar_llaves_tras_resultado, avanzar_fase_automatica
 except ImportError:
     from esp32 import esp32
-    from llaves import actualizar_llaves_tras_resultado
+    from llaves import actualizar_llaves_tras_resultado, avanzar_fase_automatica
 
 
 # ============================================================
@@ -425,8 +425,9 @@ def registrar_resultado(
     # o si ya se puede crear la siguiente ronda eliminatoria.
     try:
         actualizar_llaves_tras_resultado()
+        avanzar_fase_automatica()
     except Exception as error:
-        print(f"Error al actualizar las llaves eliminatorias: {error}")
+        print(f"Error al actualizar automáticamente la siguiente fase: {error}")
 
 
 # ============================================================
