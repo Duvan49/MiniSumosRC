@@ -5,10 +5,10 @@ import os
 from tkinter import ttk
 try:
     from .esp32 import esp32
-    from .llaves import actualizar_llaves_tras_resultado, avanzar_fase_automatica
+    from .llaves import (actualizar_llaves_tras_resultado, generar_llaves_manualmente, generar_final_todos_manualmente, avanzar_ronda_manualmente)
 except ImportError:
     from esp32 import esp32
-    from llaves import actualizar_llaves_tras_resultado, avanzar_fase_automatica
+    from llaves import (actualizar_llaves_tras_resultado, generar_llaves_manualmente, generar_final_todos_manualmente, avanzar_ronda_manualmente)
 
 
 # ============================================================
@@ -924,43 +924,43 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         total_finales_actual = cursor.fetchone()[0]
         conexion.close()
 
-        # Tras guardar una batalla, dirigir al organizador a la pantalla donde
-        # puede revisar la clasificación o habilitar manualmente la siguiente ronda.
-        if resultado_recien_guardado and al_terminar_fase and not campeon:
-            if total_grupos > 0 and grupos_pendientes == 0 and not hay_llaves:
-                al_terminar_fase(
-                    "clasificaciones",
-                    "La fase de grupos terminó. Revisa la clasificación y genera las llaves para continuar."
-                )
-                return
-            if total_todos > 0 and todos_pendientes == 0 and total_finales_actual == 0:
-                al_terminar_fase(
-                    "clasificaciones",
-                    "La fase todos contra todos terminó. Revisa la clasificación y habilita la final."
-                )
-                return
-            if hay_llaves:
-                conexion_rondas = conectar_bd()
-                cursor_rondas = conexion_rondas.cursor()
-                cursor_rondas.execute("""
-                    SELECT etapa, COUNT(*),
-                           SUM(CASE WHEN estado = 'Completado' THEN 1 ELSE 0 END)
-                    FROM enfrentamientos
-                    WHERE etapa NOT IN ('Grupo', 'Todos', 'Final')
-                    GROUP BY etapa
-                    ORDER BY MAX(id) DESC
-                    LIMIT 1
-                """)
-                ultima = cursor_rondas.fetchone()
-                cursor_rondas.execute("SELECT COUNT(*) FROM llaves")
-                cantidad_llaves = cursor_rondas.fetchone()[0]
-                conexion_rondas.close()
-                if ultima and ultima[0] and ultima[1] > 0 and ultima[2] == ultima[1]:
-                    al_terminar_fase(
-                        "eliminatorias",
-                        f"La fase {ultima[0]} terminó. Revisa las llaves y habilita la siguiente ronda."
-                    )
-                    return
+        accion_tipo = None
+        destino_fase = None
+        titulo_fase = "NO HAY BATALLAS PENDIENTES"
+        detalle_fase = "La competencia está al día."
+
+        if total_grupos > 0 and grupos_pendientes == 0 and not hay_llaves:
+            accion_tipo = "llaves"
+            destino_fase = "clasificaciones"
+            titulo_fase = "FASE DE GRUPOS FINALIZADA"
+            detalle_fase = "Revisa la clasificación y continúa cuando estés listo."
+        elif total_todos > 0 and todos_pendientes == 0 and total_finales_actual == 0:
+            accion_tipo = "final"
+            destino_fase = "clasificaciones"
+            titulo_fase = "TODOS CONTRA TODOS FINALIZADO"
+            detalle_fase = "La clasificación está lista. Puedes continuar con la final."
+        elif hay_llaves:
+            conexion_rondas = conectar_bd()
+            cursor_rondas = conexion_rondas.cursor()
+            cursor_rondas.execute("""
+                SELECT etapa, COUNT(*),
+                       SUM(CASE WHEN estado = 'Completado' THEN 1 ELSE 0 END)
+                FROM enfrentamientos
+                WHERE etapa NOT IN ('Grupo', 'Todos', 'Final')
+                GROUP BY etapa
+                ORDER BY MAX(id) DESC
+                LIMIT 1
+            """)
+            ultima = cursor_rondas.fetchone()
+            conexion_rondas.close()
+            if ultima and ultima[0] and ultima[1] > 0 and ultima[2] == ultima[1]:
+                accion_tipo = "ronda"
+                destino_fase = "eliminatorias"
+                titulo_fase = f"FASE {str(ultima[0]).upper()} FINALIZADA"
+                detalle_fase = "Cuando estés listo, continúa con la siguiente ronda."
+
+        if resultado_recien_guardado and al_terminar_fase and destino_fase and not campeon:
+            al_terminar_fase(destino_fase, detalle_fase)
 
         if campeon:
             tk.Label(
@@ -988,35 +988,47 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                     principal, text=marcador,
                     font=("Segoe UI", 15, "bold"), fg="#17202a", bg="#f3f5f7"
                 ).pack()
-        elif total_grupos > 0 and grupos_pendientes == 0 and not hay_llaves:
+        elif accion_tipo:
             tk.Label(
-                principal, text="FASE DE GRUPOS FINALIZADA",
-                font=("Segoe UI", 18, "bold"), fg="#17202a", bg="#f3f5f7"
-            ).pack(pady=(95, 12))
+                principal, text="✓", font=("Segoe UI", 46, "bold"),
+                fg="#16A34A", bg="#f3f5f7"
+            ).pack(pady=(75, 12))
             tk.Label(
-                principal, text="CLASIFICACIÓN LISTA",
-                font=("Segoe UI", 27, "bold"), fg="#922b2b", bg="#f3f5f7"
+                principal, text=titulo_fase,
+                font=("Segoe UI", 25, "bold"), fg="#17202a", bg="#f3f5f7",
+                wraplength=900, justify="center"
             ).pack(pady=(0, 12))
             tk.Label(
-                principal,
-                text="VE A CLASIFICACIONES PARA GENERAR LAS LLAVES",
+                principal, text=detalle_fase,
                 font=("Segoe UI", 15), fg="#475569", bg="#f3f5f7",
-                justify="center"
-            ).pack()
-        elif total_todos > 0 and todos_pendientes == 0 and total_finales_actual == 0:
-            tk.Label(
-                principal, text="FASE TODOS CONTRA TODOS FINALIZADA",
-                font=("Segoe UI", 18, "bold"), fg="#17202a", bg="#f3f5f7"
-            ).pack(pady=(95, 12))
-            tk.Label(
-                principal, text="CLASIFICACIÓN LISTA",
-                font=("Segoe UI", 27, "bold"), fg="#922b2b", bg="#f3f5f7"
-            ).pack(pady=(0, 12))
-            tk.Label(
-                principal,
-                text="VE A CLASIFICACIONES PARA HABILITAR LA FINAL",
-                font=("Segoe UI", 15), fg="#475569", bg="#f3f5f7",
-                justify="center"
+                wraplength=820, justify="center"
+            ).pack(pady=(0, 24))
+
+            def continuar_desde_batallas():
+                if accion_tipo == "llaves":
+                    exito, mensaje = generar_llaves_manualmente()
+                elif accion_tipo == "final":
+                    exito, mensaje = generar_final_todos_manualmente()
+                else:
+                    exito, mensaje = avanzar_ronda_manualmente()
+
+                if exito:
+                    mostrar_batallas(
+                        contenedor,
+                        al_terminar_fase=al_terminar_fase
+                    )
+                else:
+                    messagebox.showwarning(
+                        "No se puede continuar", mensaje,
+                        parent=contenedor.winfo_toplevel()
+                    )
+
+            tk.Button(
+                principal, text="CONTINUAR",
+                command=continuar_desde_batallas,
+                font=("Segoe UI", 13, "bold"), bg="#C62828", fg="#FFFFFF",
+                activebackground="#8E1B1B", activeforeground="#FFFFFF",
+                relief="flat", bd=0, cursor="hand2", padx=30, pady=13
             ).pack()
         else:
             tk.Label(
