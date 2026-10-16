@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from contextlib import closing
 import tkinter as tk
 from tkinter import ttk
 
@@ -62,7 +63,7 @@ def mostrar_grupos(contenedor):
     def cargar():
         tabla.delete(*tabla.get_children())
         try:
-            with conectar() as conexion:
+            with closing(conectar()) as conexion:
                 cursor = conexion.cursor()
                 cursor.execute("""
                     SELECT g.id, g.nombre, p.robot, p.nombre
