@@ -9,11 +9,7 @@ try:
         obtener_tabla_clasificacion,
     )
 except ImportError:
-    from llaves import (
-        obtener_tabla_clasificacion,
-        generar_llaves_manualmente,
-        generar_final_todos_manualmente,
-    )
+    from llaves import obtener_tabla_clasificacion
 
 FONDO = "#FFFFFF"
 ROJO = "#C62828"
