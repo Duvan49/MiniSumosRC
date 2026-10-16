@@ -3,7 +3,7 @@ import os
 import sqlite3
 from functools import cmp_to_key
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 RUTA_BD = os.path.join(BASE_DIR, "BasesDeDatos", "competencia.db")
 
 
@@ -54,9 +54,12 @@ def _tiempo_a_segundos(valor):
 
 def _segundos_a_tiempo(segundos):
     if segundos is None:
-        return "—"
+        return "0:00:00"
     segundos = int(round(segundos))
-    return f"{segundos // 60:02d}:{segundos % 60:02d}"
+    horas = segundos // 3600
+    minutos = (segundos % 3600) // 60
+    segundos_restantes = segundos % 60
+    return f"{horas}:{minutos:02d}:{segundos_restantes:02d}"
 
 
 def _estadisticas(cursor):
