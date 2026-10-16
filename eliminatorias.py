@@ -315,8 +315,6 @@ def mostrar_eliminatorias(contenedor):
                 max(alto_total + desplazamiento_y, alto_visible)
             )
         )
-        canvas_llaves.xview_moveto(0)
-        canvas_llaves.yview_moveto(0)
         return True
     def actualizar_periodicamente():
         if not principal.winfo_exists():
