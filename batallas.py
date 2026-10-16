@@ -3,8 +3,12 @@ from tkinter import messagebox
 import sqlite3
 import os
 from tkinter import ttk
-from .esp32 import esp32
-from .llaves import actualizar_llaves_tras_resultado
+try:
+    from .esp32 import esp32
+    from .llaves import actualizar_llaves_tras_resultado
+except ImportError:
+    from esp32 import esp32
+    from llaves import actualizar_llaves_tras_resultado
 
 
 # ============================================================
