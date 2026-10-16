@@ -10,15 +10,10 @@ import random
 # BASE DE DATOS
 # ============================================================
 
-ruta_bd = os.path.join(
-    os.path.dirname(
-        os.path.dirname(
-            os.path.abspath(__file__)
-        )
-    ),
-    "BasesDeDatos",
-    "competencia.db"
-)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(BASE_DIR).lower() == "interfaz":
+    BASE_DIR = os.path.dirname(BASE_DIR)
+ruta_bd = os.path.join(BASE_DIR, "BasesDeDatos", "competencia.db")
 
 
 # ============================================================
