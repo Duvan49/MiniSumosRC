@@ -64,6 +64,22 @@ def _segundos_a_tiempo(segundos):
     return f"{horas}:{minutos:02d}:{segundos_restantes:02d}"
 
 
+def _cantidad_participantes_validos(cursor):
+    """Cuenta únicamente participantes que cumplen todos los requisitos del reglamento."""
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM participantes p
+        WHERE CAST(COALESCE(p.peso, 0) AS REAL) > 0
+          AND CAST(COALESCE(p.peso, 0) AS REAL) <= 500
+          AND COALESCE(CAST(p.cumple_dimensiones AS INTEGER), 0) != 0
+          AND COALESCE(CAST(p.tipo_rc AS INTEGER), 0) != 0
+          AND COALESCE(CAST(p.interruptor_visible AS INTEGER), 0) != 0
+          AND COALESCE(CAST(p.sin_elementos_fijacion AS INTEGER), 0) != 0
+          AND COALESCE(CAST(p.sensores_tapados AS INTEGER), 0) != 0
+    """)
+    return cursor.fetchone()[0]
+
+
 def _estadisticas(cursor):
     """Calcula estadísticas parciales usando únicamente batallas ya completadas."""
     cursor.execute("""
@@ -71,6 +87,13 @@ def _estadisticas(cursor):
         FROM participantes p
         LEFT JOIN grupo_participantes gp ON gp.participante_id = p.id
         LEFT JOIN grupos g ON g.id = gp.grupo_id
+        WHERE CAST(COALESCE(p.peso, 0) AS REAL) > 0
+          AND CAST(COALESCE(p.peso, 0) AS REAL) <= 500
+          AND COALESCE(CAST(p.cumple_dimensiones AS INTEGER), 0) != 0
+          AND COALESCE(CAST(p.tipo_rc AS INTEGER), 0) != 0
+          AND COALESCE(CAST(p.interruptor_visible AS INTEGER), 0) != 0
+          AND COALESCE(CAST(p.sin_elementos_fijacion AS INTEGER), 0) != 0
+          AND COALESCE(CAST(p.sensores_tapados AS INTEGER), 0) != 0
         ORDER BY p.id
     """)
     stats = {}
