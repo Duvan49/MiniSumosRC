@@ -78,11 +78,11 @@ def mostrar_eliminatorias(contenedor):
                 hay_grupos, total_grupos, pendientes_grupos, total_todos = False, 0, 0, 0
 
             if hay_grupos and total_grupos and pendientes_grupos == 0:
-                texto = "La fase de grupos terminó. Revisa Clasificaciones y genera las llaves para que aparezcan aquí."
+                texto = "La fase de grupos terminó. Ve a Batallas y pulsa CONTINUAR para generar las llaves."
             elif hay_grupos:
-                texto = "Llaves por definir. Cuando finalice la fase de grupos, podrás revisar la clasificación y generar el cuadro eliminatorio."
+                texto = "Las llaves estarán disponibles cuando termine la fase de grupos. El avance se controla desde Batallas."
             elif total_todos:
-                texto = "En esta competencia no habrá cuadro eliminatorio. Al finalizar todos contra todos, la final se habilita desde Clasificaciones."
+                texto = "En esta competencia no habrá cuadro eliminatorio. Al terminar todos contra todos, la final se habilita desde Batallas."
             else:
                 texto = "En esta competencia no hay eliminatorias generadas."
             mensaje_vacio.config(text=texto)
