@@ -414,13 +414,12 @@ def registrar_resultado(
     conexion.commit()
     conexion.close()
 
-    # Al guardar un resultado, comprobar si terminó la fase inicial
-    # o si ya se puede crear la siguiente ronda eliminatoria.
+    # Sincronizar resultados con el cuadro, pero no crear la siguiente fase
+    # automáticamente: el organizador la habilita desde la pestaña correspondiente.
     try:
         actualizar_llaves_tras_resultado()
-        avanzar_fase_automatica()
     except Exception as error:
-        print(f"Error al actualizar automáticamente la siguiente fase: {error}")
+        print(f"Error al sincronizar los resultados con las llaves: {error}")
 
 
 # ============================================================
@@ -792,7 +791,7 @@ def abrir_resultado(
 # INTERFAZ BATALLAS
 # ============================================================
 
-def mostrar_batallas(contenedor):
+def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardado=False):
 
     # --------------------------------------------------------
     # LIMPIAR LA PÁGINA ANTES DE DIBUJAR
@@ -924,6 +923,44 @@ def mostrar_batallas(contenedor):
         cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Final'")
         total_finales_actual = cursor.fetchone()[0]
         conexion.close()
+
+        # Tras guardar una batalla, dirigir al organizador a la pantalla donde
+        # puede revisar la clasificación o habilitar manualmente la siguiente ronda.
+        if resultado_recien_guardado and al_terminar_fase and not campeon:
+            if total_grupos > 0 and grupos_pendientes == 0 and not hay_llaves:
+                al_terminar_fase(
+                    "clasificaciones",
+                    "La fase de grupos terminó. Revisa la clasificación y genera las llaves para continuar."
+                )
+                return
+            if total_todos > 0 and todos_pendientes == 0 and total_finales_actual == 0:
+                al_terminar_fase(
+                    "clasificaciones",
+                    "La fase todos contra todos terminó. Revisa la clasificación y habilita la final."
+                )
+                return
+            if hay_llaves:
+                conexion_rondas = conectar_bd()
+                cursor_rondas = conexion_rondas.cursor()
+                cursor_rondas.execute("""
+                    SELECT etapa, COUNT(*),
+                           SUM(CASE WHEN estado = 'Completado' THEN 1 ELSE 0 END)
+                    FROM enfrentamientos
+                    WHERE etapa NOT IN ('Grupo', 'Todos', 'Final')
+                    GROUP BY etapa
+                    ORDER BY MAX(id) DESC
+                    LIMIT 1
+                """)
+                ultima = cursor_rondas.fetchone()
+                cursor_rondas.execute("SELECT COUNT(*) FROM llaves")
+                cantidad_llaves = cursor_rondas.fetchone()[0]
+                conexion_rondas.close()
+                if ultima and ultima[0] and ultima[1] > 0 and ultima[2] == ultima[1]:
+                    al_terminar_fase(
+                        "eliminatorias",
+                        f"La fase {ultima[0]} terminó. Revisa las llaves y habilita la siguiente ronda."
+                    )
+                    return
 
         if campeon:
             tk.Label(
@@ -1446,7 +1483,11 @@ def mostrar_batallas(contenedor):
         abrir_resultado(
             contenedor.winfo_toplevel(),
             batalla,
-            lambda: mostrar_batallas(contenedor)
+            lambda: mostrar_batallas(
+                contenedor,
+                al_terminar_fase=al_terminar_fase,
+                resultado_recien_guardado=True
+            )
         )
 
     # --------------------------------------------------------
