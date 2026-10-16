@@ -4,7 +4,10 @@ from contextlib import closing
 import tkinter as tk
 from tkinter import ttk
 
-from llaves import obtener_datos_llaves
+try:
+    from .llaves import obtener_datos_llaves
+except ImportError:
+    from llaves import obtener_datos_llaves
 
 FONDO = "#FFFFFF"
 ROJO_OSCURO = "#8E1B1B"
@@ -43,9 +46,11 @@ def mostrar_eliminatorias(contenedor):
         if not rondas:
             canvas_llaves.delete("all")
             try:
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                if os.path.basename(base_dir).lower() == "interfaz":
+                    base_dir = os.path.dirname(base_dir)
                 with closing(sqlite3.connect(os.path.join(
-                    os.path.dirname(os.path.abspath(__file__)),
-                    "BasesDeDatos", "competencia.db"
+                    base_dir, "BasesDeDatos", "competencia.db"
                 ))) as conexion:
                     cursor = conexion.cursor()
                     cursor.execute("""
