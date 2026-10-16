@@ -11,7 +11,7 @@ TEXTO = "#222222"
 GRIS = "#666666"
 
 RUTA_BD = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    os.path.dirname(os.path.abspath(__file__)),
     "BasesDeDatos",
     "competencia.db",
 )
