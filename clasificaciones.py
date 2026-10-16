@@ -73,35 +73,21 @@ def mostrar_clasificaciones(contenedor):
     tk.Label(
         principal, text="CLASIFICACIONES",
         font=("Arial", 20, "bold"), fg=ROJO_OSCURO, bg=FONDO
-    ).pack(anchor="w", pady=(0, 6))
-
-    tk.Label(
-        principal,
-        text="Posiciones actualizadas automáticamente mientras se registran los resultados.",
-        font=("Arial", 11), fg=GRIS, bg=FONDO
-    ).pack(anchor="w", pady=(0, 14))
-
-    marco_acciones = tk.Frame(principal, bg=FONDO)
-    marco_acciones.pack(fill="x", pady=(0, 12))
-
-    boton_avanzar = ttk.Button(marco_acciones, text="GENERAR SIGUIENTE FASE", state="disabled")
-    boton_avanzar.pack(side="left")
+    ).pack(anchor="w", pady=(0, 20))
 
     marco = tk.Frame(principal, bg=FONDO)
     marco.pack(fill="both", expand=True)
 
-    columnas = ("posicion", "robot", "grupo", "puntos", "tiempo", "ataques", "victorias")
+    columnas = ("posicion", "robot", "puntos", "tiempo", "ataques", "victorias")
     tabla = ttk.Treeview(marco, columns=columnas, show="headings")
-    encabezados = [
+    for col, titulo, ancho in [
         ("posicion", "POS.", 75),
-        ("robot", "ROBOT", 210),
-        ("grupo", "GRUPO", 130),
-        ("puntos", "PUNTOS", 100),
-        ("tiempo", "TIEMPO PROM.", 145),
-        ("ataques", "% ATAQUES", 125),
-        ("victorias", "% VICTORIAS", 125),
-    ]
-    for col, titulo, ancho in encabezados:
+        ("robot", "ROBOT", 240),
+        ("puntos", "PUNTOS", 110),
+        ("tiempo", "TIEMPO PROM.", 165),
+        ("ataques", "% ATAQUES", 145),
+        ("victorias", "% VICTORIAS", 145),
+    ]:
         tabla.heading(col, text=titulo)
         tabla.column(col, width=ancho, anchor="center", stretch=True)
 
@@ -109,110 +95,43 @@ def mostrar_clasificaciones(contenedor):
     tabla.configure(yscrollcommand=barra.set)
     tabla.pack(side="left", fill="both", expand=True)
     barra.pack(side="right", fill="y")
+
     tabla.tag_configure("clasifica", background=VERDE, foreground=VERDE_TEXTO)
     tabla.tag_configure("eliminado", background=ROJO_FONDO, foreground=ROJO_TEXTO)
-
-    estado = tk.Label(principal, text="", font=("Arial", 11), bg=FONDO, fg=GRIS)
-    estado.pack(anchor="w", pady=(10, 0))
-
-    def avanzar():
-        try:
-            fase = estado_fase()
-        except sqlite3.Error as error:
-            messagebox.showerror("Error de base de datos", str(error), parent=contenedor.winfo_toplevel())
-            return
-
-        if fase["hay_grupos"]:
-            confirmar = messagebox.askyesno(
-                "Generar llaves",
-                "La fase de grupos terminó. Se calcularán los clasificados y se generará el cuadro eliminatorio. ¿Continuar?",
-                parent=contenedor.winfo_toplevel()
-            )
-            if not confirmar:
-                return
-            exito, mensaje = generar_llaves_manualmente()
-            titulo = "Llaves generadas" if exito else "No se pudieron generar las llaves"
-        else:
-            confirmar = messagebox.askyesno(
-                "Generar final",
-                "Todos contra todos terminó. Se generará la final entre los dos mejores de la clasificación. ¿Continuar?",
-                parent=contenedor.winfo_toplevel()
-            )
-            if not confirmar:
-                return
-            exito, mensaje = generar_final_todos_manualmente()
-            titulo = "Final generada" if exito else "No se pudo generar la final"
-
-        if exito:
-            messagebox.showinfo(titulo, mensaje, parent=contenedor.winfo_toplevel())
-        else:
-            messagebox.showwarning(titulo, mensaje, parent=contenedor.winfo_toplevel())
-        cargar()
-
-    boton_avanzar.configure(command=avanzar)
+    tabla.tag_configure("sin_jugar", background="#FFFFFF", foreground="#64748B")
 
     def cargar():
         try:
-            filas = obtener_tabla_clasificacion()
-            fase = estado_fase()
+            filas = obtener_tabla_clasificacion() or []
         except (sqlite3.Error, KeyError, TypeError) as error:
-            tabla.delete(*tabla.get_children())
-            estado.config(text=f"No se pudo calcular la clasificación: {error}", fg=ROJO)
-            boton_avanzar.configure(state="disabled", text="FASE NO DISPONIBLE")
+            print(f"No se pudo actualizar la clasificación: {error}")
             return
 
         tabla.delete(*tabla.get_children())
-        if not filas:
-            estado.config(
-                text="Prepara la competencia y registra resultados para ver la clasificación.",
-                fg=GRIS
-            )
-        else:
-            hay_grupos = fase["hay_grupos"]
-            for fila in filas:
-                grupo = fila.get("grupo") or "—"
+        for fila in filas:
+            if not fila.get("ha_competido"):
                 valores = (
-                    f'{fila.get("posicion_grupo", "—")}°',
+                    f'{fila.get("posicion", fila.get("posicion_grupo", "—"))}°',
+                    "", "", "", "", ""
+                )
+                tag = "sin_jugar"
+            else:
+                valores = (
+                    f'{fila.get("posicion", fila.get("posicion_grupo", "—"))}°',
                     fila.get("robot") or "—",
-                    grupo if hay_grupos else "Todos contra todos",
                     fila.get("puntos", 0),
                     fila.get("tiempo_mostrar", "—"),
                     f'{(fila.get("porcentaje_ataques") or 0):.1f}%',
                     f'{(fila.get("porcentaje_victorias") or 0):.1f}%',
                 )
-                tabla.insert(
-                    "", "end", values=valores,
-                    tags=("clasifica" if fila.get("clasifica") else "eliminado",)
-                )
-            clasificados = sum(1 for fila in filas if fila.get("clasifica"))
-            estado.config(
-                text=f"{len(filas)} participantes • {clasificados} plazas clasificatorias • actualización automática cada 2 s",
-                fg=GRIS
-            )
-
-        if fase["hay_grupos"]:
-            if fase["total_llaves"] > 0:
-                boton_avanzar.configure(state="disabled", text="LLAVES YA GENERADAS")
-            elif fase["total_grupos"] > 0 and fase["pendientes_grupos"] == 0:
-                boton_avanzar.configure(state="normal", text="GENERAR LLAVES")
-            else:
-                boton_avanzar.configure(state="disabled", text="ESPERANDO FIN DE GRUPOS")
-        elif fase["total_todos"] > 0:
-            if fase["total_finales"] > 0:
-                boton_avanzar.configure(state="disabled", text="FINAL YA GENERADA")
-            elif fase["pendientes_todos"] == 0:
-                boton_avanzar.configure(state="normal", text="GENERAR FINAL")
-            else:
-                boton_avanzar.configure(state="disabled", text="ESPERANDO FIN DE TODOS CONTRA TODOS")
-        else:
-            boton_avanzar.configure(state="disabled", text="NO HAY FASE CLASIFICATORIA")
+                tag = "clasifica" if fila.get("clasifica") else "eliminado"
+            tabla.insert("", "end", values=valores, tags=(tag,))
 
     def actualizar_periodicamente():
         if not principal.winfo_exists():
             return
         cargar()
-        principal.after(2000, actualizar_periodicamente)
+        principal.after(1000, actualizar_periodicamente)
 
-    ttk.Button(marco_acciones, text="ACTUALIZAR AHORA", command=cargar).pack(side="left", padx=(10, 0))
     cargar()
-    principal.after(2000, actualizar_periodicamente)
+    principal.after(1000, actualizar_periodicamente)
