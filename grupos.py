@@ -29,22 +29,16 @@ def mostrar_grupos(contenedor):
     tk.Label(
         principal, text="GRUPOS DE LA COMPETENCIA",
         font=("Arial", 20, "bold"), fg=ROJO_OSCURO, bg=FONDO
-    ).pack(anchor="w", pady=(0, 6))
-
-    tk.Label(
-        principal,
-        text="Distribución en el mismo orden en que se generaron los grupos.",
-        font=("Arial", 11), fg=GRIS, bg=FONDO
-    ).pack(anchor="w", pady=(0, 18))
+    ).pack(anchor="w", pady=(0, 20))
 
     marco = tk.Frame(principal, bg=FONDO)
     marco.pack(fill="both", expand=True)
 
-    columnas = ("grupo", "numero", "robot", "participante")
+    columnas = ("numero", "grupo", "robot", "participante")
     tabla = ttk.Treeview(marco, columns=columnas, show="headings", height=16)
     encabezados = {
-        "grupo": ("GRUPO", 170),
         "numero": ("N.º", 70),
+        "grupo": ("GRUPO", 170),
         "robot": ("ROBOT", 280),
         "participante": ("PARTICIPANTE", 260),
     }
@@ -52,12 +46,20 @@ def mostrar_grupos(contenedor):
         tabla.heading(col, text=titulo)
         tabla.column(col, width=ancho, anchor="center", stretch=True)
 
+    colores = [
+        "#F1F5F9", "#FEF3C7", "#DCFCE7", "#DBEAFE",
+        "#FCE7F3", "#EDE9FE", "#FFEDD5", "#CCFBF1",
+        "#F3F4F6", "#ECFCCB"
+    ]
+    for i, color in enumerate(colores):
+        tabla.tag_configure(f"grupo_{i}", background=color, foreground=TEXTO)
+
     barra = ttk.Scrollbar(marco, orient="vertical", command=tabla.yview)
     tabla.configure(yscrollcommand=barra.set)
     tabla.pack(side="left", fill="both", expand=True)
     barra.pack(side="right", fill="y")
 
-    estado = tk.Label(principal, text="", font=("Arial", 11), bg=FONDO, fg=GRIS)
+    estado = tk.Label(principal, text="", font=("Arial", 10), bg=FONDO, fg=GRIS)
     estado.pack(anchor="w", pady=(10, 0))
 
     def cargar():
@@ -78,20 +80,27 @@ def mostrar_grupos(contenedor):
             return
 
         if not filas:
-            estado.config(
-                text="Todavía no hay grupos generados. Prepara la competencia desde Enfrentamientos.",
-                fg=GRIS
-            )
+            estado.config(text="Todavía no hay grupos generados.", fg=GRIS)
             return
 
         contadores = {}
+        indice_grupo = {}
         for _, grupo, robot, participante in filas:
             contadores[grupo] = contadores.get(grupo, 0) + 1
+            if grupo not in indice_grupo:
+                indice_grupo[grupo] = len(indice_grupo) % len(colores)
             tabla.insert(
                 "", "end",
-                values=(grupo, contadores[grupo], robot or "—", participante or "—")
+                values=(contadores[grupo], grupo, robot or "—", participante or "—"),
+                tags=(f"grupo_{indice_grupo[grupo]}",)
             )
-        estado.config(text=f"{len(contadores)} grupos • {len(filas)} plazas de grupo", fg=GRIS)
+        estado.config(text=f"{len(contadores)} grupos • {len(filas)} participantes asignados", fg=GRIS)
 
-    ttk.Button(principal, text="ACTUALIZAR", command=cargar).pack(anchor="e", pady=(10, 0))
+    def actualizar_periodicamente():
+        if not principal.winfo_exists():
+            return
+        cargar()
+        principal.after(2500, actualizar_periodicamente)
+
     cargar()
+    principal.after(2500, actualizar_periodicamente)
