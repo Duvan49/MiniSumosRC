@@ -333,13 +333,13 @@ def mostrar_pagina_batallas():
     # si la pantalla de Batallas no encuentra combates pendientes.
     seleccionar_boton(botones_menu[5])
 
-    def al_terminar_fase(pagina, mensaje):
+    def al_terminar_fase(pagina, mensaje, demora_ms=3000):
         def redirigir():
             if pagina == "clasificaciones":
                 mostrar_pagina_clasificaciones()
             else:
                 mostrar_pagina_eliminatorias()
-        ventana.after(3000, redirigir)
+        ventana.after(max(0, demora_ms), redirigir)
 
     mostrar_batallas(contenedor, al_terminar_fase=al_terminar_fase)
 
