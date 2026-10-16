@@ -128,17 +128,11 @@ def _estadisticas(cursor):
 
     for (bid, etapa, grupo_id, p1, p2, ganador, estado, tiempo,
          ataques1, ataques2, robot1, robot2) in combates:
-        # Salvaguarda para bases con registros de participantes que ya no estén
-        # en la tabla principal del ranking.
-        for pid, robot in ((p1, robot1), (p2, robot2)):
-            if pid not in stats:
-                stats[pid] = {
-                    "id": pid, "grupo_id": grupo_id,
-                    "grupo": "Todos contra todos" if etapa == "Todos" else "",
-                    "robot": robot or "—", "puntos": 0, "victorias": 0,
-                    "combates": 0, "tiempo_total": 0, "tiempos_validos": 0,
-                    "ataques_propios": 0, "ataques_totales": 0,
-                }
+        # No reincorporar al ranking participantes que ya no cumplen el reglamento.
+        # Si cualquiera de los robots de un combate no está en el conjunto válido,
+        # ese combate no interviene en las estadísticas de clasificación.
+        if p1 not in stats or p2 not in stats:
+            continue
 
         s1, s2 = stats[p1], stats[p2]
         s1["combates"] += 1
