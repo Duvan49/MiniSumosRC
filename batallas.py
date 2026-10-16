@@ -994,12 +994,12 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 font=("Segoe UI", 18, "bold"), fg="#17202a", bg="#f3f5f7"
             ).pack(pady=(95, 12))
             tk.Label(
-                principal, text="Calculando clasificados",
+                principal, text="CLASIFICACIÓN LISTA",
                 font=("Segoe UI", 27, "bold"), fg="#922b2b", bg="#f3f5f7"
             ).pack(pady=(0, 12))
             tk.Label(
                 principal,
-                text="FASE COMPLETADA · ELIMINATORIAS GENERADAS AUTOMÁTICAMENTE",
+                text="VE A CLASIFICACIONES PARA GENERAR LAS LLAVES",
                 font=("Segoe UI", 15), fg="#475569", bg="#f3f5f7",
                 justify="center"
             ).pack()
@@ -1014,7 +1014,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             ).pack(pady=(0, 12))
             tk.Label(
                 principal,
-                text="FASE COMPLETADA · FINAL GENERADA AUTOMÁTICAMENTE",
+                text="VE A CLASIFICACIONES PARA HABILITAR LA FINAL",
                 font=("Segoe UI", 15), fg="#475569", bg="#f3f5f7",
                 justify="center"
             ).pack()
