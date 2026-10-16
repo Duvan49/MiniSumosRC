@@ -4,8 +4,8 @@ import sqlite3
 import os
 from tkinter import ttk
 try:
-    from esp32 import esp32
-    from llaves import actualizar_llaves_tras_resultado, avanzar_fase_automatica
+    from .esp32 import esp32
+    from .llaves import actualizar_llaves_tras_resultado, avanzar_fase_automatica
 except ImportError:
     from esp32 import esp32
     from llaves import actualizar_llaves_tras_resultado, avanzar_fase_automatica
@@ -166,17 +166,10 @@ class RoundedButton(tk.Canvas):
 # BASE DE DATOS
 # ============================================================
 
-BASE_DIR = os.path.dirname(
-    os.path.dirname(
-        os.path.abspath(__file__)
-    )
-)
-
-ruta_bd = os.path.join(
-    BASE_DIR,
-    "BasesDeDatos",
-    "competencia.db"
-)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(BASE_DIR).lower() == "interfaz":
+    BASE_DIR = os.path.dirname(BASE_DIR)
+ruta_bd = os.path.join(BASE_DIR, "BasesDeDatos", "competencia.db")
 
 
 def conectar_bd():
