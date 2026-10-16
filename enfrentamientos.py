@@ -808,9 +808,13 @@ def mostrar_enfrentamientos(contenedor):
                 # Si aún no se han registrado resultados, sincronizar el calendario
                 # con la lista nueva sin interrumpir una competencia ya iniciada.
                 hay_actividad = any(fila[5] != "Pendiente" for fila in filas)
-                if not hay_actividad and len(firma_actual) >= 2:
-                    exito, _ = preparar_competencia()
-                    if exito:
+                if not hay_actividad:
+                    if len(firma_actual) >= 2:
+                        exito, _ = preparar_competencia()
+                        if exito:
+                            firma_actual, _ = cargar()
+                    else:
+                        limpiar_competencia_anterior()
                         firma_actual, _ = cargar()
                 firma_anterior = firma_actual
         except (sqlite3.Error, IndexError, TypeError) as error:
