@@ -2,12 +2,12 @@ import os
 import sqlite3
 from contextlib import closing
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk
 
 try:
-    from .llaves import obtener_datos_llaves, avanzar_ronda_manualmente
+    from .llaves import obtener_datos_llaves
 except ImportError:
-    from llaves import obtener_datos_llaves, avanzar_ronda_manualmente
+    from llaves import obtener_datos_llaves
 
 FONDO = "#FFFFFF"
 ROJO_OSCURO = "#8E1B1B"
@@ -29,25 +29,6 @@ def mostrar_eliminatorias(contenedor):
         font=("Arial", 20, "bold"), fg="#8E1B1B", bg=FONDO
     ).pack(anchor="w", pady=(0, 14))
 
-    marco_acciones = tk.Frame(principal, bg=FONDO)
-    marco_acciones.pack(fill="x", pady=(0, 10))
-
-    estado_acciones = tk.Label(
-        marco_acciones, text="", font=("Arial", 10),
-        fg=GRIS, bg=FONDO, anchor="w"
-    )
-    estado_acciones.pack(side="left", fill="x", expand=True)
-
-    boton_avanzar = tk.Button(
-        marco_acciones, text="CONTINUAR CON LA SIGUIENTE RONDA",
-        command=lambda: avanzar(),
-        font=("Arial", 10, "bold"), bg="#C62828", fg="#FFFFFF",
-        activebackground="#8E1B1B", activeforeground="#FFFFFF",
-        relief="flat", bd=0, cursor="hand2", padx=16, pady=9,
-        state="disabled"
-    )
-    boton_avanzar.pack(side="right")
-
     mensaje_vacio = tk.Label(
         principal, text="", font=("Arial", 15, "bold"),
         fg=GRIS, bg=FONDO, justify="center", wraplength=850
@@ -65,59 +46,12 @@ def mostrar_eliminatorias(contenedor):
     marco_llaves.grid_rowconfigure(0, weight=1)
     marco_llaves.grid_columnconfigure(0, weight=1)
 
-    def actualizar_boton_avance(rondas=None):
-        rondas = rondas if rondas is not None else obtener_datos_llaves()
-        boton_avanzar.config(state="disabled")
-        if not rondas:
-            estado_acciones.config(text="")
-            return
-
-        try:
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            if os.path.basename(base_dir).lower() == "interfaz":
-                base_dir = os.path.dirname(base_dir)
-            with closing(sqlite3.connect(os.path.join(base_dir, "BasesDeDatos", "competencia.db"))) as conexion:
-                cursor = conexion.cursor()
-                cursor.execute("SELECT ronda, COUNT(*) FROM llaves GROUP BY ronda")
-                fases = sorted(cursor.fetchall(), key=lambda fila: fila[1], reverse=True)
-                for indice, (fase_actual, _) in enumerate(fases[:-1]):
-                    cursor.execute(
-                        "SELECT estado, ganador FROM enfrentamientos WHERE etapa = ? ORDER BY id",
-                        (fase_actual,)
-                    )
-                    combates = cursor.fetchall()
-                    if not combates:
-                        estado_acciones.config(text=f"Esperando que se habilite {fase_actual}.")
-                        return
-                    if any(estado != "Completado" or ganador is None for estado, ganador in combates):
-                        estado_acciones.config(text=f"Completa todos los combates de {fase_actual} para continuar.")
-                        return
-                    siguiente = fases[indice + 1][0]
-                    cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = ?", (siguiente,))
-                    if cursor.fetchone()[0] == 0:
-                        estado_acciones.config(text=f"{fase_actual} finalizada. Puedes habilitar {siguiente}.")
-                        boton_avanzar.config(state="normal", text=f"CONTINUAR: {siguiente.upper()}")
-                        return
-                estado_acciones.config(text="Completa la final para conocer al campeón.")
-        except sqlite3.Error as error:
-            estado_acciones.config(text=f"No se pudo consultar el estado de las llaves: {error}")
-
-    def avanzar():
-        exito, mensaje = avanzar_ronda_manualmente()
-        if exito:
-            messagebox.showinfo("Siguiente fase", mensaje, parent=contenedor.winfo_toplevel())
-            cargar_cuadro_llaves()
-        else:
-            messagebox.showwarning("No se puede continuar", mensaje, parent=contenedor.winfo_toplevel())
-            actualizar_boton_avance()
-
     def cargar_cuadro_llaves():
         rondas = obtener_datos_llaves()
         if rondas:
             mensaje_vacio.pack_forget()
             if not marco_llaves.winfo_manager():
                 marco_llaves.pack(fill="both", expand=True)
-            actualizar_boton_avance(rondas)
         if not rondas:
             canvas_llaves.delete("all")
             canvas_llaves.configure(scrollregion=(0, 0, 1, 1))
@@ -152,7 +86,6 @@ def mostrar_eliminatorias(contenedor):
             else:
                 texto = "En esta competencia no hay eliminatorias generadas."
             mensaje_vacio.config(text=texto)
-            actualizar_boton_avance([])
             return False
 
         mensaje_vacio.pack_forget()
