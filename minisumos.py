@@ -3,9 +3,20 @@ from tkinter import ttk
 import os
 from PIL import Image, ImageTk
 
-from Interfaz.registro import mostrar_registro, cerrar_registro
-from Interfaz.enfrentamientos import mostrar_enfrentamientos
-from Interfaz.batallas import mostrar_batallas
+try:
+    from Interfaz.registro import mostrar_registro, cerrar_registro
+    from Interfaz.enfrentamientos import mostrar_enfrentamientos
+    from Interfaz.batallas import mostrar_batallas
+    from Interfaz.grupos import mostrar_grupos
+    from Interfaz.clasificaciones import mostrar_clasificaciones
+    from Interfaz.eliminatorias import mostrar_eliminatorias
+except ImportError:
+    from registro import mostrar_registro, cerrar_registro
+    from enfrentamientos import mostrar_enfrentamientos
+    from batallas import mostrar_batallas
+    from grupos import mostrar_grupos
+    from clasificaciones import mostrar_clasificaciones
+    from eliminatorias import mostrar_eliminatorias
 
 # ============================================================
 # CONFIGURACIÓN PRINCIPAL
@@ -339,6 +350,32 @@ def mostrar_pagina_batallas():
     mostrar_batallas(contenedor)
     seleccionar_boton(botones_menu[2])
 
+# ============================================================
+# GRUPOS
+# ============================================================
+def mostrar_pagina_grupos():
+    contenedor = limpiar_contenido()
+    mostrar_grupos(contenedor)
+    seleccionar_boton(botones_menu[3])
+
+
+# ============================================================
+# CLASIFICACIONES
+# ============================================================
+def mostrar_pagina_clasificaciones():
+    contenedor = limpiar_contenido()
+    mostrar_clasificaciones(contenedor)
+    seleccionar_boton(botones_menu[4])
+
+
+# ============================================================
+# ELIMINATORIAS
+# ============================================================
+def mostrar_pagina_eliminatorias():
+    contenedor = limpiar_contenido()
+    mostrar_eliminatorias(contenedor)
+    seleccionar_boton(botones_menu[5])
+
 
 # ============================================================
 # BOTONES DEL MENÚ
@@ -443,6 +480,21 @@ crear_boton_menu(
 crear_boton_menu(
     "BATALLAS",
     mostrar_pagina_batallas
+)
+
+crear_boton_menu(
+    "GRUPOS",
+    mostrar_pagina_grupos
+)
+
+crear_boton_menu(
+    "CLASIFICACIONES",
+    mostrar_pagina_clasificaciones
+)
+
+crear_boton_menu(
+    "ELIMINATORIAS",
+    mostrar_pagina_eliminatorias
 )
 
 
