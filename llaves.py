@@ -208,8 +208,7 @@ def obtener_tabla_clasificacion():
             ))
         )
 
-        cursor.execute("SELECT COUNT(*) FROM participantes")
-        cantidad_total = cursor.fetchone()[0]
+        cantidad_total = _cantidad_participantes_validos(cursor)
         cupos = min(cantidad_clasificados(cantidad_total), len(ranking)) if cantidad_total >= 6 else min(2, len(ranking))
 
         for posicion, fila in enumerate(ranking, 1):
@@ -235,8 +234,7 @@ def _obtener_clasificados(cursor):
             else _comparar(a, b, directos)
         ))
     )
-    cursor.execute("SELECT COUNT(*) FROM participantes")
-    cantidad_total = cursor.fetchone()[0]
+    cantidad_total = _cantidad_participantes_validos(cursor)
     if cantidad_total <= 5:
         cantidad_cupos = 2
     else:
@@ -565,8 +563,7 @@ def avanzar_fase_automatica():
                 return _generar_llaves()
             return False, "La fase de grupos aún no ha terminado."
         
-        cursor.execute("SELECT COUNT(*) FROM participantes")
-        cantidad = cursor.fetchone()[0]
+        cantidad = _cantidad_participantes_validos(cursor)
         cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Todos'")
         total = cursor.fetchone()[0]
         cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Todos' AND estado != 'Completado'")
