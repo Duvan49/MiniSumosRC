@@ -1034,13 +1034,14 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 and not campeon
             )
 
-            boton_continuar = tk.Button(
+            boton_continuar = RoundedButton(
                 principal, text="CONTINUAR",
                 command=continuar_desde_batallas,
-                font=("Segoe UI", 13, "bold"), bg="#C62828", fg="#FFFFFF",
+                width=230, height=54,
+                bg="#C62828", fg="#FFFFFF",
                 activebackground="#8E1B1B", activeforeground="#FFFFFF",
-                disabledforeground="#FFFFFF",
-                relief="flat", bd=0, cursor="hand2", padx=30, pady=13,
+                disabledbackground="#CBD5E1",
+                font=("Segoe UI", 13, "bold"), radius=14,
                 state="disabled" if bloquear_continuar else "normal"
             )
             boton_continuar.pack()
