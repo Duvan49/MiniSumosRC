@@ -58,12 +58,73 @@ def mostrar_eliminatorias(contenedor):
         rondas = obtener_datos_llaves()
         canvas.delete("all")
         if not rondas:
+            # En torneos de 3 a 5 participantes la siguiente fase es una final,
+            # no un cuadro de llaves. Se muestra aquí para mantener Enfrentamientos
+            # dedicado exclusivamente al calendario inicial.
+            try:
+                with sqlite3.connect(os.path.join(
+                    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                    "BasesDeDatos", "competencia.db"
+                )) as conexion:
+                    cursor = conexion.cursor()
+                    cursor.execute("""
+                        SELECT e.participante1, p1.robot, p1.nombre,
+                               e.participante2, p2.robot, p2.nombre,
+                               e.ganador, e.estado
+                        FROM enfrentamientos e
+                        LEFT JOIN participantes p1 ON p1.id = e.participante1
+                        LEFT JOIN participantes p2 ON p2.id = e.participante2
+                        WHERE e.etapa = 'Final'
+                        ORDER BY e.id
+                    """)
+                    finales = cursor.fetchall()
+            except sqlite3.Error:
+                finales = []
+
+            if finales:
+                ancho = 330
+                alto = 112
+                centro_x = 230
+                centro_y = 210
+                canvas.configure(scrollregion=(0, 0, 520, 420))
+                canvas.create_text(
+                    centro_x, 70, text="FINAL",
+                    fill=ROJO_OSCURO, font=("Arial", 15, "bold")
+                )
+                for indice, final in enumerate(finales):
+                    p1_id, robot1, nombre1, p2_id, robot2, nombre2, ganador, estado_final = final
+                    y = centro_y + indice * (alto + 18)
+                    canvas.create_rectangle(
+                        centro_x - ancho / 2, y - alto / 2,
+                        centro_x + ancho / 2, y + alto / 2,
+                        fill="#FFFFFF", outline=BORDE, width=2
+                    )
+                    color1 = VERDE_TEXTO if ganador is not None and ganador == p1_id else TEXTO
+                    color2 = VERDE_TEXTO if ganador is not None and ganador == p2_id else TEXTO
+                    canvas.create_text(
+                        centro_x, y - 25,
+                        text=f"{robot1 or 'Por definir'}  •  {nombre1 or ''}",
+                        fill=color1, font=("Arial", 11, "bold"), width=ancho - 24
+                    )
+                    canvas.create_text(
+                        centro_x, y + 3,
+                        text=f"{robot2 or 'Por definir'}  •  {nombre2 or ''}",
+                        fill=color2, font=("Arial", 11, "bold"), width=ancho - 24
+                    )
+                    canvas.create_text(
+                        centro_x, y + 36,
+                        text="FINALIZADA" if estado_final == "Completado" else (estado_final or "PENDIENTE").upper(),
+                        fill=GRIS, font=("Arial", 9, "bold")
+                    )
+                estado.config(text="Final del torneo • actualización automática cada 2 s", fg=GRIS)
+                return
+
             canvas.configure(scrollregion=(0, 0, 800, 420))
             canvas.create_text(
-                400, 190, text="Todavía no hay llaves generadas.\nCuando finalice la fase inicial, genera las llaves desde el proceso de competencia.",
+                400, 190, text="Todavía no hay eliminatorias generadas.\nCuando finalice la fase inicial, genera las llaves desde Clasificaciones.",
                 fill=GRIS, font=("Arial", 14), justify="center"
             )
-            estado.config(text="Esperando la generación de llaves.", fg=GRIS)
+            estado.config(text="Esperando la generación de la siguiente fase.", fg=GRIS)
             return
 
         alto_visible = max(canvas.winfo_height(), 420)
