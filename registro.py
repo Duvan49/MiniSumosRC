@@ -9,11 +9,7 @@ import os
 # ============================================================
 
 ruta_bd = os.path.join(
-    os.path.dirname(
-        os.path.dirname(
-            os.path.abspath(__file__)
-        )
-    ),
+    os.path.dirname(os.path.abspath(__file__)),
     "BasesDeDatos",
     "competencia.db"
 )
@@ -57,7 +53,7 @@ def confirmar_y_limpiar_competencia(accion, parent=None):
 
     # Se limpian las referencias antiguas antes de modificar participantes.
     try:
-        from .enfrentamientos import limpiar_competencia_anterior
+        from enfrentamientos import limpiar_competencia_anterior
         limpiar_competencia_anterior()
     except Exception as error:
         messagebox.showerror(
@@ -73,7 +69,7 @@ def confirmar_y_limpiar_competencia(accion, parent=None):
 def regenerar_calendario_participantes(parent=None):
     """Genera un calendario nuevo con la lista actual de participantes."""
     try:
-        from .enfrentamientos import preparar_competencia
+        from enfrentamientos import preparar_competencia
         exito, mensaje = preparar_competencia()
         if not exito:
             messagebox.showwarning(
@@ -370,8 +366,8 @@ def mostrar_registro(contenedor):
     tk.Label(
         contenido,
         text="PARTICIPANTES REGISTRADOS:",
-        font=("Arial", 18, "bold"),
-        fg="#000000",
+        font=("Arial", 20, "bold"),
+        fg="#8E1B1B",
         bg=FONDO
     ).pack(
         anchor="w",
@@ -409,6 +405,9 @@ def mostrar_registro(contenedor):
         selectmode="browse"
     )
 
+
+    tabla.tag_configure("cumple", background="#DCFCE7", foreground="#166534")
+    tabla.tag_configure("no_cumple", background="#FEE2E2", foreground="#991B1B")
 
     # ========================================================
     # ENCABEZADOS
@@ -588,7 +587,8 @@ def mostrar_registro(contenedor):
                     robot,
                     peso_mostrar,
                     simbolo
-                )
+                ),
+                tags=("cumple" if cumple else "no_cumple",)
             )
 
 
