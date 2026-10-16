@@ -10,11 +10,10 @@ ROJO_OSCURO = "#8E1B1B"
 TEXTO = "#222222"
 GRIS = "#666666"
 
-RUTA_BD = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "BasesDeDatos",
-    "competencia.db",
-)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(BASE_DIR).lower() == "interfaz":
+    BASE_DIR = os.path.dirname(BASE_DIR)
+RUTA_BD = os.path.join(BASE_DIR, "BasesDeDatos", "competencia.db")
 
 def conectar():
     return sqlite3.connect(RUTA_BD)
