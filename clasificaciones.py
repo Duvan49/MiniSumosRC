@@ -139,6 +139,8 @@ def mostrar_clasificaciones(contenedor):
                     command=lambda: continuar_fase("llaves")
                 )
                 boton_continuar.pack(side="right")
+            elif estado["total_llaves"]:
+                estado_texto.config(text="Las llaves ya están preparadas. Abre Eliminatorias para revisar el cuadro y continuar.")
             elif estado["total_grupos"]:
                 estado_texto.config(text="La clasificación se actualiza a medida que se completan las batallas de grupos.")
         elif estado["total_todos"] and estado["pendientes_todos"] == 0 and not estado["total_finales"]:
@@ -148,6 +150,8 @@ def mostrar_clasificaciones(contenedor):
                 command=lambda: continuar_fase("final")
             )
             boton_continuar.pack(side="right")
+        elif estado["total_finales"] and estado["total_todos"]:
+            estado_texto.config(text="La final está preparada. Abre Batallas para disputarla.")
         elif estado["total_todos"]:
             estado_texto.config(text="La clasificación se actualiza a medida que se completan los combates.")
 
