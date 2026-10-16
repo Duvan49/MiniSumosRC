@@ -412,8 +412,9 @@ def actualizar_llaves_tras_resultado():
         # después de que el organizador revise la tabla de clasificación.
         cursor.execute("SELECT COUNT(*) FROM llaves")
         if cursor.fetchone()[0]:
+            # Solo sincroniza resultados. La siguiente ronda se habilita
+            # manualmente desde la pestaña Eliminatorias.
             _sincronizar_resultados_llaves(cursor)
-            _avanzar_ronda(cursor)
         conexion.commit()
     except Exception:
         conexion.rollback()
@@ -421,6 +422,60 @@ def actualizar_llaves_tras_resultado():
     finally:
         conexion.close()
 
+
+
+def avanzar_ronda_manualmente():
+    """Habilita la siguiente ronda solo después de completar la ronda actual."""
+    conexion = conectar()
+    try:
+        cursor = conexion.cursor()
+        cursor.execute("SELECT ronda, COUNT(*) FROM llaves GROUP BY ronda")
+        rondas = sorted(cursor.fetchall(), key=lambda fila: fila[1], reverse=True)
+        if len(rondas) < 2:
+            return False, "Esta es la ronda final; no hay otra fase por habilitar."
+
+        _sincronizar_resultados_llaves(cursor)
+        for indice, (ronda_actual, _) in enumerate(rondas[:-1]):
+            cursor.execute(
+                "SELECT ganador, estado FROM enfrentamientos WHERE etapa = ? ORDER BY id",
+                (ronda_actual,)
+            )
+            combates = cursor.fetchall()
+            if not combates:
+                return False, f"Los enfrentamientos de {ronda_actual} todavía no se han generado."
+            if any(estado != "Completado" or ganador is None for ganador, estado in combates):
+                return False, f"Aún hay combates pendientes en {ronda_actual}."
+
+            siguiente = rondas[indice + 1][0]
+            cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = ?", (siguiente,))
+            if cursor.fetchone()[0]:
+                # Esa ronda ya se habilitó; continuar revisando si ya terminó también.
+                continue
+
+            ganadores = [ganador for ganador, _ in combates]
+            if len(ganadores) < 2 or len(ganadores) % 2:
+                return False, "No se pudo formar la siguiente ronda con los ganadores actuales."
+
+            parejas = [(ganadores[i], ganadores[i + 1]) for i in range(0, len(ganadores), 2)]
+            for posicion, (p1, p2) in enumerate(parejas, 1):
+                cursor.execute("""
+                    UPDATE llaves SET participante1 = ?, participante2 = ?, estado = 'Pendiente'
+                    WHERE ronda = ? AND posicion = ?
+                """, (p1, p2, siguiente, posicion))
+                cursor.execute("""
+                    INSERT INTO enfrentamientos
+                        (etapa, grupo_id, participante1, participante2, estado, ronda)
+                    VALUES (?, NULL, ?, ?, 'Pendiente', ?)
+                """, (siguiente, p1, p2, indice + 2))
+            conexion.commit()
+            return True, f"Se habilitó la fase: {siguiente}."
+
+        return False, "No hay otra ronda pendiente por habilitar. La eliminatoria ya llegó a su final."
+    except Exception as error:
+        conexion.rollback()
+        return False, f"No se pudo habilitar la siguiente ronda: {error}"
+    finally:
+        conexion.close()
 
 
 def obtener_datos_llaves():
