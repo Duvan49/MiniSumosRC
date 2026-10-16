@@ -70,7 +70,7 @@ def mostrar_grupos(contenedor):
                     FROM grupos g
                     LEFT JOIN grupo_participantes gp ON gp.grupo_id = g.id
                     LEFT JOIN participantes p ON p.id = gp.participante_id
-                    ORDER BY g.id, p.id
+                    ORDER BY g.id, gp.rowid
                 """)
                 filas = cursor.fetchall()
         except sqlite3.Error as error:
