@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, messagebox
 import os
 from PIL import Image, ImageTk
 
@@ -350,7 +350,15 @@ def mostrar_pagina_batallas():
     # Se selecciona primero el botón para que el resaltado se actualice incluso
     # si la pantalla de Batallas no encuentra combates pendientes.
     seleccionar_boton(botones_menu[5])
-    mostrar_batallas(contenedor)
+
+    def al_terminar_fase(pagina, mensaje):
+        messagebox.showinfo("Fase finalizada", mensaje, parent=ventana)
+        if pagina == "clasificaciones":
+            mostrar_pagina_clasificaciones()
+        else:
+            mostrar_pagina_eliminatorias()
+
+    mostrar_batallas(contenedor, al_terminar_fase=al_terminar_fase)
 
 # ============================================================
 # GRUPOS
