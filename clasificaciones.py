@@ -5,7 +5,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 try:
-    from .llaves import (
+    from llaves import (
         obtener_tabla_clasificacion,
         generar_llaves_manualmente,
         generar_final_todos_manualmente,
@@ -27,7 +27,7 @@ ROJO_TEXTO = "#991B1B"
 GRIS = "#666666"
 
 RUTA_BD = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    os.path.dirname(os.path.abspath(__file__)),
     "BasesDeDatos",
     "competencia.db",
 )
@@ -78,15 +78,16 @@ def mostrar_clasificaciones(contenedor):
     marco = tk.Frame(principal, bg=FONDO)
     marco.pack(fill="both", expand=True)
 
-    columnas = ("posicion", "robot", "puntos", "tiempo", "ataques", "victorias")
+    columnas = ("posicion", "grupo", "robot", "puntos", "tiempo", "ataques", "victorias")
     tabla = ttk.Treeview(marco, columns=columnas, show="headings")
     for col, titulo, ancho in [
-        ("posicion", "POS.", 75),
-        ("robot", "ROBOT", 240),
-        ("puntos", "PUNTOS", 110),
+        ("posicion", "POS.", 70),
+        ("grupo", "GRUPO", 100),
+        ("robot", "ROBOT", 220),
+        ("puntos", "PTS.", 90),
         ("tiempo", "TIEMPO PROM.", 165),
-        ("ataques", "% ATAQUES", 145),
-        ("victorias", "% VICTORIAS", 145),
+        ("ataques", "% ATAQUES", 135),
+        ("victorias", "% VICTORIAS", 135),
     ]:
         tabla.heading(col, text=titulo)
         tabla.column(col, width=ancho, anchor="center", stretch=True)
@@ -110,17 +111,24 @@ def mostrar_clasificaciones(contenedor):
         tabla.delete(*tabla.get_children())
         for fila in filas:
             if not fila.get("ha_competido"):
+                grupo = (fila.get("grupo") or "").replace("Grupo ", "")
+                if grupo == "Todos contra todos":
+                    grupo = "Todos"
                 valores = (
                     f'{fila.get("posicion", fila.get("posicion_grupo", "—"))}°',
-                    "", "", "", "", ""
+                    grupo, "", "", "", "", ""
                 )
                 tag = "sin_jugar"
             else:
+                grupo = (fila.get("grupo") or "").replace("Grupo ", "")
+                if grupo == "Todos contra todos":
+                    grupo = "Todos"
                 valores = (
                     f'{fila.get("posicion", fila.get("posicion_grupo", "—"))}°',
+                    grupo,
                     fila.get("robot") or "—",
                     fila.get("puntos", 0),
-                    fila.get("tiempo_mostrar", "—"),
+                    fila.get("tiempo_mostrar", "0:00:00"),
                     f'{(fila.get("porcentaje_ataques") or 0):.1f}%',
                     f'{(fila.get("porcentaje_victorias") or 0):.1f}%',
                 )
