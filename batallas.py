@@ -969,7 +969,7 @@ def mostrar_batallas(contenedor):
             ).pack(pady=(0, 12))
             tk.Label(
                 principal,
-                text="Visita la página de Enfrentamientos para revisar la clasificación\ny generar las llaves eliminatorias.",
+                text="FASE COMPLETADA · ELIMINATORIAS GENERADAS AUTOMÁTICAMENTE",
                 font=("Segoe UI", 15), fg="#475569", bg="#f3f5f7",
                 justify="center"
             ).pack()
@@ -984,7 +984,7 @@ def mostrar_batallas(contenedor):
             ).pack(pady=(0, 12))
             tk.Label(
                 principal,
-                text="Visita Enfrentamientos para anunciar a los dos primeros\ny generar la batalla final.",
+                text="FASE COMPLETADA · FINAL GENERADA AUTOMÁTICAMENTE",
                 font=("Segoe UI", 15), fg="#475569", bg="#f3f5f7",
                 justify="center"
             ).pack()
