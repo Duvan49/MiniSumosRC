@@ -4,8 +4,8 @@ import sqlite3
 import os
 from tkinter import ttk
 try:
-    from .esp32 import esp32
-    from .llaves import actualizar_llaves_tras_resultado, avanzar_fase_automatica
+    from esp32 import esp32
+    from llaves import actualizar_llaves_tras_resultado, avanzar_fase_automatica
 except ImportError:
     from esp32 import esp32
     from llaves import actualizar_llaves_tras_resultado, avanzar_fase_automatica
@@ -1028,126 +1028,44 @@ def mostrar_batallas(contenedor):
     encabezado.pack(fill="x", padx=18, pady=(8, 0))
 
     encabezado_interior = encabezado.content
-    for columna in range(3):
-        encabezado_interior.grid_columnconfigure(columna, weight=1, uniform="encabezado")
+    encabezado_interior.grid_columnconfigure(0, weight=3, uniform="encabezado")
+    encabezado_interior.grid_columnconfigure(1, weight=1, uniform="encabezado")
     encabezado_interior.grid_rowconfigure(0, weight=1)
 
-    modo_texto = (
-        f"Grupos - {grupo}" if etapa == "Grupo" and grupo
-        else "Todos vs Todos" if etapa == "Todos"
-        else etapa
-    )
+    if etapa == "Grupo" and grupo:
+        modo_texto = f"GRUPOS - {grupo.upper()} - RONDA {ronda or 1}"
+    elif etapa == "Todos":
+        modo_texto = "TODOS CONTRA TODOS"
+    else:
+        modo_texto = f"ELIMINATORIAS - {str(etapa).upper()}"
+
     tk.Label(
         encabezado_interior, text=modo_texto,
-        font=("Segoe UI", 12, "bold"), fg="#fbeaea", bg="#922b2b",
-        anchor="w"
-    ).grid(row=0, column=0, sticky="w", padx=(18, 6), pady=8)
+        font=("Segoe UI", 20, "bold"), fg="#fbeaea", bg="#922b2b",
+        anchor="w", justify="left", wraplength=780
+    ).grid(row=0, column=0, sticky="w", padx=(22, 10), pady=8)
 
     tk.Label(
         encabezado_interior, text=f"BATALLA {id_batalla}",
-        font=("Segoe UI", 26, "bold"), fg="white", bg="#922b2b",
+        font=("Segoe UI", 28, "bold"), fg="white", bg="#922b2b",
         anchor="center"
-    ).grid(row=0, column=1, sticky="nsew", padx=4, pady=8)
+    ).grid(row=0, column=1, sticky="nsew", padx=(4, 18), pady=8)
 
-    zona_puerto = tk.Frame(encabezado_interior, bg="#922b2b")
-    zona_puerto.grid(row=0, column=2, sticky="e", padx=(6, 18), pady=5)
-
-    def obtener_puertos_disponibles():
-        try:
-            return esp32.listar_puertos()
-        except Exception:
-            return []
-
-    puertos_disponibles = obtener_puertos_disponibles()
-    puerto_var = tk.StringVar(
-        value=puertos_disponibles[0] if puertos_disponibles else "No disponible"
-    )
-    estilo_puertos = ttk.Style()
-    estilo_puertos.configure(
-        "Puerto.TCombobox",
-        fieldbackground="#e5e7eb",
-        background="#e5e7eb",
-        foreground="#374151",
-        selectbackground="#e5e7eb",
-        selectforeground="#374151",
-        padding=4
-    )
-    estilo_puertos.map(
-        "Puerto.TCombobox",
-        fieldbackground=[("readonly", "#e5e7eb"), ("!disabled", "#e5e7eb")],
-        background=[("readonly", "#e5e7eb"), ("!disabled", "#e5e7eb")],
-        foreground=[("readonly", "#374151"), ("!disabled", "#374151")],
-        selectbackground=[("readonly", "#e5e7eb")],
-        selectforeground=[("readonly", "#374151")]
-    )
-
-    selector_puerto = ttk.Combobox(
-        zona_puerto, textvariable=puerto_var,
-        values=puertos_disponibles or ["No disponible"],
-        width=15, state="readonly", font=("Segoe UI", 11),
-        justify="center", style="Puerto.TCombobox"
-    )
-    selector_puerto.pack(pady=(0, 4))
-
-    estado_conexion = tk.Label(
-        zona_puerto, text="● No conectado",
-        font=("Segoe UI", 9, "bold"), fg="#d1d5db", bg="#922b2b"
-    )
-    estado_conexion.pack()
-
-    def conectar_puerto(event=None, mostrar_error=False):
-        puerto = puerto_var.get()
-        if puerto == "No disponible":
-            if getattr(esp32, "conectado", False):
-                esp32.desconectar()
-            estado_conexion.config(text="● No conectado", fg="#d1d5db")
-            return
-        try:
-            correcto = esp32.conectar(puerto)
-            if correcto:
-                estado_conexion.config(text=f"● Conectado ({puerto})", fg="#86efac")
-            else:
-                estado_conexion.config(text="● No conectado", fg="#d1d5db")
-        except Exception as error:
-            estado_conexion.config(text="● No conectado", fg="#d1d5db")
-            if mostrar_error:
-                messagebox.showerror(
-                    "Conexión ESP32", str(error),
-                    parent=contenedor.winfo_toplevel()
-                )
-
-    def refrescar_puertos():
+    # El puerto serial se administra en segundo plano, sin controles visibles.
+    def conectar_automaticamente():
         if not principal.winfo_exists():
             return
-        encontrados = obtener_puertos_disponibles()
-        valores = encontrados or ["No disponible"]
-        actual = puerto_var.get()
-        selector_puerto.configure(values=valores)
-
-        # Si Windows ya no detecta puertos, desconectar y limpiar el estado.
-        if not encontrados:
-            puerto_var.set("No disponible")
-            if getattr(esp32, "conectado", False):
+        try:
+            puertos = esp32.listar_puertos()
+            if puertos and not getattr(esp32, "conectado", False):
+                esp32.conectar(puertos[0])
+            elif not puertos and getattr(esp32, "conectado", False):
                 esp32.desconectar()
-            estado_conexion.config(text="● No conectado", fg="#d1d5db")
-        elif actual not in valores:
-            puerto_var.set(valores[0])
-            if getattr(esp32, "conectado", False):
-                esp32.desconectar()
-            estado_conexion.config(text="● No conectado", fg="#d1d5db")
-            conectar_puerto()
-        elif not getattr(esp32, "conectado", False):
-            conectar_puerto()
+        except Exception as error:
+            print(f"Conexión serial automática: {error}")
+        principal.after(2500, conectar_automaticamente)
 
-        principal.after(2500, refrescar_puertos)
-
-    selector_puerto.bind(
-        "<<ComboboxSelected>>",
-        lambda evento: conectar_puerto(evento, True)
-    )
-    if puertos_disponibles:
-        conectar_puerto()
-    principal.after(2500, refrescar_puertos)
+    conectar_automaticamente()
 
     # --------------------------------------------------------
     # ESTADO
