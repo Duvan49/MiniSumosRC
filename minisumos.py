@@ -347,8 +347,10 @@ def mostrar_pagina_enfrentamientos():
 
 def mostrar_pagina_batallas():
     contenedor = limpiar_contenido()
-    mostrar_batallas(contenedor)
+    # Se selecciona primero el botón para que el resaltado se actualice incluso
+    # si la pantalla de Batallas no encuentra combates pendientes.
     seleccionar_boton(botones_menu[5])
+    mostrar_batallas(contenedor)
 
 # ============================================================
 # GRUPOS
