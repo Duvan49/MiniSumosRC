@@ -55,11 +55,12 @@ def mostrar_grupos(contenedor):
 
     barra = ttk.Scrollbar(marco, orient="vertical", command=tabla.yview)
     tabla.configure(yscrollcommand=barra.set)
-    tabla.pack(side="left", fill="both", expand=True)
-    barra.pack(side="right", fill="y")
 
-    estado = tk.Label(principal, text="", font=("Arial", 10), bg=FONDO, fg=GRIS)
-    estado.pack(anchor="w", pady=(10, 0))
+    estado = tk.Label(
+        principal, text="", font=("Arial", 12), bg=FONDO, fg=GRIS,
+        justify="center", wraplength=800
+    )
+    estado.pack(anchor="center", pady=(24, 0))
 
     def cargar():
         tabla.delete(*tabla.get_children())
@@ -75,13 +76,25 @@ def mostrar_grupos(contenedor):
                 """)
                 filas = cursor.fetchall()
         except sqlite3.Error as error:
+            tabla.pack_forget()
+            barra.pack_forget()
             estado.config(text=f"No se pudieron leer los grupos: {error}", fg=ROJO)
             return
 
         if not filas:
-            estado.config(text="Todavía no hay grupos generados.", fg=GRIS)
+            tabla.pack_forget()
+            barra.pack_forget()
+            estado.config(
+                text="En esta competencia no se definieron grupos. "
+                     "La fase inicial se juega todos contra todos.",
+                fg=GRIS
+            )
             return
 
+        estado.pack_forget()
+        tabla.pack(side="left", fill="both", expand=True)
+        barra.pack(side="right", fill="y")
+        estado.pack(anchor="w", pady=(10, 0))
         contadores = {}
         indice_grupo = {}
         for _, grupo, robot, participante in filas:
@@ -93,7 +106,10 @@ def mostrar_grupos(contenedor):
                 values=(contadores[grupo], grupo, robot or "—", participante or "—"),
                 tags=(f"grupo_{indice_grupo[grupo]}",)
             )
-        estado.config(text=f"{len(contadores)} grupos • {len(filas)} participantes asignados", fg=GRIS)
+        estado.config(
+            text=f"{len(contadores)} grupos • {sum(1 for fila in filas if fila[2] or fila[3])} participantes asignados",
+            fg=GRIS
+        )
 
     def actualizar_periodicamente():
         if not principal.winfo_exists():
