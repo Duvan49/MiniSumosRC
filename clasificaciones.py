@@ -59,7 +59,7 @@ def mostrar_clasificaciones(contenedor):
 
     tk.Label(
         principal, text="CLASIFICACIONES",
-        font=("Arial", 20, "bold"), fg=ROJO_OSCURO, bg=FONDO
+        font=("Arial", 16, "bold"), fg=ROJO_OSCURO, bg=FONDO
     ).pack(anchor="w", pady=(0, 14))
 
     marco = tk.Frame(principal, bg=FONDO)
@@ -71,8 +71,8 @@ def mostrar_clasificaciones(contenedor):
         ("posicion", "POSICIÓN", 150),
         ("robot", "ROBOT", 220),
         ("puntos", "PUNTOS", 100),
-        ("tiempo", "TIEMPO PROM.", 140),
-        ("ataques", "% ATAQUES", 135),
+        ("ataques", "% ATAQUES", 125),
+        ("tiempo", "TIEMPO PROM.", 125),
         ("victorias", "% VICTORIAS", 135),
     ]:
         tabla.heading(col, text=titulo)
@@ -81,19 +81,19 @@ def mostrar_clasificaciones(contenedor):
     estilo = ttk.Style()
     estilo.configure(
         "Clasificaciones.Treeview",
-        rowheight=30,
+        rowheight=26,
         borderwidth=1,
         relief="solid",
         background="#FFFFFF",
         fieldbackground="#FFFFFF",
         foreground="#1F2937",
-        font=("Arial", 10),
+        font=("Arial", 9),
     )
     estilo.configure(
         "Clasificaciones.Treeview.Heading",
         borderwidth=1,
-        relief="raised",
-        font=("Arial", 10, "bold"),
+        relief="solid",
+        font=("Arial", 9, "bold"),
     )
     tabla.configure(style="Clasificaciones.Treeview")
 
@@ -106,26 +106,23 @@ def mostrar_clasificaciones(contenedor):
     tabla.tag_configure("eliminado", background="#FEE2E2", foreground="#991B1B")
     tabla.tag_configure("pendiente", background="#FFFFFF", foreground="#1F2937")
     tabla.tag_configure("sin_jugar", background="#FFFFFF", foreground="#64748B")
-    colores_grupo = [
-        "#DBEAFE", "#FEF3C7", "#DCFCE7", "#FCE7F3", "#EDE9FE",
-        "#FFEDD5", "#CCFBF1", "#F1F5F9", "#ECFCCB", "#F3F4F6",
-    ]
+    colores_grupo = ["#DBEAFE"]
     for indice, color in enumerate(colores_grupo):
         tabla.tag_configure(
             f"encabezado_grupo_{indice}",
             background=color,
             foreground="#1F2937",
-            font=("Arial", 10, "bold"),
+            font=("Arial", 9, "bold"),
         )
 
     leyenda = tk.Frame(principal, bg=FONDO)
     leyenda.pack(anchor="w", pady=(12, 0))
     tk.Label(
-        leyenda, text="■ Clasifica", bg=FONDO, fg="#166534",
+        leyenda, text="  ", bg=FONDO, fg="#166534",
         font=("Arial", 10, "bold")
     ).pack(side="left", padx=(0, 18))
     tk.Label(
-        leyenda, text="■ No clasifica", bg=FONDO, fg="#991B1B",
+        leyenda, text="  ", bg=FONDO, fg="#991B1B",
         font=("Arial", 10, "bold")
     ).pack(side="left")
 
@@ -177,7 +174,7 @@ def mostrar_clasificaciones(contenedor):
                 tabla.insert(
                     "", "end",
                     values=(etiqueta, "", "", "", "", ""),
-                    tags=(f"encabezado_grupo_{indice % len(colores_grupo)}",)
+                    tags=("encabezado_grupo_0",)
                 )
 
                 filas_grupo = sorted(grupos[nombre_grupo], key=clave_grupo)
