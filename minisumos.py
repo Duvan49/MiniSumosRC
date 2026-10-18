@@ -8,6 +8,7 @@ from batallas import mostrar_batallas
 from grupos import mostrar_grupos
 from clasificaciones import mostrar_clasificaciones
 from eliminatorias import mostrar_eliminatorias
+from historial import mostrar_historial
 
 # ============================================================
 # CONFIGURACIÓN PRINCIPAL
@@ -371,6 +372,15 @@ def mostrar_pagina_eliminatorias():
 
 
 # ============================================================
+# HISTORIAL
+# ============================================================
+def mostrar_pagina_historial():
+    contenedor = limpiar_contenido()
+    mostrar_historial(contenedor)
+    seleccionar_boton(botones_menu[6])
+
+
+# ============================================================
 # BOTONES DEL MENÚ
 # ============================================================
 
@@ -488,6 +498,11 @@ crear_boton_menu(
 crear_boton_menu(
     "BATALLAS",
     mostrar_pagina_batallas
+)
+
+crear_boton_menu(
+    "HISTORIAL",
+    mostrar_pagina_historial
 )
 
 
