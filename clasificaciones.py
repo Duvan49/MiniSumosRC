@@ -65,15 +65,15 @@ def mostrar_clasificaciones(contenedor):
     marco = tk.Frame(principal, bg=FONDO)
     marco.pack(fill="both", expand=True)
 
-    columnas = ("posicion", "robot", "puntos", "tiempo", "ataques", "victorias")
+    columnas = ("posicion", "robot", "puntos", "ataques", "tiempo", "victorias")
     tabla = ttk.Treeview(marco, columns=columnas, show="headings", height=16)
     for col, titulo, ancho in [
         ("posicion", "POSICIÓN", 150),
-        ("robot", "ROBOT", 220),
+        ("robot", "ROBOT", 205),
         ("puntos", "PUNTOS", 100),
-        ("ataques", "% ATAQUES", 125),
-        ("tiempo", "TIEMPO PROM.", 125),
-        ("victorias", "% VICTORIAS", 135),
+        ("ataques", "ATAQUES", 125),
+        ("tiempo", "TIEMPO PROM.", 140),
+        ("victorias", "VICTORIAS", 135),
     ]:
         tabla.heading(col, text=titulo)
         tabla.column(col, width=ancho, anchor="center", stretch=True)
@@ -85,7 +85,7 @@ def mostrar_clasificaciones(contenedor):
         pass
     estilo.configure(
         "Clasificaciones.Treeview",
-        rowheight=26,
+        rowheight=36,
         borderwidth=1,
         relief="solid",
         bordercolor="#CBD5E1",
@@ -94,7 +94,7 @@ def mostrar_clasificaciones(contenedor):
         background="#FFFFFF",
         fieldbackground="#FFFFFF",
         foreground="#1F2937",
-        font=("Arial", 9),
+        font=("Arial", 14),
     )
     estilo.configure(
         "Clasificaciones.Treeview.Heading",
@@ -103,7 +103,7 @@ def mostrar_clasificaciones(contenedor):
         bordercolor="#CBD5E1",
         lightcolor="#CBD5E1",
         darkcolor="#CBD5E1",
-        font=("Arial", 9, "bold"),
+        font=("Arial", 14, "bold"),
     )
     tabla.configure(style="Clasificaciones.Treeview")
 
@@ -122,7 +122,7 @@ def mostrar_clasificaciones(contenedor):
             f"encabezado_grupo_{indice}",
             background=color,
             foreground="#1F2937",
-            font=("Arial", 9, "bold"),
+            font=("Arial", 14, "bold"),
         )
 
     leyenda = tk.Frame(principal, bg=FONDO)
@@ -189,8 +189,8 @@ def mostrar_clasificaciones(contenedor):
                         f"{posicion_grupo}°",
                         fila.get("robot") or "—",
                         fila.get("puntos", 0) if fila.get("ha_competido") else "—",
-                        fila.get("tiempo_mostrar", "0:00:00") if fila.get("ha_competido") else "—",
                         f'{(fila.get("porcentaje_ataques") or 0):.1f}%' if fila.get("ha_competido") else "—",
+                        fila.get("tiempo_mostrar", "0:00:00") if fila.get("ha_competido") else "—",
                         f'{(fila.get("porcentaje_victorias") or 0):.1f}%' if fila.get("ha_competido") else "—",
                     )
                     if not fase_terminada:
@@ -201,18 +201,13 @@ def mostrar_clasificaciones(contenedor):
                         tag = "clasifica" if fila.get("clasifica") else "eliminado"
                     tabla.insert("", "end", values=valores, tags=(tag,))
         else:
-            tabla.insert(
-                "", "end",
-                values=("TODOS CONTRA TODOS", "", "", "", "", ""),
-                tags=("encabezado_grupo_0",)
-            )
             for fila in filas:
                 valores = (
                     f'{fila.get("posicion", "—")}°',
                     fila.get("robot") or "—",
                     fila.get("puntos", 0) if fila.get("ha_competido") else "—",
-                    fila.get("tiempo_mostrar", "0:00:00") if fila.get("ha_competido") else "—",
                     f'{(fila.get("porcentaje_ataques") or 0):.1f}%' if fila.get("ha_competido") else "—",
+                    fila.get("tiempo_mostrar", "0:00:00") if fila.get("ha_competido") else "—",
                     f'{(fila.get("porcentaje_victorias") or 0):.1f}%' if fila.get("ha_competido") else "—",
                 )
                 if not fase_terminada:
