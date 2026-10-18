@@ -218,6 +218,24 @@ def preparar_base_batallas():
             ADD COLUMN ataques2 INTEGER DEFAULT 0
         """)
 
+    # Archivo histórico independiente: sobrevive al reinicio de las fases.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS historial_batallas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            batalla_id INTEGER,
+            etapa TEXT,
+            grupo TEXT,
+            robot1 TEXT,
+            robot2 TEXT,
+            tiempo TEXT,
+            ataques1 INTEGER,
+            ataques2 INTEGER,
+            ganador TEXT,
+            motivo TEXT,
+            fecha_registro TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     conexion.commit()
     conexion.close()
 
@@ -359,6 +377,14 @@ def registrar_resultado(
     conexion = conectar_bd()
     cursor = conexion.cursor()
 
+    # Guardar el estado previo para archivar cada batalla solo una vez.
+    cursor.execute(
+        "SELECT estado FROM enfrentamientos WHERE id = ?",
+        (id_batalla,)
+    )
+    estado_previo = cursor.fetchone()
+    estado_previo = estado_previo[0] if estado_previo else None
+
     cursor.execute("""
         UPDATE enfrentamientos
 
@@ -379,6 +405,49 @@ def registrar_resultado(
         ataques2,
         id_batalla
     ))
+
+    # Archivar una copia de los datos del resultado. No depende de la tabla
+    # de enfrentamientos activos, que puede borrarse al reiniciar una fase.
+    if estado_previo != "Completado":
+        cursor.execute("""
+            SELECT
+                e.etapa,
+                COALESCE(g.nombre, ''),
+                COALESCE(p1.robot, p1.nombre, '—'),
+                COALESCE(p2.robot, p2.nombre, '—'),
+                COALESCE(pg.robot, pg.nombre, 'Sin ganador'),
+                COALESCE(e.tiempo, ''),
+                COALESCE(e.ataques1, 0),
+                COALESCE(e.ataques2, 0),
+                COALESCE(e.criterio_ganador, '')
+            FROM enfrentamientos e
+            LEFT JOIN grupos g ON g.id = e.grupo_id
+            LEFT JOIN participantes p1 ON p1.id = e.participante1
+            LEFT JOIN participantes p2 ON p2.id = e.participante2
+            LEFT JOIN participantes pg ON pg.id = e.ganador
+            WHERE e.id = ?
+        """, (id_batalla,))
+        datos_historial = cursor.fetchone()
+
+        if datos_historial:
+            cursor.execute("""
+                INSERT INTO historial_batallas (
+                    batalla_id, etapa, grupo, robot1, robot2,
+                    ganador, tiempo, ataques1, ataques2, motivo
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                id_batalla,
+                datos_historial[0],
+                datos_historial[1],
+                datos_historial[2],
+                datos_historial[3],
+                datos_historial[4],
+                datos_historial[5],
+                datos_historial[6],
+                datos_historial[7],
+                datos_historial[8]
+            ))
 
     # En la serie al mejor de tres, cerrar automáticamente cuando un
     # participante consiga dos victorias y eliminar la tercera pelea pendiente.
