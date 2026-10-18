@@ -6,7 +6,6 @@ from tkinter import ttk
 FONDO = "#FFFFFF"
 ROJO_OSCURO = "#8E1B1B"
 TEXTO = "#1F2937"
-GRIS = "#64748B"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 if os.path.basename(BASE_DIR).lower() == "interfaz":
@@ -52,15 +51,6 @@ def mostrar_historial(contenedor):
         fg=ROJO_OSCURO,
         bg=FONDO
     ).pack(anchor="w", pady=(0, 6))
-
-    estado = tk.Label(
-        principal,
-        text="Cargando resultados...",
-        font=("Arial", 10),
-        fg=GRIS,
-        bg=FONDO
-    )
-    estado.pack(anchor="w", pady=(0, 14))
 
     marco = tk.Frame(principal, bg=FONDO)
     marco.pack(fill="both", expand=True)
@@ -132,18 +122,7 @@ def mostrar_historial(contenedor):
                 valores[5] = "—" if valores[5] in ("", None) else valores[5]
                 tabla.insert("", "end", values=valores)
 
-            cantidad = len(filas)
-            if cantidad:
-                estado.config(
-                    text=f"{cantidad} batalla(s) finalizada(s) guardada(s). "
-                         "El historial se actualiza automáticamente."
-                )
-            else:
-                estado.config(
-                    text="Aún no hay batallas finalizadas. Aparecerán aquí al registrar cada resultado."
-                )
         except sqlite3.Error as error:
-            estado.config(text="No se pudo leer el historial. Revisa la base de datos.")
             print(f"No se pudo cargar el historial: {error}")
 
         principal.after(1500, cargar)
