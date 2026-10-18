@@ -203,7 +203,7 @@ def mostrar_clasificaciones(contenedor):
                 values=("TODOS CONTRA TODOS", "", "", "", "", ""),
                 tags=("encabezado_grupo_0",)
             )
-            for fila in sorted(filas, key=clave_grupo):
+            for fila in filas:
                 valores = (
                     f'{fila.get("posicion", "—")}°',
                     fila.get("robot") or "—",
