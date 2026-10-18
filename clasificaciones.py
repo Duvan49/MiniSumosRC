@@ -66,30 +66,82 @@ def mostrar_clasificaciones(contenedor):
     marco.pack(fill="both", expand=True)
 
     columnas = ("posicion", "robot", "puntos", "tiempo", "ataques", "victorias")
-    tabla = ttk.Treeview(marco, columns=columnas, show="headings")
+    tabla = ttk.Treeview(marco, columns=columnas, show="headings", height=16)
     for col, titulo, ancho in [
-        ("posicion", "POSICIÓN", 90),
+        ("posicion", "POSICIÓN", 150),
         ("robot", "ROBOT", 220),
         ("puntos", "PUNTOS", 100),
-        ("tiempo", "TIEMPO PROM. (M:S:CS)", 190),
+        ("tiempo", "TIEMPO PROM.", 140),
         ("ataques", "% ATAQUES", 135),
         ("victorias", "% VICTORIAS", 135),
     ]:
         tabla.heading(col, text=titulo)
         tabla.column(col, width=ancho, anchor="center", stretch=True)
 
+    estilo = ttk.Style()
+    estilo.configure(
+        "Clasificaciones.Treeview",
+        rowheight=30,
+        borderwidth=1,
+        relief="solid",
+        background="#FFFFFF",
+        fieldbackground="#FFFFFF",
+        foreground="#1F2937",
+        font=("Arial", 10),
+    )
+    estilo.configure(
+        "Clasificaciones.Treeview.Heading",
+        borderwidth=1,
+        relief="raised",
+        font=("Arial", 10, "bold"),
+    )
+    tabla.configure(style="Clasificaciones.Treeview")
+
     barra = ttk.Scrollbar(marco, orient="vertical", command=tabla.yview)
     tabla.configure(yscrollcommand=barra.set)
     tabla.pack(side="left", fill="both", expand=True)
     barra.pack(side="right", fill="y")
 
-    tabla.tag_configure("clasifica", background=VERDE, foreground=VERDE_TEXTO)
-    tabla.tag_configure("eliminado", background=ROJO_FONDO, foreground=ROJO_TEXTO)
+    tabla.tag_configure("clasifica", background="#DCFCE7", foreground="#166534")
+    tabla.tag_configure("eliminado", background="#FEE2E2", foreground="#991B1B")
+    tabla.tag_configure("pendiente", background="#FFFFFF", foreground="#1F2937")
     tabla.tag_configure("sin_jugar", background="#FFFFFF", foreground="#64748B")
-    tabla.tag_configure(
-        "encabezado_grupo", background="#DBEAFE", foreground="#1E3A8A",
+    colores_grupo = [
+        "#DBEAFE", "#FEF3C7", "#DCFCE7", "#FCE7F3", "#EDE9FE",
+        "#FFEDD5", "#CCFBF1", "#F1F5F9", "#ECFCCB", "#F3F4F6",
+    ]
+    for indice, color in enumerate(colores_grupo):
+        tabla.tag_configure(
+            f"encabezado_grupo_{indice}",
+            background=color,
+            foreground="#1F2937",
+            font=("Arial", 10, "bold"),
+        )
+
+    leyenda = tk.Frame(principal, bg=FONDO)
+    leyenda.pack(anchor="w", pady=(12, 0))
+    tk.Label(
+        leyenda, text="■ Clasifica", bg=FONDO, fg="#166534",
         font=("Arial", 10, "bold")
-    )
+    ).pack(side="left", padx=(0, 18))
+    tk.Label(
+        leyenda, text="■ No clasifica", bg=FONDO, fg="#991B1B",
+        font=("Arial", 10, "bold")
+    ).pack(side="left")
+
+    def clave_grupo(fila):
+        # Durante la fase en curso, quienes aún no han competido quedan al final.
+        if not fila.get("ha_competido"):
+            return (1, 0, 0, float("inf"), 0, fila.get("id", 0))
+        tiempo = fila.get("tiempo_promedio")
+        return (
+            0,
+            -float(fila.get("puntos") or 0),
+            -float(fila.get("porcentaje_ataques") or 0),
+            float("inf") if tiempo is None else float(tiempo),
+            -float(fila.get("porcentaje_victorias") or 0),
+            fila.get("id", 0),
+        )
 
     def cargar():
         try:
@@ -101,6 +153,16 @@ def mostrar_clasificaciones(contenedor):
 
         tabla.delete(*tabla.get_children())
         hay_grupos = estado["hay_grupos"]
+        if hay_grupos:
+            fase_terminada = (
+                estado["total_grupos"] > 0
+                and estado["pendientes_grupos"] == 0
+            )
+        else:
+            fase_terminada = (
+                estado["total_todos"] > 0
+                and estado["pendientes_todos"] == 0
+            )
 
         if hay_grupos:
             grupos = {}
@@ -110,54 +172,51 @@ def mostrar_clasificaciones(contenedor):
                     nombre_grupo = "Sin grupo"
                 grupos.setdefault(nombre_grupo, []).append(fila)
 
-            # La clasificación conserva el orden estadístico calculado por llaves.py,
-            # pero la posición visible se reinicia dentro de cada grupo.
-            for nombre_grupo in sorted(grupos, key=str.casefold):
+            for indice, nombre_grupo in enumerate(sorted(grupos, key=str.casefold)):
                 etiqueta = nombre_grupo.upper()
                 tabla.insert(
                     "", "end",
-                    values=("", etiqueta, "", "", "", ""),
-                    tags=("encabezado_grupo",)
+                    values=(etiqueta, "", "", "", "", ""),
+                    tags=(f"encabezado_grupo_{indice % len(colores_grupo)}",)
                 )
 
-                for posicion_grupo, fila in enumerate(grupos[nombre_grupo], 1):
-                    if not fila.get("ha_competido"):
-                        valores = (
-                            f"{posicion_grupo}°", "", "", "", "", ""
-                        )
-                        tag = "sin_jugar"
+                filas_grupo = sorted(grupos[nombre_grupo], key=clave_grupo)
+                for posicion_grupo, fila in enumerate(filas_grupo, 1):
+                    valores = (
+                        f"{posicion_grupo}°",
+                        fila.get("robot") or "—",
+                        fila.get("puntos", 0) if fila.get("ha_competido") else "—",
+                        fila.get("tiempo_mostrar", "0:00:00") if fila.get("ha_competido") else "—",
+                        f'{(fila.get("porcentaje_ataques") or 0):.1f}%' if fila.get("ha_competido") else "—",
+                        f'{(fila.get("porcentaje_victorias") or 0):.1f}%' if fila.get("ha_competido") else "—",
+                    )
+                    if not fase_terminada:
+                        tag = "pendiente"
+                    elif not fila.get("ha_competido"):
+                        tag = "eliminado"
                     else:
-                        valores = (
-                            f"{posicion_grupo}°",
-                            fila.get("robot") or "—",
-                            fila.get("puntos", 0),
-                            fila.get("tiempo_mostrar", "0:00:00"),
-                            f'{(fila.get("porcentaje_ataques") or 0):.1f}%',
-                            f'{(fila.get("porcentaje_victorias") or 0):.1f}%',
-                        )
                         tag = "clasifica" if fila.get("clasifica") else "eliminado"
                     tabla.insert("", "end", values=valores, tags=(tag,))
         else:
             tabla.insert(
                 "", "end",
-                values=("", "TODOS CONTRA TODOS", "", "", "", ""),
-                tags=("encabezado_grupo",)
+                values=("TODOS CONTRA TODOS", "", "", "", "", ""),
+                tags=("encabezado_grupo_0",)
             )
-            for fila in filas:
-                if not fila.get("ha_competido"):
-                    valores = (
-                        f'{fila.get("posicion", "—")}°', "", "", "", "", ""
-                    )
-                    tag = "sin_jugar"
+            for fila in sorted(filas, key=clave_grupo):
+                valores = (
+                    f'{fila.get("posicion", "—")}°',
+                    fila.get("robot") or "—",
+                    fila.get("puntos", 0) if fila.get("ha_competido") else "—",
+                    fila.get("tiempo_mostrar", "0:00:00") if fila.get("ha_competido") else "—",
+                    f'{(fila.get("porcentaje_ataques") or 0):.1f}%' if fila.get("ha_competido") else "—",
+                    f'{(fila.get("porcentaje_victorias") or 0):.1f}%' if fila.get("ha_competido") else "—",
+                )
+                if not fase_terminada:
+                    tag = "pendiente"
+                elif not fila.get("ha_competido"):
+                    tag = "eliminado"
                 else:
-                    valores = (
-                        f'{fila.get("posicion", "—")}°',
-                        fila.get("robot") or "—",
-                        fila.get("puntos", 0),
-                        fila.get("tiempo_mostrar", "0:00:00"),
-                        f'{(fila.get("porcentaje_ataques") or 0):.1f}%',
-                        f'{(fila.get("porcentaje_victorias") or 0):.1f}%',
-                    )
                     tag = "clasifica" if fila.get("clasifica") else "eliminado"
                 tabla.insert("", "end", values=valores, tags=(tag,))
 
