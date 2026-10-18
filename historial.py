@@ -6,6 +6,8 @@ from tkinter import ttk
 FONDO = "#FFFFFF"
 ROJO_OSCURO = "#8E1B1B"
 TEXTO = "#1F2937"
+VERDE_FONDO = "#DCFCE7"
+VERDE_TEXTO = "#166534"
 GRIS = "#64748B"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -19,27 +21,21 @@ def conectar():
 
 
 def obtener_historial():
-    """Devuelve los enfrentamientos ordenados por el número de batalla."""
+    """Consulta únicamente resultados archivados de batallas finalizadas."""
     with conectar() as conexion:
         cursor = conexion.cursor()
         cursor.execute("""
             SELECT
-                e.id,
-                COALESCE(p1.robot, '—'),
-                COALESCE(p2.robot, '—'),
-                COALESCE(e.tiempo, ''),
-                COALESCE(e.ataques1, ''),
-                COALESCE(e.ataques2, ''),
-                COALESCE(pg.robot, CASE
-                    WHEN e.estado = 'Completado' THEN 'Sin ganador'
-                    ELSE 'Pendiente'
-                END),
-                COALESCE(e.criterio_ganador, '')
-            FROM enfrentamientos e
-            LEFT JOIN participantes p1 ON p1.id = e.participante1
-            LEFT JOIN participantes p2 ON p2.id = e.participante2
-            LEFT JOIN participantes pg ON pg.id = e.ganador
-            ORDER BY e.id
+                id,
+                COALESCE(robot1, '—'),
+                COALESCE(robot2, '—'),
+                COALESCE(tiempo, ''),
+                COALESCE(ataques1, '—'),
+                COALESCE(ataques2, '—'),
+                COALESCE(ganador, 'Sin ganador'),
+                COALESCE(motivo, '—')
+            FROM historial_batallas
+            ORDER BY id
         """)
         return cursor.fetchall()
 
@@ -57,12 +53,24 @@ def mostrar_historial(contenedor):
         font=("Arial", 16, "bold"),
         fg=ROJO_OSCURO,
         bg=FONDO
-    ).pack(anchor="w", pady=(0, 14))
+    ).pack(anchor="w", pady=(0, 6))
+
+    estado = tk.Label(
+        principal,
+        text="Cargando resultados...",
+        font=("Arial", 10),
+        fg=GRIS,
+        bg=FONDO
+    )
+    estado.pack(anchor="w", pady=(0, 14))
 
     marco = tk.Frame(principal, bg=FONDO)
     marco.pack(fill="both", expand=True)
 
-    columnas = ("numero", "robot1", "robot2", "tiempo", "ataques1", "ataques2", "ganador", "motivo")
+    columnas = (
+        "numero", "robot1", "robot2", "tiempo",
+        "ataques1", "ataques2", "ganador", "motivo"
+    )
     tabla = ttk.Treeview(marco, columns=columnas, show="headings", height=16)
 
     encabezados = [
@@ -103,8 +111,7 @@ def mostrar_historial(contenedor):
         font=("Arial", 12, "bold"),
     )
     tabla.configure(style="Historial.Treeview")
-    tabla.tag_configure("completado", background="#DCFCE7", foreground="#166534")
-    tabla.tag_configure("pendiente", background="#F8FAFC", foreground=GRIS)
+    tabla.tag_configure("completado", background=VERDE_FONDO, foreground=VERDE_TEXTO)
 
     barra_vertical = ttk.Scrollbar(marco, orient="vertical", command=tabla.yview)
     barra_horizontal = ttk.Scrollbar(principal, orient="horizontal", command=tabla.xview)
@@ -119,19 +126,29 @@ def mostrar_historial(contenedor):
         try:
             filas = obtener_historial()
             tabla.delete(*tabla.get_children())
+
             for fila in filas:
                 valores = list(fila)
-                valores[0] = f"{valores[0]}"
-                if valores[3] is None:
-                    valores[3] = ""
-                if valores[4] == "":
-                    valores[4] = "—"
-                if valores[5] == "":
-                    valores[5] = "—"
-                tag = "completado" if valores[6] not in ("Pendiente", "Sin ganador") and valores[6] else "pendiente"
-                tabla.insert("", "end", values=valores, tags=(tag,))
+                valores[0] = str(valores[0])
+                valores[3] = valores[3] or "—"
+                valores[4] = "—" if valores[4] in ("", None) else valores[4]
+                valores[5] = "—" if valores[5] in ("", None) else valores[5]
+                tabla.insert("", "end", values=valores, tags=("completado",))
+
+            cantidad = len(filas)
+            if cantidad:
+                estado.config(
+                    text=f"{cantidad} batalla(s) finalizada(s) guardada(s). "
+                         "El historial se actualiza automáticamente."
+                )
+            else:
+                estado.config(
+                    text="Aún no hay batallas finalizadas. Aparecerán aquí al registrar cada resultado."
+                )
         except sqlite3.Error as error:
+            estado.config(text="No se pudo leer el historial. Revisa la base de datos.")
             print(f"No se pudo cargar el historial: {error}")
-        principal.after(2000, cargar)
+
+        principal.after(1500, cargar)
 
     cargar()
