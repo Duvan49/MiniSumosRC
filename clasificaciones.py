@@ -79,11 +79,18 @@ def mostrar_clasificaciones(contenedor):
         tabla.column(col, width=ancho, anchor="center", stretch=True)
 
     estilo = ttk.Style()
+    try:
+        estilo.theme_use("clam")
+    except tk.TclError:
+        pass
     estilo.configure(
         "Clasificaciones.Treeview",
         rowheight=26,
         borderwidth=1,
         relief="solid",
+        bordercolor="#CBD5E1",
+        lightcolor="#CBD5E1",
+        darkcolor="#CBD5E1",
         background="#FFFFFF",
         fieldbackground="#FFFFFF",
         foreground="#1F2937",
@@ -93,6 +100,9 @@ def mostrar_clasificaciones(contenedor):
         "Clasificaciones.Treeview.Heading",
         borderwidth=1,
         relief="solid",
+        bordercolor="#CBD5E1",
+        lightcolor="#CBD5E1",
+        darkcolor="#CBD5E1",
         font=("Arial", 9, "bold"),
     )
     tabla.configure(style="Clasificaciones.Treeview")
@@ -117,14 +127,10 @@ def mostrar_clasificaciones(contenedor):
 
     leyenda = tk.Frame(principal, bg=FONDO)
     leyenda.pack(anchor="w", pady=(12, 0))
-    tk.Label(
-        leyenda, text="  ", bg=FONDO, fg="#166534",
-        font=("Arial", 10, "bold")
-    ).pack(side="left", padx=(0, 18))
-    tk.Label(
-        leyenda, text="  ", bg=FONDO, fg="#991B1B",
-        font=("Arial", 10, "bold")
-    ).pack(side="left")
+    tk.Label(leyenda, text="  ", bg="#DCFCE7", relief="solid", bd=1, width=2).pack(side="left", padx=(0, 6))
+    tk.Label(leyenda, text="Clasificado", bg=FONDO, fg="#166534", font=("Arial", 9, "bold")).pack(side="left", padx=(0, 18))
+    tk.Label(leyenda, text="  ", bg="#FEE2E2", relief="solid", bd=1, width=2).pack(side="left", padx=(0, 6))
+    tk.Label(leyenda, text="No clasificado", bg=FONDO, fg="#991B1B", font=("Arial", 9, "bold")).pack(side="left")
 
     def clave_grupo(fila):
         # Durante la fase en curso, quienes aún no han competido quedan al final.
