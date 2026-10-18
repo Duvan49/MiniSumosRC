@@ -6,8 +6,6 @@ from tkinter import ttk
 FONDO = "#FFFFFF"
 ROJO_OSCURO = "#8E1B1B"
 TEXTO = "#1F2937"
-VERDE_FONDO = "#DCFCE7"
-VERDE_TEXTO = "#166534"
 GRIS = "#64748B"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -35,7 +33,7 @@ def obtener_historial():
                 COALESCE(ganador, 'Sin ganador'),
                 COALESCE(motivo, '—')
             FROM historial_batallas
-            ORDER BY id
+            ORDER BY id DESC
         """)
         return cursor.fetchall()
 
@@ -111,7 +109,6 @@ def mostrar_historial(contenedor):
         font=("Arial", 12, "bold"),
     )
     tabla.configure(style="Historial.Treeview")
-    tabla.tag_configure("completado", background=VERDE_FONDO, foreground=VERDE_TEXTO)
 
     barra_vertical = ttk.Scrollbar(marco, orient="vertical", command=tabla.yview)
     barra_horizontal = ttk.Scrollbar(principal, orient="horizontal", command=tabla.xview)
@@ -133,7 +130,7 @@ def mostrar_historial(contenedor):
                 valores[3] = valores[3] or "—"
                 valores[4] = "—" if valores[4] in ("", None) else valores[4]
                 valores[5] = "—" if valores[5] in ("", None) else valores[5]
-                tabla.insert("", "end", values=valores, tags=("completado",))
+                tabla.insert("", "end", values=valores)
 
             cantidad = len(filas)
             if cantidad:
