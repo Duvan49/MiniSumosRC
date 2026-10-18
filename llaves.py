@@ -217,10 +217,10 @@ def _seleccionar_ids_clasificados(stats, cantidad_cupos):
 
     # Sin fase de grupos: clasificación general (todos contra todos).
     if not grupos:
-        return {
+        return [
             fila["id"]
             for fila in _ranking_general(stats)[:cantidad_cupos]
-        }
+        ]
 
     for filas in grupos.values():
         filas.sort(key=cmp_to_key(_clave_ranking))
@@ -242,7 +242,7 @@ def _seleccionar_ids_clasificados(stats, cantidad_cupos):
             seleccionados.append(fila["id"])
         posicion += 1
 
-    return set(seleccionados)
+    return seleccionados
 
 
 def obtener_tabla_clasificacion():
@@ -260,7 +260,7 @@ def obtener_tabla_clasificacion():
             min(cantidad_clasificados(cantidad_total), len(ranking))
             if cantidad_total >= 6 else min(2, len(ranking))
         )
-        ids_clasificados = _seleccionar_ids_clasificados(stats, cupos)
+        ids_clasificados = set(_seleccionar_ids_clasificados(stats, cupos))
 
         for posicion, fila in enumerate(ranking, 1):
             fila["posicion"] = posicion
@@ -283,8 +283,12 @@ def _obtener_clasificados(cursor):
         cantidad_cupos = min(cantidad_clasificados(cantidad_total), len(ranking))
 
     ids_clasificados = _seleccionar_ids_clasificados(stats, cantidad_cupos)
-    seleccion = [fila for fila in ranking if fila["id"] in ids_clasificados]
-    return [(fila["id"], fila["grupo_id"]) for fila in seleccion]
+    por_id = {fila["id"]: fila for fila in ranking}
+    return [
+        (por_id[pid]["id"], por_id[pid]["grupo_id"])
+        for pid in ids_clasificados
+        if pid in por_id
+    ]
 
 def _orden_siembra(cantidad):
     orden = [1, 2]
