@@ -40,28 +40,33 @@ def nombre_ronda(cantidad):
 
 
 def _tiempo_a_segundos(valor):
-    """Convierte MM:SS o HH:MM:SS a segundos; tiempos vacíos quedan sin dato."""
+    """Convierte M:SS:CC (minutos:segundos:centésimas) a segundos."""
     if valor is None:
         return None
     try:
         partes = [int(p) for p in str(valor).strip().split(":")]
         if len(partes) == 2:
+            # Compatibilidad con tiempos antiguos guardados como MM:SS.
             return partes[0] * 60 + partes[1]
         if len(partes) == 3:
-            return partes[0] * 3600 + partes[1] * 60 + partes[2]
+            minutos, segundos, centesimas = partes
+            if minutos < 0 or not 0 <= segundos < 60 or not 0 <= centesimas < 100:
+                return None
+            return minutos * 60 + segundos + centesimas / 100
     except (TypeError, ValueError):
         return None
     return None
 
 
 def _segundos_a_tiempo(segundos):
+    """Formatea segundos como M:SS:CC (minutos:segundos:centésimas)."""
     if segundos is None:
         return "0:00:00"
-    segundos = int(round(segundos))
-    horas = segundos // 3600
-    minutos = (segundos % 3600) // 60
-    segundos_restantes = segundos % 60
-    return f"{horas}:{minutos:02d}:{segundos_restantes:02d}"
+    total_centesimas = max(0, int(round(float(segundos) * 100)))
+    minutos = total_centesimas // 6000
+    segundos_restantes = (total_centesimas % 6000) // 100
+    centesimas = total_centesimas % 100
+    return f"{minutos}:{segundos_restantes:02d}:{centesimas:02d}"
 
 
 def _cantidad_participantes_validos(cursor):
