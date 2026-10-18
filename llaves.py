@@ -177,9 +177,12 @@ def _estadisticas(cursor):
     return stats, directos
 
 def _comparar(a, b, directos=None):
-    """Desempata por puntos, menor tiempo promedio, ataques y victorias."""
+    """Ordena por puntos, porcentaje de ataques, tiempo promedio y victorias."""
     if a["puntos"] != b["puntos"]:
         return -1 if a["puntos"] > b["puntos"] else 1
+
+    if a["porcentaje_ataques"] != b["porcentaje_ataques"]:
+        return -1 if a["porcentaje_ataques"] > b["porcentaje_ataques"] else 1
 
     ta, tb = a["tiempo_promedio"], b["tiempo_promedio"]
     ta = float("inf") if ta is None else ta
@@ -187,64 +190,101 @@ def _comparar(a, b, directos=None):
     if ta != tb:
         return -1 if ta < tb else 1
 
-    if a["porcentaje_ataques"] != b["porcentaje_ataques"]:
-        return -1 if a["porcentaje_ataques"] > b["porcentaje_ataques"] else 1
-
-    if a["porcentaje_victorias"] != b["porcentaje_victorias"]:
-        return -1 if a["porcentaje_victorias"] > b["porcentaje_victorias"] else 1
+    if a["victorias"] != b["victorias"]:
+        return -1 if a["victorias"] > b["victorias"] else 1
 
     return (a["id"] > b["id"]) - (a["id"] < b["id"])
 
+
+def _clave_ranking(a, b):
+    """Prioriza a quien ya compitió y luego aplica el criterio oficial."""
+    if a["ha_competido"] != b["ha_competido"]:
+        return -1 if a["ha_competido"] else 1
+    return _comparar(a, b)
+
+
+def _ranking_general(stats):
+    return sorted(stats.values(), key=cmp_to_key(_clave_ranking))
+
+
+def _seleccionar_ids_clasificados(stats, cantidad_cupos):
+    """En grupos, asigna cupos por posición: primeros, segundos, terceros, etc."""
+    grupos = {}
+    for fila in stats.values():
+        grupo_id = fila.get("grupo_id")
+        if grupo_id is not None:
+            grupos.setdefault(grupo_id, []).append(fila)
+
+    # Sin fase de grupos: clasificación general (todos contra todos).
+    if not grupos:
+        return {
+            fila["id"]
+            for fila in _ranking_general(stats)[:cantidad_cupos]
+        }
+
+    for filas in grupos.values():
+        filas.sort(key=cmp_to_key(_clave_ranking))
+
+    seleccionados = []
+    posicion = 0
+    while len(seleccionados) < cantidad_cupos:
+        candidatos = [
+            filas[posicion]
+            for filas in grupos.values()
+            if len(filas) > posicion
+        ]
+        if not candidatos:
+            break
+        candidatos.sort(key=cmp_to_key(_clave_ranking))
+        for fila in candidatos:
+            if len(seleccionados) >= cantidad_cupos:
+                break
+            seleccionados.append(fila["id"])
+        posicion += 1
+
+    return set(seleccionados)
+
+
 def obtener_tabla_clasificacion():
-    """Ranking general provisional y en tiempo real, independiente de los grupos."""
+    """Devuelve el ranking y la marca de clasificación en tiempo real."""
     conexion = conectar()
     try:
         cursor = conexion.cursor()
-        stats, directos = _estadisticas(cursor)
+        stats, _ = _estadisticas(cursor)
         if not stats:
             return []
 
-        ranking = sorted(
-            stats.values(),
-            key=cmp_to_key(lambda a, b: (
-                -1 if a["ha_competido"] and not b["ha_competido"]
-                else 1 if b["ha_competido"] and not a["ha_competido"]
-                else _comparar(a, b, directos)
-            ))
-        )
-
+        ranking = _ranking_general(stats)
         cantidad_total = _cantidad_participantes_validos(cursor)
-        cupos = min(cantidad_clasificados(cantidad_total), len(ranking)) if cantidad_total >= 6 else min(2, len(ranking))
+        cupos = (
+            min(cantidad_clasificados(cantidad_total), len(ranking))
+            if cantidad_total >= 6 else min(2, len(ranking))
+        )
+        ids_clasificados = _seleccionar_ids_clasificados(stats, cupos)
 
         for posicion, fila in enumerate(ranking, 1):
-            fila["posicion_grupo"] = posicion
             fila["posicion"] = posicion
-            fila["clasifica"] = posicion <= cupos
+            fila["clasifica"] = fila["id"] in ids_clasificados
             fila["tiempo_mostrar"] = _segundos_a_tiempo(fila["tiempo_promedio"])
         return ranking
     finally:
         conexion.close()
 
+
 def _obtener_clasificados(cursor):
-    """Selecciona los mejores del ranking general, sin cuotas por grupo."""
-    resultado = _estadisticas(cursor)
-    if resultado is None:
-        return None
-    stats, directos = resultado
-    ranking = sorted(
-        stats.values(),
-        key=cmp_to_key(lambda a, b: (
-            -1 if a["ha_competido"] and not b["ha_competido"]
-            else 1 if b["ha_competido"] and not a["ha_competido"]
-            else _comparar(a, b, directos)
-        ))
-    )
+    """Selecciona clasificados por posición entre grupos, completando los cupos."""
+    stats, _ = _estadisticas(cursor)
     cantidad_total = _cantidad_participantes_validos(cursor)
+    ranking = _ranking_general(stats)
+
     if cantidad_total <= 5:
-        cantidad_cupos = 2
+        cantidad_cupos = min(2, len(ranking))
     else:
-        cantidad_cupos = min(cantidad_clasificados(cantidad_total), cantidad_total)
-    return [(fila["id"], fila["grupo_id"]) for fila in ranking[:cantidad_cupos]]
+        cantidad_cupos = min(cantidad_clasificados(cantidad_total), len(ranking))
+
+    ids_clasificados = _seleccionar_ids_clasificados(stats, cantidad_cupos)
+    seleccion = [fila for fila in ranking if fila["id"] in ids_clasificados]
+    return [(fila["id"], fila["grupo_id"]) for fila in seleccion]
 
 def _orden_siembra(cantidad):
     orden = [1, 2]
