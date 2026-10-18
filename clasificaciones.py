@@ -142,7 +142,7 @@ def mostrar_clasificaciones(contenedor):
             -float(fila.get("puntos") or 0),
             -float(fila.get("porcentaje_ataques") or 0),
             float("inf") if tiempo is None else float(tiempo),
-            -float(fila.get("porcentaje_victorias") or 0),
+            -float(fila.get("victorias") or 0),
             fila.get("id", 0),
         )
 
