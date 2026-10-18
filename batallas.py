@@ -236,6 +236,51 @@ def preparar_base_batallas():
         )
     """)
 
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS historial_control (
+            clave TEXT PRIMARY KEY,
+            valor TEXT
+        )
+    """)
+
+    # En la primera ejecución, importar también los resultados que ya estaban
+    # completados antes de instalar el historial permanente.
+    cursor.execute(
+        "SELECT valor FROM historial_control WHERE clave = ?",
+        ("copia_inicial_completados_v1",)
+    )
+    migracion_realizada = cursor.fetchone()
+
+    if not migracion_realizada:
+        cursor.execute("""
+            INSERT INTO historial_batallas (
+                batalla_id, etapa, grupo, robot1, robot2, tiempo,
+                ataques1, ataques2, ganador, motivo
+            )
+            SELECT
+                e.id,
+                e.etapa,
+                COALESCE(g.nombre, ''),
+                COALESCE(p1.robot, p1.nombre, '—'),
+                COALESCE(p2.robot, p2.nombre, '—'),
+                COALESCE(e.tiempo, ''),
+                COALESCE(e.ataques1, 0),
+                COALESCE(e.ataques2, 0),
+                COALESCE(pg.robot, pg.nombre, 'Sin ganador'),
+                COALESCE(e.criterio_ganador, '')
+            FROM enfrentamientos e
+            LEFT JOIN grupos g ON g.id = e.grupo_id
+            LEFT JOIN participantes p1 ON p1.id = e.participante1
+            LEFT JOIN participantes p2 ON p2.id = e.participante2
+            LEFT JOIN participantes pg ON pg.id = e.ganador
+            WHERE e.estado = 'Completado'
+            ORDER BY e.id
+        """)
+        cursor.execute("""
+            INSERT INTO historial_control (clave, valor)
+            VALUES (?, ?)
+        """, ("copia_inicial_completados_v1", "completada"))
+
     conexion.commit()
     conexion.close()
 
