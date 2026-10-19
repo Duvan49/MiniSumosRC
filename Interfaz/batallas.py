@@ -7,6 +7,29 @@ from tkinter import ttk
 from logica import RelojBatalla
 from llaves import (actualizar_llaves_tras_resultado, generar_llaves_manualmente, generar_final_todos_manualmente, avanzar_ronda_manualmente)
 
+def _separar_tiempo_visual(valor):
+    """Devuelve minutos:segundos y centésimas para mostrar con tamaños distintos."""
+    try:
+        partes = [int(p) for p in str(valor or "0:00:00").split(":")]
+        if len(partes) == 3:
+            minutos, segundos, centesimas = partes
+        elif len(partes) == 2:
+            minutos, segundos = partes
+            centesimas = 0
+        else:
+            minutos, segundos, centesimas = 0, 0, 0
+        return f"{minutos:02d}:{segundos:02d}", f"{centesimas:02d}"
+    except (TypeError, ValueError):
+        return "00:00", "00"
+
+
+def _actualizar_tiempo_visual(etiqueta_principal, etiqueta_centesimas, valor):
+    principal, centesimas = _separar_tiempo_visual(valor)
+    etiqueta_principal.config(text=principal)
+    etiqueta_centesimas.config(text=centesimas)
+
+
+
 
 # ============================================================
 # COMPONENTES VISUALES REDONDEADOS
@@ -714,11 +737,30 @@ def abrir_resultado(
             fg="#7a858e", bg="white"
         ).grid(row=0, column=columna, padx=18, pady=(12, 0), sticky="ew")
 
-        tk.Label(
-            datos.content, text=valor,
-            font=("Segoe UI", 18, "bold"),
-            fg="#17202a", bg="white"
-        ).grid(row=1, column=columna, padx=18, pady=(0, 12), sticky="ew")
+        if titulo == "TIEMPO":
+            tiempo_resultado_frame = tk.Frame(datos.content, bg="white")
+            tiempo_resultado_frame.grid(
+                row=1, column=columna, padx=18, pady=(0, 12), sticky="nsew"
+            )
+            tiempo_resultado_principal = tk.Label(
+                tiempo_resultado_frame, text="00:00",
+                font=("Segoe UI", 18, "bold"), fg="#17202a", bg="white"
+            )
+            tiempo_resultado_principal.pack(side="left", anchor="s")
+            tiempo_resultado_centesimas = tk.Label(
+                tiempo_resultado_frame, text="00",
+                font=("Segoe UI", 10, "bold"), fg="#17202a", bg="white"
+            )
+            tiempo_resultado_centesimas.pack(side="left", anchor="s", pady=(0, 2))
+            _actualizar_tiempo_visual(
+                tiempo_resultado_principal, tiempo_resultado_centesimas, valor
+            )
+        else:
+            tk.Label(
+                datos.content, text=valor,
+                font=("Segoe UI", 18, "bold"),
+                fg="#17202a", bg="white"
+            ).grid(row=1, column=columna, padx=18, pady=(0, 12), sticky="ew")
 
     # --------------------------------------------------------
     # GANADOR
@@ -1371,11 +1413,18 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         datos, text="◷  TIEMPO",
         font=("Segoe UI", 9, "bold"), fg="#7a858e", bg="white"
     ).grid(row=0, column=1, pady=(12, 0), sticky="ew")
-    tiempo_label = tk.Label(
-        datos, text="0:00:00", font=("Segoe UI", 25, "bold"),
+    tiempo_frame = tk.Frame(datos, bg="white")
+    tiempo_frame.grid(row=1, column=1, padx=18, pady=(0, 12))
+    tiempo_principal_label = tk.Label(
+        tiempo_frame, text="00:00", font=("Segoe UI", 25, "bold"),
         fg="#17202a", bg="white"
     )
-    tiempo_label.grid(row=1, column=1, padx=18, pady=(0, 12), sticky="ew")
+    tiempo_principal_label.pack(side="left", anchor="s")
+    tiempo_centesimas_label = tk.Label(
+        tiempo_frame, text="00", font=("Segoe UI", 13, "bold"),
+        fg="#17202a", bg="white"
+    )
+    tiempo_centesimas_label.pack(side="left", anchor="s", pady=(0, 3))
 
     tk.Label(
         datos, text="⚔  ATAQUES R2",
@@ -1485,7 +1534,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
         # La actualización periódica no debe tapar los números 3, 2 y 1.
         if not cuenta_regresiva_activa:
-            tiempo_label.config(text=reloj.obtener_tiempo())
+            _actualizar_tiempo_visual(tiempo_principal_label, tiempo_centesimas_label, reloj.obtener_tiempo())
         ataques1_label.config(text="0")
         ataques2_label.config(text="0")
         principal.after(100, actualizar_datos)
@@ -1531,7 +1580,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             boton_pausar.config(state="normal")
             boton_continuar.config(state="disabled")
             boton_finalizar.config(state="normal")
-            tiempo_label.config(text=reloj.obtener_tiempo())
+            _actualizar_tiempo_visual(tiempo_principal_label, tiempo_centesimas_label, reloj.obtener_tiempo())
 
         principal.after(1000, avanzar_cuenta)
 
