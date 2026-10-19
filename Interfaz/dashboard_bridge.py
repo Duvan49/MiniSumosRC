@@ -115,7 +115,7 @@ class DashboardBridge:
                                 with self._lock:
                                     self._attacks = (
                                         max(0, int(data.get("attacks1", 0))),
-                                        max(0, int(data.get("attacks2", 0)),
+                                        max(0, int(data.get("attacks2", 0))),
                                     )
                         except (ValueError, TypeError, json.JSONDecodeError):
                             continue
