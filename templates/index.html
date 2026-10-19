@@ -43,6 +43,7 @@ input{width:100%;padding:13px 12px;background:#071a2c;border:1px solid #31536f;b
 @media(max-height:560px) and (min-width:701px){ #arena{padding-top:4px;padding-bottom:4px}.status-wrap{min-height:34px}.status{font-size:clamp(18px,2.4vw,30px)}.robot-art{height:48vh}.vs{margin-bottom:12px}.timer-label{margin-bottom:4px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
 
+#attackView{position:fixed;inset:0;z-index:8000;background:#020710;display:none}#attackView.open{display:block}#attackView iframe{display:block;width:100%;height:100%;border:0;background:#020710}
 /* Pantallas temporales de anuncio: ganador y próxima batalla */
 .announcement{position:fixed;inset:0;z-index:6000;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:clamp(18px,4vw,56px);background-position:center;background-size:cover;background-repeat:no-repeat;text-align:center;font-family:Impact,'Arial Black',system-ui,sans-serif}
 .announcement[hidden]{display:none}
@@ -191,7 +192,7 @@ input{width:100%;padding:13px 12px;background:#071a2c;border:1px solid #31536f;b
   <section class="center"><div class="vs">VS</div><div class="timer-label">TIEMPO</div><div class="timer" id="time">00:0000</div></section>
   <section class="combatant right" id="combatant2" style="--robot-color:#c28cff"><img class="robot-art" id="robotImage2" src="/Imagenes/R_Morado.png" alt="Robot derecho"><div class="robot-name" id="robot2">MORADO</div><div class="attack-score"><span>ATAQUES</span><strong id="attacks2">0</strong></div></section>
  </main>
-</div><div id="scrim" onclick="toggleSettings(false)" aria-hidden="true"></div>
+</div><div id="attackView" aria-hidden="true"><iframe id="attackFrame" title="Panel de ataques" allowfullscreen></iframe></div><div id="scrim" onclick="toggleSettings(false)" aria-hidden="true"></div>
 <aside id="settings" aria-label="Parámetros de batalla">
  <div class="settings-head"><h2>AJUSTES DE BATALLA</h2><button class="close" id="closeSettings" type="button" onclick="toggleSettings(false)" aria-label="Cerrar ajustes">×</button></div>
  <div class="tabbar"><button class="tab active" id="tabControl" type="button">CONTROL</button><button class="tab" id="tabAttacks" type="button">CONTAR ATAQUES</button></div>
@@ -237,7 +238,10 @@ function render(s){
 window.toggleSettings=function(open){const panel=document.getElementById('settings');const scrim=document.getElementById('scrim');const gear=document.getElementById('openSettings');if(!panel||!scrim)return;const visible=Boolean(open);panel.classList.toggle('open',visible);scrim.classList.toggle('open',visible);panel.style.transform=visible?'translateX(0)':'translateX(105%)';panel.style.visibility=visible?'visible':'hidden';panel.style.pointerEvents=visible?'auto':'none';scrim.style.pointerEvents=visible?'auto':'none';panel.setAttribute('aria-hidden',String(!visible));scrim.setAttribute('aria-hidden',String(!visible));if(gear)gear.setAttribute('aria-expanded',String(visible));if(visible){window.setTimeout(()=>{const field=document.getElementById('inputRobot1');if(field&&!$('controlPanel').hidden)field.focus({preventScroll:true})},100)}};
 function toggleQuickMenu(force){const menu=$('quickMenu'),gear=$('openSettings');if(!menu||!gear)return;const opening=typeof force==='boolean'?force:menu.hidden;menu.hidden=!opening;gear.setAttribute('aria-expanded',String(opening))}
 function showTab(tab){const attacks=tab==='attacks';$('controlPanel').hidden=attacks;$('attacksPanel').hidden=!attacks;$('tabControl').classList.toggle('active',!attacks);$('tabAttacks').classList.toggle('active',attacks)}
-function showView(view){toggleQuickMenu(false);if(view==='attack1'||view==='attack2'){enterAnnouncementFullscreen().finally(()=>{window.location.href='/attacks/'+(view==='attack1'?'1':'2')});return}showTab('control');toggleSettings(true)}
+function openAttackView(robot){const layer=$('attackView'),frame=$('attackFrame');layer.classList.add('open');layer.setAttribute('aria-hidden','false');frame.src='/attacks/'+robot;}
+function closeAttackView(){const layer=$('attackView'),frame=$('attackFrame');layer.classList.remove('open');layer.setAttribute('aria-hidden','true');frame.src='about:blank';}
+window.addEventListener('message',event=>{if(event.origin===window.location.origin&&event.data&&event.data.type==='closeAttackView')closeAttackView()});
+function showView(view){toggleQuickMenu(false);if(view==='attack1'||view==='attack2'){if(!document.fullscreenElement&&document.documentElement.requestFullscreen){document.documentElement.requestFullscreen().catch(()=>{});}openAttackView(view==='attack1'?'1':'2');return}showTab('control');toggleSettings(true)}
 $('quickMenu').querySelectorAll('button[data-view]').forEach(button=>button.addEventListener('click',()=>showView(button.dataset.view)));$('openSettings').addEventListener('click',e=>{e.stopPropagation();toggleQuickMenu()});$('closeSettings').addEventListener('click',()=>toggleSettings(false));$('scrim').addEventListener('click',()=>{toggleSettings(false);toggleQuickMenu(false)});$('tabControl').addEventListener('click',()=>showTab('control'));$('tabAttacks').addEventListener('click',()=>showTab('attacks'));document.addEventListener('click',e=>{if(!$('quickMenu').hidden&&!$('quickMenu').contains(e.target)&&e.target!==$('openSettings'))toggleQuickMenu(false)});document.addEventListener('keydown',e=>{if(e.key==='Escape'){toggleSettings(false);toggleQuickMenu(false);if(!$('winnerAnnouncement').hidden||!$('nextAnnouncement').hidden)hideAnnouncements()}});
 let lastUiActionId=0;
 async function handleTerminalAction(s){
