@@ -4,22 +4,23 @@ import tkinter as tk
 from tkinter import ttk
 
 
-def _formatear_tiempo_tabla(valor):
-    """Muestra minutos, segundos y centésimas como MM:SSCC."""
+def _separar_tiempo_tabla(valor):
+    """Separa el tiempo en MM:SS y centésimas para usar fuentes distintas."""
     partes = str(valor or "").strip().split(":")
     try:
         if len(partes) == 3:
             minutos, segundos, centesimas = (int(p) for p in partes)
         elif len(partes) == 2:
-            minutos, segundos = (int(p) for p in partes)
-            centesimas = 0
+            minutos = int(partes[0])
+            resto = partes[1].zfill(4)
+            segundos, centesimas = int(resto[:2]), int(resto[2:])
         else:
-            return valor or "—"
+            return "—", ""
         if minutos < 0 or not 0 <= segundos < 60 or not 0 <= centesimas < 100:
-            return valor or "—"
-        return f"{minutos:02d}:{segundos:02d}{centesimas:02d}"
+            return valor or "—", ""
+        return f"{minutos:02d}:{segundos:02d}", f"{centesimas:02d}"
     except (TypeError, ValueError):
-        return valor or "—"
+        return valor or "—", ""
 
 FONDO = "#FFFFFF"
 ROJO_OSCURO = "#8E1B1B"
@@ -74,7 +75,7 @@ def mostrar_historial(contenedor):
     marco.pack(fill="both", expand=True)
 
     columnas = (
-        "numero", "robot1", "robot2", "tiempo",
+        "numero", "robot1", "robot2", "tiempo", "centesimas",
         "ataques1", "ataques2", "ganador", "motivo"
     )
     tabla = ttk.Treeview(marco, columns=columnas, show="headings", height=16)
@@ -83,7 +84,8 @@ def mostrar_historial(contenedor):
         ("numero", "N°", 65),
         ("robot1", "ROBOT 1", 155),
         ("robot2", "ROBOT 2", 155),
-        ("tiempo", "TIEMPO", 125),
+        ("tiempo", "TIEMPO", 78),
+        ("centesimas", "", 38),
         ("ataques1", "ATQ. 1", 85),
         ("ataques2", "ATQ. 2", 85),
         ("ganador", "GANADOR", 155),
@@ -135,9 +137,11 @@ def mostrar_historial(contenedor):
             for fila in filas:
                 valores = list(fila)
                 valores[0] = str(valores[0])
-                valores[3] = _formatear_tiempo_tabla(valores[3])
-                valores[4] = "—" if valores[4] in ("", None) else valores[4]
+                tiempo, centesimas = _separar_tiempo_tabla(valores[3])
+                valores[3] = tiempo
+                valores.insert(4, centesimas)
                 valores[5] = "—" if valores[5] in ("", None) else valores[5]
+                valores[6] = "—" if valores[6] in ("", None) else valores[6]
                 tabla.insert("", "end", values=valores)
 
         except sqlite3.Error as error:
