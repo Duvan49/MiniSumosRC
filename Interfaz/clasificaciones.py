@@ -143,14 +143,16 @@ def mostrar_clasificaciones(contenedor):
             ancho_total = caja_cent[0] + caja_cent[2] - x
             celda = tk.Frame(tabla, bg=color_fondo, bd=0, highlightthickness=0)
             celda.place(x=x, y=y, width=ancho_total, height=alto)
+            contenido_tiempo = tk.Frame(celda, bg=color_fondo, bd=0, highlightthickness=0)
+            contenido_tiempo.place(relx=0.5, rely=0.5, anchor="center")
             tk.Label(
-                celda, text=tiempo_principal, font=("Arial", 14),
-                bg=color_fondo, fg="#1F2937", bd=0
-            ).pack(side="left", anchor="center")
+                contenido_tiempo, text=tiempo_principal, font=("Arial", 14),
+                bg=color_fondo, fg="#1F2937", bd=0, padx=0
+            ).pack(side="left", anchor="center", padx=0)
             tk.Label(
-                celda, text=centesimas, font=("Arial", 9),
-                bg=color_fondo, fg="#1F2937", bd=0
-            ).pack(side="left", anchor="s", pady=(0, 7))
+                contenido_tiempo, text=centesimas, font=("Arial", 9),
+                bg=color_fondo, fg="#1F2937", bd=0, padx=0
+            ).pack(side="left", anchor="s", padx=0, pady=(0, 7))
             celda.bind("<Button-1>", lambda _e, iid=item: tabla.selection_set(iid))
             etiquetas_tiempo.append(celda)
 
@@ -296,12 +298,7 @@ def mostrar_clasificaciones(contenedor):
 
         tabla.after_idle(dibujar_tiempos_visuales)
 
-    def actualizar_periodicamente():
-        if not principal.winfo_exists():
-            return
-        cargar()
-        principal.after(1000, actualizar_periodicamente)
-
+    # Se consulta al entrar a la pestaña; no se vuelve a leer la BD cada segundo.
+    # Al finalizar una batalla, la clasificación se verá actualizada al abrir esta página.
     cargar()
     principal.after_idle(dibujar_tiempos_visuales)
-    principal.after(1000, actualizar_periodicamente)
