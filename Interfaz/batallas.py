@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox
 import sqlite3
 import os
+import time
 from tkinter import ttk
 from logica import RelojBatalla
 from llaves import (actualizar_llaves_tras_resultado, generar_llaves_manualmente, generar_final_todos_manualmente, avanzar_ronda_manualmente)
@@ -1461,7 +1462,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         # Compatibilidad con batallas que ya estaban activas antes de guardar
         # la marca temporal en la base de datos.
         if inicio_epoch_bd is None:
-            reloj._inicio_tramo = __import__("time").time()
+            reloj._inicio_tramo = time.time()
             guardar_reloj(
                 id_batalla, "En curso",
                 reloj.obtener_tiempo_base(), reloj.inicio_epoch()
@@ -1492,7 +1493,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
         reloj.reiniciar()
         cuenta_regresiva_activa = True
-        cuenta_regresiva_restante = 3
+        cuenta_regresiva_restante = 2
         estado_label.config(text="PREPÁRATE...")
         tiempo_label.config(text="3")
         boton_iniciar.config(state="disabled")
