@@ -136,14 +136,16 @@ def mostrar_historial(contenedor):
             ancho_total = caja_cent[0] + caja_cent[2] - x
             celda = tk.Frame(tabla, bg="#FFFFFF", bd=0, highlightthickness=0)
             celda.place(x=x, y=y, width=ancho_total, height=alto)
+            contenido_tiempo = tk.Frame(celda, bg="#FFFFFF", bd=0, highlightthickness=0)
+            contenido_tiempo.place(relx=0.5, rely=0.5, anchor="center")
             tk.Label(
-                celda, text=tiempo_principal, font=("Arial", 12),
-                bg="#FFFFFF", fg="#1F2937", bd=0
-            ).pack(side="left", anchor="center")
+                contenido_tiempo, text=tiempo_principal, font=("Arial", 12),
+                bg="#FFFFFF", fg="#1F2937", bd=0, padx=0
+            ).pack(side="left", anchor="center", padx=0)
             tk.Label(
-                celda, text=centesimas, font=("Arial", 8),
-                bg="#FFFFFF", fg="#1F2937", bd=0
-            ).pack(side="left", anchor="s", pady=(0, 6))
+                contenido_tiempo, text=centesimas, font=("Arial", 8),
+                bg="#FFFFFF", fg="#1F2937", bd=0, padx=0
+            ).pack(side="left", anchor="s", padx=0, pady=(0, 6))
             celda.bind("<Button-1>", lambda _e, iid=item: tabla.selection_set(iid))
             etiquetas_tiempo.append(celda)
 
@@ -190,7 +192,5 @@ def mostrar_historial(contenedor):
 
         except sqlite3.Error as error:
             print(f"No se pudo cargar el historial: {error}")
-
-        principal.after(1500, cargar)
 
     cargar()
