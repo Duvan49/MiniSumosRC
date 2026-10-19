@@ -5,6 +5,7 @@ import os
 import time
 from tkinter import ttk
 from logica import RelojBatalla
+from dashboard_bridge import dashboard_bridge
 from llaves import (actualizar_llaves_tras_resultado, generar_llaves_manualmente, generar_final_todos_manualmente, avanzar_ronda_manualmente)
 
 def _separar_tiempo_visual(valor):
@@ -21,6 +22,48 @@ def _separar_tiempo_visual(valor):
         return f"{minutos:02d}:{segundos:02d}", f"{centesimas:02d}"
     except (TypeError, ValueError):
         return "00:00", "00"
+
+
+def _tiempo_a_segundos(valor):
+    """Convierte minutos:segundos:centésimas al valor numérico oficial."""
+    try:
+        partes = [int(p) for p in str(valor or "0:00:00").split(":")]
+        if len(partes) == 3:
+            return max(0.0, partes[0] * 60 + partes[1] + partes[2] / 100)
+        if len(partes) == 2:
+            return max(0.0, partes[0] * 60 + partes[1])
+    except (TypeError, ValueError):
+        pass
+    return 0.0
+
+
+def _imagen_dashboard(robot, participante_id, imagen_evitar=None):
+    """Asigna un color estable por participante y evita repetir color en la batalla."""
+    colores = [
+        ("amarillo", "/Imagenes/R_Amarillo.png"),
+        ("morado", "/Imagenes/R_Morado.png"),
+        ("rojo", "/Imagenes/R_Rojo.png"),
+        ("verde", "/Imagenes/R_Verde.png"),
+    ]
+    nombre = str(robot or "").strip().lower()
+    claves = {
+        "amarillo": "/Imagenes/R_Amarillo.png",
+        "morado": "/Imagenes/R_Morado.png",
+        "purple": "/Imagenes/R_Morado.png",
+        "rojo": "/Imagenes/R_Rojo.png",
+        "verde": "/Imagenes/R_Verde.png",
+    }
+    imagen = next((ruta for clave, ruta in claves.items() if clave in nombre), None)
+    if imagen is None:
+        try:
+            indice = (int(participante_id) - 1) % len(colores)
+        except (TypeError, ValueError):
+            indice = 0
+        imagen = colores[indice][1]
+    if imagen == imagen_evitar:
+        indice = next((i for i, (_, ruta) in enumerate(colores) if ruta == imagen), 0)
+        imagen = colores[(indice + 1) % len(colores)][1]
+    return imagen
 
 
 def _actualizar_tiempo_visual(etiqueta_principal, etiqueta_centesimas, valor):
@@ -632,10 +675,12 @@ def abrir_resultado(
         ataques2_bd
     ) = batalla
 
-    # El resultado ahora se gestiona localmente, sin depender de la ESP32.
+    # El reloj y los ataques provienen de los valores sincronizados de la batalla.
     tiempo = tiempo_bd or "0:00:00"
-    ataques1 = 0
-    ataques2 = 0
+    ataques1, ataques2 = dashboard_bridge.attacks()
+    if ataques1_bd or ataques2_bd:
+        ataques1 = max(ataques1, int(ataques1_bd or 0))
+        ataques2 = max(ataques2, int(ataques2_bd or 0))
 
     # --------------------------------------------------------
     # VENTANA
@@ -896,6 +941,8 @@ def abrir_resultado(
     # --------------------------------------------------------
 
     def registrar():
+        nonlocal ataques1, ataques2
+        ataques1, ataques2 = dashboard_bridge.attacks()
 
         if ganador.get() == 0:
 
@@ -927,6 +974,16 @@ def abrir_resultado(
             tiempo,
             ataques1,
             ataques2
+        )
+
+        ganador_robot = robot1 if ganador_id == participante1 else robot2
+        ganador_persona = nombre1 if ganador_id == participante1 else nombre2
+        dashboard_bridge.set_time(_tiempo_a_segundos(tiempo))
+        dashboard_bridge.trigger(
+            "winner", winner=ganador_robot, winner_person=ganador_persona,
+            reason=criterio_texto, elapsed_seconds=_tiempo_a_segundos(tiempo),
+            attacks1=ataques1, attacks2=ataques2, phase="finished",
+            status="BATALLA FINALIZADA"
         )
 
         ventana.grab_release()
@@ -989,6 +1046,18 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     # --------------------------------------------------------
 
     if batalla is None:
+
+        dashboard_bridge.set_time(0)
+        dashboard_bridge.set_state({
+            "battle_id": None, "battle_number": 0,
+            "robot1": "POR DEFINIR", "robot2": "POR DEFINIR",
+            "robot1_image": "/Imagenes/R_Amarillo.png", "robot2_image": "/Imagenes/R_Morado.png",
+            "person1": "", "person2": "", "phase": "ready",
+            "status": "NO HAY BATALLAS PENDIENTES", "elapsed_seconds": 0,
+            "countdown_active": False, "countdown_value": "3",
+            "winner": "", "winner_person": "", "reason": ""
+        })
+        dashboard_bridge.trigger("no_battles")
 
         conexion = conectar_bd()
         cursor = conexion.cursor()
@@ -1246,6 +1315,31 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         ataques2_bd
     ) = batalla
 
+    imagen1 = _imagen_dashboard(robot1, participante1)
+    imagen2 = _imagen_dashboard(robot2, participante2, imagen1)
+    fase_dashboard = {
+        "Pendiente": "ready",
+        "En curso": "running",
+        "Pausada": "paused",
+        "Completado": "finished",
+    }.get(estado, "ready")
+    dashboard_bridge.set_time(_tiempo_a_segundos(tiempo_bd))
+    dashboard_bridge.set_state({
+        "battle_id": id_batalla, "battle_number": id_batalla,
+        "robot1": str(robot1 or nombre1 or "ROBOT 1"),
+        "robot2": str(robot2 or nombre2 or "ROBOT 2"),
+        "robot1_image": imagen1, "robot2_image": imagen2,
+        "person1": str(nombre1 or ""), "person2": str(nombre2 or ""),
+        "phase": fase_dashboard, "status": str(estado or "Pendiente").upper(),
+        "elapsed_seconds": _tiempo_a_segundos(tiempo_bd),
+        "countdown_active": False, "countdown_value": "3",
+        "winner": "", "winner_person": "", "reason": ""
+    })
+    if estado == "Pendiente":
+        dashboard_bridge.trigger("next")
+    elif estado in ("En curso", "Pausada"):
+        dashboard_bridge.trigger("home")
+
     # --------------------------------------------------------
     # ENCABEZADO
     # --------------------------------------------------------
@@ -1499,6 +1593,8 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     # --------------------------------------------------------
 
     finalizacion_automatica_activada = False
+    alarma_activada = False
+    valor_cuenta_dashboard = "3"
     inicio_epoch_bd = obtener_inicio_epoch(id_batalla)
     reloj = RelojBatalla(
         tiempo_inicial=tiempo_bd or "0:00:00",
@@ -1520,8 +1616,32 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     cuenta_regresiva_restante = 0
 
     def actualizar_datos():
+        nonlocal alarma_activada
         if not principal.winfo_exists():
             return
+
+        ataques_actuales1, ataques_actuales2 = dashboard_bridge.attacks()
+        ataques1_label.config(text=str(ataques_actuales1))
+        ataques2_label.config(text=str(ataques_actuales2))
+        tiempo_actual = reloj.segundos()
+        dashboard_bridge.set_time(tiempo_actual)
+        estado_dashboard = "running" if reloj.estado == "En curso" else "paused" if reloj.estado == "Pausada" else "finished" if reloj.estado == "Finalizada" else "ready"
+        dashboard_bridge.set_state({
+            "battle_id": id_batalla, "battle_number": id_batalla,
+            "robot1": str(robot1 or nombre1 or "ROBOT 1"),
+            "robot2": str(robot2 or nombre2 or "ROBOT 2"),
+            "robot1_image": imagen1, "robot2_image": imagen2,
+            "person1": str(nombre1 or ""), "person2": str(nombre2 or ""),
+            "phase": estado_dashboard,
+            "status": "PREPARADOS PARA LA BATALLA" if cuenta_regresiva_activa else ("BATALLA EN CURSO" if estado_dashboard == "running" else "BATALLA PAUSADA" if estado_dashboard == "paused" else "BATALLA FINALIZADA" if estado_dashboard == "finished" else "PREPARADOS PARA LA BATALLA"),
+            "elapsed_seconds": tiempo_actual,
+            "countdown_active": cuenta_regresiva_activa,
+            "countdown_value": str(tiempo_principal_label.cget("text")) if cuenta_regresiva_activa else "3"
+        })
+
+        if (not alarma_activada and reloj.estado == "En curso" and reloj.segundos() >= 115):
+            alarma_activada = True
+            dashboard_bridge.trigger("alarm")
 
         # Al alcanzar los 2 minutos, detener el reloj y abrir la elección de ganador.
         if (
@@ -1535,23 +1655,26 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         # La actualización periódica no debe tapar los números 3, 2 y 1.
         if not cuenta_regresiva_activa:
             _actualizar_tiempo_visual(tiempo_principal_label, tiempo_centesimas_label, reloj.obtener_tiempo())
-        ataques1_label.config(text="0")
-        ataques2_label.config(text="0")
-        principal.after(100, actualizar_datos)
+        principal.after(80, actualizar_datos)
 
     # --------------------------------------------------------
     # INICIAR
     # --------------------------------------------------------
 
     def iniciar():
-        nonlocal cuenta_regresiva_activa, cuenta_regresiva_restante
+        nonlocal cuenta_regresiva_activa, cuenta_regresiva_restante, valor_cuenta_dashboard, alarma_activada
 
         if cuenta_regresiva_activa or reloj.estado in ("En curso", "Pausada", "Finalizada"):
             return
 
         reloj.reiniciar()
+        alarma_activada = False
+        dashboard_bridge.set_time(0)
         cuenta_regresiva_activa = True
         cuenta_regresiva_restante = 2
+        valor_cuenta_dashboard = "3"
+        dashboard_bridge.set_state({"phase": "ready", "status": "PREPARADOS PARA LA BATALLA", "elapsed_seconds": 0, "countdown_active": True, "countdown_value": "3"})
+        dashboard_bridge.trigger("countdown_start")
         estado_label.config(text="PREPÁRATE...")
         tiempo_principal_label.config(text="3")
         tiempo_centesimas_label.config(text="")
@@ -1566,6 +1689,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 return
             if cuenta_regresiva_restante > 0:
                 tiempo_principal_label.config(text=str(cuenta_regresiva_restante))
+                valor_cuenta_dashboard = str(cuenta_regresiva_restante)
                 tiempo_centesimas_label.config(text="")
                 estado_label.config(text="PREPÁRATE...")
                 cuenta_regresiva_restante -= 1
@@ -1573,6 +1697,8 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 return
 
             cuenta_regresiva_activa = False
+            dashboard_bridge.set_state({"countdown_active": False, "phase": "running", "status": "BATALLA EN CURSO", "elapsed_seconds": 0})
+            dashboard_bridge.set_time(0)
             reloj.iniciar()
             guardar_reloj(
                 id_batalla, "En curso",
@@ -1585,6 +1711,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             boton_pausar.config(state="normal")
             boton_continuar.config(state="disabled")
             boton_finalizar.config(state="normal")
+            dashboard_bridge.trigger("home")
 
         principal.after(1000, avanzar_cuenta)
 
@@ -1599,6 +1726,9 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             id_batalla, "Pausada", reloj.obtener_tiempo(), None
         )
 
+        dashboard_bridge.set_time(reloj.segundos())
+        dashboard_bridge.set_state({"phase": "paused", "status": "BATALLA PAUSADA", "elapsed_seconds": reloj.segundos(), "countdown_active": False})
+        dashboard_bridge.trigger("home")
         estado_label.config(
             text="PAUSADA"
         )
@@ -1623,6 +1753,9 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             reloj.obtener_tiempo_base(), reloj.inicio_epoch()
         )
 
+        dashboard_bridge.set_time(reloj.segundos())
+        dashboard_bridge.set_state({"phase": "running", "status": "BATALLA EN CURSO", "elapsed_seconds": reloj.segundos(), "countdown_active": False})
+        dashboard_bridge.trigger("home")
         estado_label.config(
             text="EN CURSO"
         )
@@ -1670,20 +1803,32 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         )
 
         tiempo_final = reloj.obtener_tiempo()
+        ataques_finales1, ataques_finales2 = dashboard_bridge.attacks()
+        dashboard_bridge.set_time(_tiempo_a_segundos(tiempo_final))
+        dashboard_bridge.set_state({"phase": "finished", "status": "BATALLA FINALIZADA", "elapsed_seconds": _tiempo_a_segundos(tiempo_final), "countdown_active": False})
+        dashboard_bridge.trigger("home")
         batalla_resultado = list(batalla)
         batalla_resultado[9] = "En curso"
         batalla_resultado[12] = tiempo_final
-        batalla_resultado[13] = 0
-        batalla_resultado[14] = 0
+        batalla_resultado[13] = ataques_finales1
+        batalla_resultado[14] = ataques_finales2
+
+        def despues_resultado():
+            def cargar_siguiente():
+                mostrar_batallas(
+                    contenedor,
+                    al_terminar_fase=al_terminar_fase,
+                    resultado_recien_guardado=True
+                )
+            try:
+                contenedor.after(3000, cargar_siguiente)
+            except tk.TclError:
+                pass
 
         abrir_resultado(
             contenedor.winfo_toplevel(),
             tuple(batalla_resultado),
-            lambda: mostrar_batallas(
-                contenedor,
-                al_terminar_fase=al_terminar_fase,
-                resultado_recien_guardado=True
-            )
+            despues_resultado
         )
 
     # --------------------------------------------------------
