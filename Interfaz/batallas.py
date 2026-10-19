@@ -975,7 +975,7 @@ def abrir_resultado(
 
         ganador_robot = robot1 if ganador_id == participante1 else robot2
         ganador_persona = nombre1 if ganador_id == participante1 else nombre2
-        dashboard_bridge.set_time(_tiempo_a_segundos(tiempo))
+        dashboard_bridge.set_time(_tiempo_a_segundos(tiempo), running=False)
         dashboard_bridge.trigger(
             "winner", winner=ganador_robot, winner_person=ganador_persona,
             reason=criterio_texto, elapsed_seconds=_tiempo_a_segundos(tiempo),
@@ -1672,7 +1672,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
         reloj.reiniciar()
         alarma_activada = False
-        dashboard_bridge.set_time(0)
+        dashboard_bridge.set_time(0, running=False)
         cuenta_regresiva_activa = True
         cuenta_regresiva_restante = 2
         dashboard_bridge.set_state({
