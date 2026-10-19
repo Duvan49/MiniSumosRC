@@ -1658,7 +1658,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         # el usuario cambie de pestaña y se destruya el panel de Batallas.
         if (not interfaz_batallas_disponible()
                 and not cuenta_regresiva_activa
-                and reloj.estado in ("Pausada", "Finalizada")):
+                and reloj.estado != "En curso"):
             return
 
         tiempo_actual = reloj.segundos()
