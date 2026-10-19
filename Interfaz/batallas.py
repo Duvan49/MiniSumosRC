@@ -503,6 +503,17 @@ def obtener_inicio_epoch(id_batalla):
     return fila[0] if fila else None
 
 
+def obtener_estado_batalla(id_batalla):
+    conexion = conectar_bd()
+    try:
+        fila = conexion.execute(
+            "SELECT estado FROM enfrentamientos WHERE id = ?", (id_batalla,)
+        ).fetchone()
+        return fila[0] if fila else None
+    finally:
+        conexion.close()
+
+
 def obtener_batallas_para_reinicio():
     """Lista solo batallas completadas que aún se pueden corregir."""
     conexion = conectar_bd()
@@ -576,12 +587,17 @@ def reiniciar_batalla_en_bd(id_batalla):
             WHERE estado IN ('En curso', 'Pausada', 'Preparando')
         """)
         activas = cursor.fetchall()
-        if activas:
+        # Se permite reiniciar la batalla activa seleccionada; las demás
+        # siguen bloqueadas para evitar interferir con otro combate.
+        if any(bid != id_batalla for bid, _ in activas):
             return False, (
                 "No se puede reiniciar otra batalla mientras hay una batalla "
-                "en curso, pausada o en preparación. Termina o resuelve primero "
-                "la batalla activa."
+                "en curso, pausada o en preparación. Selecciona la batalla activa."
             )
+        if estado in ("En curso", "Pausada", "Preparando") and not any(
+            bid == id_batalla for bid, _ in activas
+        ):
+            return False, "La batalla ya no está activa. Actualiza la pestaña e inténtalo de nuevo."
 
         # Se permite corregir una fase anterior mientras ninguna batalla
         # de una fase posterior haya comenzado.
@@ -686,7 +702,25 @@ def agregar_controles_reinicio(principal, contenedor, id_actual=None,
                                 al_terminar_fase=None):
     """Muestra un reinicio rápido de la batalla actual y una lista desplegable."""
     opciones = obtener_batallas_para_reinicio()
-    if not opciones:
+    batalla_activa = obtener_batalla_actual()
+    if batalla_activa and batalla_activa[9] in ("En curso", "Pausada", "Preparando"):
+        id_activa = batalla_activa[0]
+        if not any(bid == id_activa for bid, _ in opciones):
+            etapa_activa = batalla_activa[1]
+            grupo_activo = batalla_activa[2]
+            if etapa_activa == "Grupo":
+                fase_activa = f"Grupo {grupo_activo}".strip()
+            elif etapa_activa == "Todos":
+                fase_activa = "Todos contra todos"
+            else:
+                fase_activa = etapa_activa
+            robot1_activo = batalla_activa[6] or batalla_activa[5] or "Robot 1"
+            robot2_activo = batalla_activa[8] or batalla_activa[7] or "Robot 2"
+            opciones.append((
+                id_activa,
+                f"ACTIVA #{id_activa} | {robot1_activo} vs {robot2_activo} | {fase_activa}"
+            ))
+    if not opciones and not (batalla_activa and batalla_activa[9] in ("En curso", "Pausada", "Preparando")):
         return
 
     marco = tk.Frame(principal, bg="#f3f5f7")
@@ -705,23 +739,35 @@ def agregar_controles_reinicio(principal, contenedor, id_actual=None,
     )
     combo.pack(side="left", fill="x", expand=True, padx=(0, 10))
 
-    indice = next(
-        (i for i, (bid, _) in enumerate(opciones) if bid == id_actual),
-        None
-    )
-    if indice is None:
-        indice = next(
-            (i for i in range(len(opciones) - 1, -1, -1)
-             if "Completado" in opciones[i][1]),
-            0
-        )
-    combo.current(indice)
+    # Dejar el selector vacío permite reiniciar directamente la batalla activa.
+    # Si se elige una opción, se reinicia exactamente esa batalla.
+    combo.set("")
 
     def ejecutar_reinicio():
         indice_actual = combo.current()
-        if indice_actual < 0 or indice_actual >= len(opciones):
-            return
-        bid, etiqueta = opciones[indice_actual]
+        if 0 <= indice_actual < len(opciones):
+            bid, etiqueta = opciones[indice_actual]
+        else:
+            activa = obtener_batalla_actual()
+            if not activa or activa[9] not in ("En curso", "Pausada", "Preparando"):
+                messagebox.showwarning(
+                    "Sin batalla seleccionada",
+                    "Selecciona una batalla completada o inicia una batalla para reiniciarla.",
+                    parent=contenedor.winfo_toplevel()
+                )
+                return
+            bid = activa[0]
+            etapa_activa = activa[1]
+            grupo_activo = activa[2]
+            if etapa_activa == "Grupo":
+                fase_activa = f"Grupo {grupo_activo}".strip()
+            elif etapa_activa == "Todos":
+                fase_activa = "Todos contra todos"
+            else:
+                fase_activa = etapa_activa
+            r1 = activa[6] or activa[5] or "Robot 1"
+            r2 = activa[8] or activa[7] or "Robot 2"
+            etiqueta = f"ACTIVA #{bid} | {r1} vs {r2} | {fase_activa}"
         if not messagebox.askyesno(
             "Confirmar reinicio",
             f'¿Seguro que deseas reiniciar "{etiqueta}"?',
@@ -1923,9 +1969,32 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
     def actualizar_datos():
         nonlocal alarma_activada, alarma_audio_completada, alarma_inicio_monotonic
+        nonlocal cuenta_regresiva_activa
 
         # El reloj y la finalización automática deben seguir activos aunque
         # el usuario cambie de pestaña y se destruya el panel de Batallas.
+        # Si la batalla se reinició desde el control superior, detener este
+        # ciclo antiguo para que no siga avanzando ni abra el diálogo de ganador.
+        if reloj.estado in ("En curso", "Pausada") or cuenta_regresiva_activa:
+            conexion_estado = conectar_bd()
+            try:
+                fila_estado = conexion_estado.execute(
+                    "SELECT estado FROM enfrentamientos WHERE id = ?", (id_batalla,)
+                ).fetchone()
+            finally:
+                conexion_estado.close()
+            estado_bd_actual = fila_estado[0] if fila_estado else None
+            if estado_bd_actual not in ("En curso", "Pausada", "Preparando"):
+                reloj.estado = "Finalizada"
+                cuenta_regresiva_activa = False
+                dashboard_bridge.set_time(0, running=False)
+                dashboard_bridge.set_state({
+                    "battle_id": id_batalla, "phase": "ready",
+                    "status": "BATALLA REINICIADA", "elapsed_seconds": 0,
+                    "countdown_active": False, "countdown_value": ""
+                })
+                return
+
         if (not interfaz_batallas_disponible()
                 and not cuenta_regresiva_activa
                 and reloj.estado != "En curso"):
@@ -1995,6 +2064,9 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             nonlocal cuenta_regresiva_activa, cuenta_regresiva_restante
             if not cuenta_regresiva_activa:
                 return
+            if obtener_estado_batalla(id_batalla) != "Preparando":
+                cuenta_regresiva_activa = False
+                return
             if cuenta_regresiva_restante > 0:
                 valor = cuenta_regresiva_restante
                 if interfaz_batallas_disponible():
@@ -2017,6 +2089,9 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         def iniciar_batalla_tras_audio():
             nonlocal cuenta_regresiva_activa
             if not cuenta_regresiva_activa:
+                return
+            if obtener_estado_batalla(id_batalla) != "Preparando":
+                cuenta_regresiva_activa = False
                 return
             cuenta_regresiva_activa = False
             dashboard_bridge.set_state({
