@@ -864,4 +864,3 @@ def mostrar_enfrentamientos(contenedor):
         except (sqlite3.Error, IndexError, TypeError) as error:
             print(f"No se pudo actualizar la fase inicial: {error}")
 
-    contenido.after(1500, actualizar_periodicamente)
