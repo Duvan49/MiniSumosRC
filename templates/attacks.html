@@ -75,7 +75,7 @@ const events=new EventSource('/api/stream');events.onmessage=event=>{try{const m
 async function attack(action){try{render(await api(action==='add'?'/api/attack/'+ROBOT:'/api/attack/'+ROBOT+'/decrement','POST'))}catch(e){alert(e.message)}}
 $('addAttack').addEventListener('click',()=>attack('add'));$('removeAttack').addEventListener('click',()=>attack('remove'));
 
-refresh();
+// El flujo SSE entrega el estado inicial y las actualizaciones posteriores.
 </script>
 </body>
 </html>
