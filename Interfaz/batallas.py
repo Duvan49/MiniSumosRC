@@ -1424,7 +1424,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         tiempo_frame, text="00", font=("Segoe UI", 13, "bold"),
         fg="#17202a", bg="white", padx=0, bd=0
     )
-    tiempo_centesimas_label.pack(side="left", anchor="s", padx=(-2, 0), pady=(0, 3), ipadx=0)
+    tiempo_centesimas_label.pack(side="left", anchor="s", padx=0, pady=(0, 3), ipadx=0)
 
     tk.Label(
         datos, text="⚔  ATAQUES R2",
