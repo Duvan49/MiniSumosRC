@@ -1585,7 +1585,6 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             boton_pausar.config(state="normal")
             boton_continuar.config(state="disabled")
             boton_finalizar.config(state="normal")
-            _actualizar_tiempo_visual(tiempo_principal_label, tiempo_centesimas_label, reloj.obtener_tiempo())
 
         principal.after(1000, avanzar_cuenta)
 
