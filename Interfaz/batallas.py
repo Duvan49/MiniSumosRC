@@ -504,7 +504,7 @@ def obtener_inicio_epoch(id_batalla):
 
 
 def obtener_batallas_para_reinicio():
-    """Lista todas las batallas existentes, con una etiqueta legible para elegir."""
+    """Lista solo batallas completadas que aún se pueden corregir."""
     conexion = conectar_bd()
     cursor = conexion.cursor()
     cursor.execute("""
@@ -515,13 +515,31 @@ def obtener_batallas_para_reinicio():
         LEFT JOIN grupos g ON g.id = e.grupo_id
         JOIN participantes p1 ON p1.id = e.participante1
         JOIN participantes p2 ON p2.id = e.participante2
+        WHERE e.estado = 'Completado'
         ORDER BY e.id
     """)
     filas = cursor.fetchall()
-    conexion.close()
 
     opciones = []
     for bid, etapa, grupo, ronda, robot1, robot2, estado in filas:
+        if etapa in ("Grupo", "Todos"):
+            cursor.execute("""
+                SELECT COUNT(*) FROM enfrentamientos
+                WHERE etapa NOT IN ('Grupo', 'Todos')
+                  AND estado != 'Pendiente'
+            """)
+            if cursor.fetchone()[0]:
+                continue
+        else:
+            cursor.execute("""
+                SELECT COUNT(*) FROM enfrentamientos
+                WHERE etapa NOT IN ('Grupo', 'Todos')
+                  AND COALESCE(ronda, 1) > ?
+                  AND estado != 'Pendiente'
+            """, (ronda or 1,))
+            if cursor.fetchone()[0]:
+                continue
+
         if etapa == "Grupo":
             fase = f"Grupo {grupo}".strip()
         elif etapa == "Todos":
@@ -532,6 +550,8 @@ def obtener_batallas_para_reinicio():
             bid,
             f"#{bid} | {robot1} vs {robot2} | {fase}"
         ))
+
+    conexion.close()
     return opciones
 
 
@@ -704,10 +724,7 @@ def agregar_controles_reinicio(principal, contenedor, id_actual=None,
         bid, etiqueta = opciones[indice_actual]
         if not messagebox.askyesno(
             "Confirmar reinicio",
-            f"¿Quieres reiniciar esta batalla?\n\n{etiqueta}\n\n"
-            "Se borrará su resultado actual y podrás jugarla de nuevo. "
-            "Los demás resultados y los emparejamientos de fases posteriores "
-            "se conservarán.",
+            f'¿Seguro que deseas reiniciar "{etiqueta}"?',
             parent=contenedor.winfo_toplevel()
         ):
             return
