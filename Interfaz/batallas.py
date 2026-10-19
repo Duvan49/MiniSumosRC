@@ -678,9 +678,6 @@ def abrir_resultado(
     # El reloj y los ataques provienen de los valores sincronizados de la batalla.
     tiempo = tiempo_bd or "0:00:00"
     ataques1, ataques2 = dashboard_bridge.attacks()
-    if ataques1_bd or ataques2_bd:
-        ataques1 = max(ataques1, int(ataques1_bd or 0))
-        ataques2 = max(ataques2, int(ataques2_bd or 0))
 
     # --------------------------------------------------------
     # VENTANA
