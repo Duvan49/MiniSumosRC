@@ -51,9 +51,11 @@ class RelojBatalla:
             self._inicio_tramo = time.time()
             self.estado = "En curso"
 
-    def finalizar(self):
+    def finalizar(self, limite_segundos=None):
         if self.estado == "En curso" and self._inicio_tramo is not None:
             self._acumulado += max(0.0, time.time() - self._inicio_tramo)
+        if limite_segundos is not None:
+            self._acumulado = min(self._acumulado, float(limite_segundos))
         self._inicio_tramo = None
         self.estado = "Finalizada"
 
