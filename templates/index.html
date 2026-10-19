@@ -389,6 +389,6 @@ async function openDirectWinnerPage(){
   }
  }catch(e){alert('No se pudo cargar el resultado de la batalla. Comprueba que el dashboard esté activo.')}
 }
-api('/api/state').then(receiveState).catch(()=>{$('status').textContent='SIN CONEXIÓN'});connectEvents();openDirectWinnerPage();setInterval(updateClock,80);</script>
+connectEvents();openDirectWinnerPage();setInterval(updateClock,80);</script>
 </body>
 </html>
