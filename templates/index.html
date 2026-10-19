@@ -270,6 +270,22 @@ $('noBattlesButton').addEventListener('click',async()=>{await enterAnnouncementF
 $('next').addEventListener('click',async()=>{await enterAnnouncementFullscreen();try{const s=await api('/api/next','POST');render(s);$('winnerInput').value='';$('reasonInput').value='';showNextAnnouncement(s)}catch(e){alert(e.message||'No se pudo preparar la siguiente batalla.')}});
 async function attack(robot,action){try{render(await api(action==='add'?'/api/attack/'+robot:'/api/attack/'+robot+'/decrement','POST'))}catch(e){alert(e.message||'No se pudo actualizar el contador de ataques.')}}
 $('addAttack1').addEventListener('click',()=>attack(1,'add'));$('removeAttack1').addEventListener('click',()=>attack(1,'remove'));$('addAttack2').addEventListener('click',()=>attack(2,'add'));$('removeAttack2').addEventListener('click',()=>attack(2,'remove'));
-async function refresh(){try{const s=await api('/api/state');render(s);await handleTerminalAction(s)}catch(e){$('status').textContent='SIN CONEXIÓN';$('status').classList.remove('running','paused','finished','ready')}}if(new URLSearchParams(window.location.search).get('panel')==='control'){showTab('control');toggleSettings(true)}refresh();setInterval(refresh,250);setInterval(updateClock,80);</script>
+async function refresh(){try{const s=await api('/api/state');render(s);await handleTerminalAction(s)}catch(e){$('status').textContent='SIN CONEXIÓN';$('status').classList.remove('running','paused','finished','ready')}}if(new URLSearchParams(window.location.search).get('panel')==='control'){showTab('control');toggleSettings(true)}
+async function openDirectWinnerPage(){
+ if(window.location.pathname!=='/winner')return;
+ try{
+  const s=await api('/api/state');
+  render(s);
+  if(String(s.winner||'').trim()){
+   await enterAnnouncementFullscreen();
+   showWinnerAnnouncement(s);
+  }else{
+   showTab('control');
+   toggleSettings(true);
+   alert('Todavía no hay un ganador guardado. Escribe el ganador en el panel de control y pulsa GANADOR, o registra la victoria desde la consola con g.1 o g.2.');
+  }
+ }catch(e){alert('No se pudo cargar el resultado de la batalla. Comprueba que el dashboard esté activo.')}
+}
+refresh();openDirectWinnerPage();setInterval(refresh,250);setInterval(updateClock,80);</script>
 </body>
 </html>
