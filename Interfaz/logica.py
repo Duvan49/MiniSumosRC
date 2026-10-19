@@ -54,8 +54,10 @@ class RelojBatalla:
     def finalizar(self, limite_segundos=None):
         if self.estado == "En curso" and self._inicio_tramo is not None:
             self._acumulado += max(0.0, time.time() - self._inicio_tramo)
-        if limite_segundos is not None:
-            self._acumulado = min(self._acumulado, float(limite_segundos))
+        # El límite oficial de una batalla es siempre 120 segundos, incluso
+        # si se finaliza manualmente después de que el reloj llegó al máximo.
+        limite = 120.0 if limite_segundos is None else min(120.0, float(limite_segundos))
+        self._acumulado = min(self._acumulado, limite)
         self._inicio_tramo = None
         self.estado = "Finalizada"
 
@@ -63,14 +65,15 @@ class RelojBatalla:
         total = self._acumulado
         if self.estado == "En curso" and self._inicio_tramo is not None:
             total += max(0.0, time.time() - self._inicio_tramo)
-        return total
+        # El reloj visible y el valor transmitido jamás superan 2:00.00.
+        return min(total, 120.0)
 
     def obtener_tiempo(self):
         return _formatear(self.segundos())
 
     def obtener_tiempo_base(self):
         """Tiempo acumulado guardado antes del tramo que sigue corriendo."""
-        return _formatear(self._acumulado)
+        return _formatear(min(self._acumulado, 120.0))
 
     def inicio_epoch(self):
         """Marca temporal persistible del tramo activo, o None si está detenido."""
