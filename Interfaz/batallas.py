@@ -204,6 +204,12 @@ def preparar_base_batallas():
             ADD COLUMN tiempo TEXT
         """)
 
+    if "inicio_epoch" not in columnas:
+        cursor.execute("""
+            ALTER TABLE enfrentamientos
+            ADD COLUMN inicio_epoch REAL
+        """)
+
     if "ataques1" not in columnas:
 
         cursor.execute("""
@@ -404,6 +410,30 @@ def actualizar_estado(id_batalla, estado):
 
     conexion.commit()
     conexion.close()
+
+def guardar_reloj(id_batalla, estado, tiempo, inicio_epoch):
+    """Guarda estado y referencia temporal para recuperar el cronómetro al volver."""
+    conexion = conectar_bd()
+    cursor = conexion.cursor()
+    cursor.execute("""
+        UPDATE enfrentamientos
+        SET estado = ?, tiempo = ?, inicio_epoch = ?
+        WHERE id = ?
+    """, (estado, tiempo, inicio_epoch, id_batalla))
+    conexion.commit()
+    conexion.close()
+
+
+def obtener_inicio_epoch(id_batalla):
+    conexion = conectar_bd()
+    cursor = conexion.cursor()
+    cursor.execute(
+        "SELECT inicio_epoch FROM enfrentamientos WHERE id = ?",
+        (id_batalla,)
+    )
+    fila = cursor.fetchone()
+    conexion.close()
+    return fila[0] if fila else None
 
 
 # ============================================================
@@ -1419,11 +1449,15 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     # --------------------------------------------------------
 
     finalizacion_automatica_activada = False
-    reloj = RelojBatalla(tiempo_inicial=tiempo_bd or "0:00:00")
-    if estado == "En curso":
-        reloj.iniciar()
-    elif estado == "Pausada":
+    inicio_epoch_bd = obtener_inicio_epoch(id_batalla)
+    reloj = RelojBatalla(
+        tiempo_inicial=tiempo_bd or "0:00:00",
+        inicio_epoch=inicio_epoch_bd if estado == "En curso" else None
+    )
+    if estado == "Pausada":
         reloj.estado = "Pausada"
+    elif estado == "En curso":
+        reloj.estado = "En curso"
     cuenta_regresiva_activa = False
     cuenta_regresiva_restante = 0
 
@@ -1431,7 +1465,9 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         if not principal.winfo_exists():
             return
 
-        tiempo_label.config(text=reloj.obtener_tiempo())
+        # La actualización periódica no debe tapar los números 3, 2 y 1.
+        if not cuenta_regresiva_activa:
+            tiempo_label.config(text=reloj.obtener_tiempo())
         ataques1_label.config(text="0")
         ataques2_label.config(text="0")
         principal.after(100, actualizar_datos)
@@ -1469,7 +1505,10 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
             cuenta_regresiva_activa = False
             reloj.iniciar()
-            actualizar_estado(id_batalla, "En curso")
+            guardar_reloj(
+                id_batalla, "En curso",
+                reloj.obtener_tiempo_base(), reloj.inicio_epoch()
+            )
             estado_label.config(text="EN CURSO")
             boton_pausar.config(state="normal")
             boton_continuar.config(state="disabled")
@@ -1484,12 +1523,10 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
     def pausar():
 
-        actualizar_estado(
-            id_batalla,
-            "Pausada"
-        )
-
         reloj.pausar()
+        guardar_reloj(
+            id_batalla, "Pausada", reloj.obtener_tiempo(), None
+        )
 
         estado_label.config(
             text="PAUSADA"
@@ -1509,12 +1546,11 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
     def continuar():
 
-        actualizar_estado(
-            id_batalla,
-            "En curso"
-        )
-
         reloj.continuar()
+        guardar_reloj(
+            id_batalla, "En curso",
+            reloj.obtener_tiempo_base(), reloj.inicio_epoch()
+        )
 
         estado_label.config(
             text="EN CURSO"
@@ -1542,7 +1578,9 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         finalizacion_automatica_activada = True
 
         reloj.finalizar()
-        actualizar_estado(id_batalla, "En curso")
+        guardar_reloj(
+            id_batalla, "En curso", reloj.obtener_tiempo(), None
+        )
 
         boton_iniciar.config(
             state="disabled"
