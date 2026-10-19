@@ -84,15 +84,14 @@ def mostrar_clasificaciones(contenedor):
     marco = tk.Frame(principal, bg=FONDO)
     marco.pack(fill="both", expand=True)
 
-    columnas = ("posicion", "robot", "puntos", "ataques", "tiempo", "centesimas", "victorias")
+    columnas = ("posicion", "robot", "puntos", "ataques", "tiempo", "victorias")
     tabla = ttk.Treeview(marco, columns=columnas, show="headings", height=16)
     for col, titulo, ancho in [
         ("posicion", "POSICIÓN", 150),
         ("robot", "ROBOT", 205),
         ("puntos", "PUNTOS", 100),
         ("ataques", "ATAQUES", 125),
-        ("tiempo", "TIEMPO PROM.", 88),
-        ("centesimas", "", 42),
+        ("tiempo", "TIEMPO PROM.", 130),
         ("victorias", "VICTORIAS", 135),
     ]:
         tabla.heading(col, text=titulo)
@@ -136,24 +135,30 @@ def mostrar_clasificaciones(contenedor):
         etiquetas_tiempo.clear()
         for item, tiempo_principal, centesimas, color_fondo in tiempos_visuales:
             caja = tabla.bbox(item, "tiempo")
-            caja_cent = tabla.bbox(item, "centesimas")
-            if not caja or not caja_cent:
+            if not caja:
                 continue
-            x, y, _ancho, alto = caja
-            ancho_total = caja_cent[0] + caja_cent[2] - x
-            celda = tk.Frame(tabla, bg=color_fondo, bd=0, highlightthickness=0)
-            celda.place(x=x, y=y, width=ancho_total, height=alto)
-            contenido_tiempo = tk.Frame(celda, bg=color_fondo, bd=0, highlightthickness=0)
+            x, y, ancho, alto = caja
+            seleccionado = item in tabla.selection()
+            fondo_celda = "#ffb900" if seleccionado else color_fondo
+            celda = tk.Frame(tabla, bg=fondo_celda, bd=0, highlightthickness=0)
+            celda.place(x=x, y=y, width=ancho, height=alto)
+            contenido_tiempo = tk.Frame(celda, bg=fondo_celda, bd=0, highlightthickness=0)
             contenido_tiempo.place(relx=0.5, rely=0.5, anchor="center")
             tk.Label(
                 contenido_tiempo, text=tiempo_principal, font=("Arial", 14),
-                bg=color_fondo, fg="#1F2937", bd=0, padx=0
+                bg=fondo_celda, fg="#1F2937", bd=0, padx=0
             ).pack(side="left", anchor="center", padx=0)
             tk.Label(
                 contenido_tiempo, text=centesimas, font=("Arial", 9),
                 bg=color_fondo, fg="#1F2937", bd=0, padx=0
             ).pack(side="left", anchor="s", padx=0, pady=(0, 7))
-            celda.bind("<Button-1>", lambda _e, iid=item: tabla.selection_set(iid))
+            def seleccionar_tiempo(_evento, iid=item):
+                tabla.selection_set(iid)
+                tabla.focus(iid)
+                tabla.after_idle(dibujar_tiempos_visuales)
+                return "break"
+            for elemento in (celda, contenido_tiempo, *contenido_tiempo.winfo_children()):
+                elemento.bind("<Button-1>", seleccionar_tiempo)
             etiquetas_tiempo.append(celda)
 
     def desplazar_tiempos(*_args):
@@ -169,6 +174,7 @@ def mostrar_clasificaciones(contenedor):
     tabla.pack(side="left", fill="both", expand=True)
     barra.pack(side="right", fill="y")
     tabla.bind("<Configure>", lambda _e: dibujar_tiempos_visuales(), add="+")
+    tabla.bind("<<TreeviewSelect>>", lambda _e: tabla.after_idle(dibujar_tiempos_visuales), add="+")
     tabla.bind("<MouseWheel>", lambda _e: tabla.after_idle(dibujar_tiempos_visuales), add="+")
     tabla.bind("<Button-4>", lambda _e: tabla.after_idle(dibujar_tiempos_visuales), add="+")
     tabla.bind("<Button-5>", lambda _e: tabla.after_idle(dibujar_tiempos_visuales), add="+")
@@ -241,7 +247,7 @@ def mostrar_clasificaciones(contenedor):
                 etiqueta = nombre_grupo.upper()
                 tabla.insert(
                     "", "end",
-                    values=(etiqueta, "", "", "", "", "", ""),
+                    values=(etiqueta, "", "", "", "", ""),
                     tags=("encabezado_grupo_0",)
                 )
 
@@ -256,7 +262,6 @@ def mostrar_clasificaciones(contenedor):
                         fila.get("robot") or "—",
                         fila.get("puntos", 0) if fila.get("ha_competido") else "—",
                         f'{(fila.get("porcentaje_ataques") or 0):.1f}%' if fila.get("ha_competido") else "—",
-                        "",
                         "",
                         f'{(fila.get("porcentaje_victorias") or 0):.0f}%' if fila.get("ha_competido") else "—",
                     )
@@ -281,7 +286,6 @@ def mostrar_clasificaciones(contenedor):
                     fila.get("robot") or "—",
                     fila.get("puntos", 0) if fila.get("ha_competido") else "—",
                     f'{(fila.get("porcentaje_ataques") or 0):.1f}%' if fila.get("ha_competido") else "—",
-                    "",
                     "",
                     f'{(fila.get("porcentaje_victorias") or 0):.0f}%' if fila.get("ha_competido") else "—",
                 )
