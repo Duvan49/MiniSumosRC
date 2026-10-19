@@ -75,7 +75,7 @@ def mostrar_historial(contenedor):
     marco.pack(fill="both", expand=True)
 
     columnas = (
-        "numero", "robot1", "robot2", "tiempo", "centesimas",
+        "numero", "robot1", "robot2", "tiempo",
         "ataques1", "ataques2", "ganador", "motivo"
     )
     tabla = ttk.Treeview(marco, columns=columnas, show="headings", height=16)
@@ -84,8 +84,7 @@ def mostrar_historial(contenedor):
         ("numero", "N°", 65),
         ("robot1", "ROBOT 1", 155),
         ("robot2", "ROBOT 2", 155),
-        ("tiempo", "TIEMPO", 78),
-        ("centesimas", "", 38),
+        ("tiempo", "TIEMPO", 125),
         ("ataques1", "ATQ. 1", 85),
         ("ataques2", "ATQ. 2", 85),
         ("ganador", "GANADOR", 155),
@@ -129,24 +128,30 @@ def mostrar_historial(contenedor):
         etiquetas_tiempo.clear()
         for item, tiempo_principal, centesimas in tiempos_visuales:
             caja = tabla.bbox(item, "tiempo")
-            caja_cent = tabla.bbox(item, "centesimas")
-            if not caja or not caja_cent:
+            if not caja:
                 continue
-            x, y, _ancho, alto = caja
-            ancho_total = caja_cent[0] + caja_cent[2] - x
-            celda = tk.Frame(tabla, bg="#FFFFFF", bd=0, highlightthickness=0)
-            celda.place(x=x, y=y, width=ancho_total, height=alto)
-            contenido_tiempo = tk.Frame(celda, bg="#FFFFFF", bd=0, highlightthickness=0)
+            x, y, ancho, alto = caja
+            seleccionado = item in tabla.selection()
+            fondo_celda = "#ffb900" if seleccionado else "#FFFFFF"
+            celda = tk.Frame(tabla, bg=fondo_celda, bd=0, highlightthickness=0)
+            celda.place(x=x, y=y, width=ancho, height=alto)
+            contenido_tiempo = tk.Frame(celda, bg=fondo_celda, bd=0, highlightthickness=0)
             contenido_tiempo.place(relx=0.5, rely=0.5, anchor="center")
             tk.Label(
                 contenido_tiempo, text=tiempo_principal, font=("Arial", 12),
-                bg="#FFFFFF", fg="#1F2937", bd=0, padx=0
+                bg=fondo_celda, fg="#1F2937", bd=0, padx=0
             ).pack(side="left", anchor="center", padx=0)
             tk.Label(
                 contenido_tiempo, text=centesimas, font=("Arial", 8),
                 bg="#FFFFFF", fg="#1F2937", bd=0, padx=0
             ).pack(side="left", anchor="s", padx=0, pady=(0, 6))
-            celda.bind("<Button-1>", lambda _e, iid=item: tabla.selection_set(iid))
+            def seleccionar_tiempo(_evento, iid=item):
+                tabla.selection_set(iid)
+                tabla.focus(iid)
+                tabla.after_idle(dibujar_tiempos_visuales)
+                return "break"
+            for elemento in (celda, contenido_tiempo, *contenido_tiempo.winfo_children()):
+                elemento.bind("<Button-1>", seleccionar_tiempo)
             etiquetas_tiempo.append(celda)
 
     barra_vertical = ttk.Scrollbar(
@@ -165,6 +170,7 @@ def mostrar_historial(contenedor):
     barra_vertical.pack(side="right", fill="y")
     barra_horizontal.pack(fill="x")
     tabla.bind("<Configure>", lambda _e: dibujar_tiempos_visuales(), add="+")
+    tabla.bind("<<TreeviewSelect>>", lambda _e: tabla.after_idle(dibujar_tiempos_visuales), add="+")
     tabla.bind("<MouseWheel>", lambda _e: tabla.after_idle(dibujar_tiempos_visuales), add="+")
     tabla.bind("<Button-4>", lambda _e: tabla.after_idle(dibujar_tiempos_visuales), add="+")
     tabla.bind("<Button-5>", lambda _e: tabla.after_idle(dibujar_tiempos_visuales), add="+")
@@ -182,9 +188,8 @@ def mostrar_historial(contenedor):
                 valores[0] = str(valores[0])
                 tiempo, centesimas = _separar_tiempo_tabla(valores[3])
                 valores[3] = ""
-                valores.insert(4, "")
+                valores[4] = "—" if valores[4] in ("", None) else valores[4]
                 valores[5] = "—" if valores[5] in ("", None) else valores[5]
-                valores[6] = "—" if valores[6] in ("", None) else valores[6]
                 item = tabla.insert("", "end", values=valores)
                 if tiempo != "—":
                     tiempos_visuales.append((item, tiempo, centesimas))
