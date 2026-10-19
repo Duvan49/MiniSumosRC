@@ -1740,8 +1740,11 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     # --------------------------------------------------------
 
     def continuar():
+        nonlocal alarma_activada
 
         reloj.continuar()
+        if reloj.segundos() >= 115:
+            alarma_activada = False
         guardar_reloj(
             id_batalla, "En curso",
             reloj.obtener_tiempo_base(), reloj.inicio_epoch()
