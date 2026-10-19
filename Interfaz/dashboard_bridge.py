@@ -79,7 +79,8 @@ class DashboardBridge:
                         self._request("/api/python/time", "POST", {"elapsed_seconds": elapsed}, timeout=0.10)
                         last_time = now
                     if now - last_sync >= 0.25:
-                        payload = {**state, **event, "elapsed_seconds": elapsed}
+                        payload = {**state, **event}
+                        payload.pop("elapsed_seconds", None)
                         self._request("/api/python/sync", "POST", payload, timeout=0.15)
                         latest = self._request("/api/state", timeout=0.15)
                         try:
