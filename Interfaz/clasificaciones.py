@@ -152,7 +152,7 @@ def mostrar_clasificaciones(contenedor):
             tk.Label(
                 contenido_tiempo, text=centesimas, font=("Arial", 9),
                 bg=fondo_celda, fg="#1F2937", bd=0, padx=0
-            ).pack(side="left", anchor="n", padx=0, pady=(1, 0))
+            ).pack(side="left", anchor="s", padx=0, pady=(0, 7))
             def seleccionar_tiempo(_evento, iid=item):
                 tabla.selection_set(iid)
                 tabla.focus(iid)
