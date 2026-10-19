@@ -31,6 +31,8 @@ class DashboardBridge:
         with self._lock:
             if self._state is None:
                 self._state = {}
+            if "battle_id" in payload and self._state.get("battle_id") != payload["battle_id"]:
+                self._attacks = (0, 0)
             self._state.update(payload)
 
     def set_time(self, elapsed_seconds):
