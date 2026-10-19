@@ -19,7 +19,7 @@ class DashboardBridge:
         self._lock = threading.Lock()
         self._state = None
         self._elapsed = 0.0
-        self._event_id = 0
+        self._event_id = int(time.time() * 1000)
         self._event = {"ui_action": "", "ui_action_id": 0}
         self._attacks = (0, 0)
         self._running = True
