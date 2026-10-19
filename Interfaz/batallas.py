@@ -1474,6 +1474,15 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         if not principal.winfo_exists():
             return
 
+        # Al alcanzar los 2 minutos, detener el reloj y abrir la elección de ganador.
+        if (
+            not cuenta_regresiva_activa
+            and reloj.estado == "En curso"
+            and reloj.segundos() >= 120
+        ):
+            finalizar(automatica=True)
+            return
+
         # La actualización periódica no debe tapar los números 3, 2 y 1.
         if not cuenta_regresiva_activa:
             tiempo_label.config(text=reloj.obtener_tiempo())
@@ -1581,12 +1590,12 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
         nonlocal finalizacion_automatica_activada
 
-        # Evita abrir dos diálogos si coinciden el evento automático y el clic.
-        if finalizacion_automatica_activada and not automatica:
+        # Evita abrir más de un diálogo de resultado.
+        if finalizacion_automatica_activada:
             return
         finalizacion_automatica_activada = True
 
-        reloj.finalizar()
+        reloj.finalizar(limite_segundos=120 if automatica else None)
         guardar_reloj(
             id_batalla, "En curso", reloj.obtener_tiempo(), None
         )
