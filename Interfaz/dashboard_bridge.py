@@ -80,7 +80,8 @@ class DashboardBridge:
                     if now - last_time >= 0.08:
                         self._request("/api/python/time", "POST", {"elapsed_seconds": elapsed}, timeout=0.10)
                         last_time = now
-                    if now - last_sync >= 0.25:
+                    sync_interval = 0.08 if state.get("countdown_active") else 0.25
+                    if now - last_sync >= sync_interval:
                         payload = {**state, **event}
                         payload.pop("elapsed_seconds", None)
                         self._request("/api/python/sync", "POST", payload, timeout=0.15)
