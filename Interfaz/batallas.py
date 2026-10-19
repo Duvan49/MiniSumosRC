@@ -703,7 +703,9 @@ def agregar_controles_reinicio(principal, contenedor, id_actual=None,
     """Muestra un reinicio rápido de la batalla actual y una lista desplegable."""
     opciones = obtener_batallas_para_reinicio()
     batalla_activa = obtener_batalla_actual()
-    if batalla_activa and batalla_activa[9] in ("En curso", "Pausada", "Preparando"):
+    # La batalla actual debe aparecer incluso si es la primera y sigue pendiente.
+    # Así los controles no desaparecen cuando todavía no hay resultados completados.
+    if batalla_activa:
         id_activa = batalla_activa[0]
         if not any(bid == id_activa for bid, _ in opciones):
             etapa_activa = batalla_activa[1]
@@ -716,11 +718,12 @@ def agregar_controles_reinicio(principal, contenedor, id_actual=None,
                 fase_activa = etapa_activa
             robot1_activo = batalla_activa[6] or batalla_activa[5] or "Robot 1"
             robot2_activo = batalla_activa[8] or batalla_activa[7] or "Robot 2"
+            prefijo = "ACTUAL" if batalla_activa[9] == "Pendiente" else "ACTIVA"
             opciones.append((
                 id_activa,
-                f"ACTIVA #{id_activa} | {robot1_activo} vs {robot2_activo} | {fase_activa}"
+                f"{prefijo} #{id_activa} | {robot1_activo} vs {robot2_activo} | {fase_activa}"
             ))
-    if not opciones and not (batalla_activa and batalla_activa[9] in ("En curso", "Pausada", "Preparando")):
+    if not opciones:
         return
 
     marco = tk.Frame(principal, bg="#f3f5f7")
@@ -749,10 +752,10 @@ def agregar_controles_reinicio(principal, contenedor, id_actual=None,
             bid, etiqueta = opciones[indice_actual]
         else:
             activa = obtener_batalla_actual()
-            if not activa or activa[9] not in ("En curso", "Pausada", "Preparando"):
+            if not activa:
                 messagebox.showwarning(
-                    "Sin batalla seleccionada",
-                    "Selecciona una batalla completada o inicia una batalla para reiniciarla.",
+                    "Sin batalla disponible",
+                    "No hay una batalla actual que se pueda reiniciar.",
                     parent=contenedor.winfo_toplevel()
                 )
                 return
@@ -783,10 +786,7 @@ def agregar_controles_reinicio(principal, contenedor, id_actual=None,
             )
             return
 
-        messagebox.showinfo(
-            "Batalla reiniciada", mensaje,
-            parent=contenedor.winfo_toplevel()
-        )
+        # La confirmación inicial es la única ventana si el reinicio sale bien.
         mostrar_batallas(
             contenedor,
             al_terminar_fase=al_terminar_fase
