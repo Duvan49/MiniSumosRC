@@ -543,14 +543,15 @@ def reiniciar_batalla_en_bd(id_batalla):
     try:
         cursor = conexion.cursor()
         cursor.execute("""
-            SELECT etapa, COALESCE(ronda, 1), estado
+            SELECT etapa, COALESCE(ronda, 1), estado,
+                   participante1, participante2
             FROM enfrentamientos WHERE id = ?
         """, (id_batalla,))
         objetivo = cursor.fetchone()
         if not objetivo:
             return False, "La batalla seleccionada ya no existe."
 
-        etapa, ronda, estado = objetivo
+        etapa, ronda, estado, participante1, participante2 = objetivo
 
         cursor.execute("""
             SELECT id, estado FROM enfrentamientos
@@ -591,6 +592,24 @@ def reiniciar_batalla_en_bd(id_batalla):
                 ataques2 = 0
             WHERE id = ?
         """, (id_batalla,))
+
+        # En el torneo de exactamente dos robots se juega al mejor de tres.
+        # Si el tercer combate había sido eliminado por un 2-0, recuperarlo
+        # cuando se reabre una batalla para que la serie siga siendo válida.
+        if etapa == "Final":
+            cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Grupo'")
+            total_grupos = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Todos'")
+            total_todos = cursor.fetchone()[0]
+            cursor.execute("SELECT COUNT(*) FROM enfrentamientos WHERE etapa = 'Final'")
+            total_finales = cursor.fetchone()[0]
+            if total_grupos == 0 and total_todos == 0 and total_finales == 2:
+                cursor.execute("""
+                    INSERT INTO enfrentamientos
+                        (etapa, grupo_id, participante1, participante2,
+                         estado, ronda, tiempo, ataques1, ataques2)
+                    VALUES ('Final', NULL, ?, ?, 'Pendiente', 1, '0:00:00', 0, 0)
+                """, (participante1, participante2))
 
         # Reemplazar el registro histórico de esta batalla; no dejar duplicados
         # del resultado anterior cuando se vuelva a registrar.
