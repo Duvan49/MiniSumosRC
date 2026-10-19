@@ -19,6 +19,25 @@ if os.path.basename(BASE_DIR).lower() == "interfaz":
     BASE_DIR = os.path.dirname(BASE_DIR)
 RUTA_BD = os.path.join(BASE_DIR, "BasesDeDatos", "competencia.db")
 
+def _separar_tiempo_tabla(valor):
+    """Separa MM:SSCC en una parte grande y centésimas pequeñas."""
+    texto = str(valor or "00:0000").strip()
+    try:
+        if texto.count(":") == 2:
+            minutos, segundos, centesimas = (int(p) for p in texto.split(":"))
+        elif texto.count(":") == 1:
+            minutos, resto = texto.split(":")
+            minutos = int(minutos)
+            resto = resto.zfill(4)
+            segundos, centesimas = int(resto[:2]), int(resto[2:])
+        else:
+            return "00:00", "00"
+        return f"{minutos:02d}:{segundos:02d}", f"{centesimas:02d}"
+    except (TypeError, ValueError):
+        return "00:00", "00"
+
+
+
 def estado_fase():
     with closing(sqlite3.connect(RUTA_BD)) as conexion:
         cursor = conexion.cursor()
@@ -65,14 +84,15 @@ def mostrar_clasificaciones(contenedor):
     marco = tk.Frame(principal, bg=FONDO)
     marco.pack(fill="both", expand=True)
 
-    columnas = ("posicion", "robot", "puntos", "ataques", "tiempo", "victorias")
+    columnas = ("posicion", "robot", "puntos", "ataques", "tiempo", "centesimas", "victorias")
     tabla = ttk.Treeview(marco, columns=columnas, show="headings", height=16)
     for col, titulo, ancho in [
         ("posicion", "POSICIÓN", 150),
         ("robot", "ROBOT", 205),
         ("puntos", "PUNTOS", 100),
         ("ataques", "ATAQUES", 125),
-        ("tiempo", "TIEMPO PROM.", 140),
+        ("tiempo", "TIEMPO PROM.", 88),
+        ("centesimas", "", 42),
         ("victorias", "VICTORIAS", 135),
     ]:
         tabla.heading(col, text=titulo)
@@ -179,18 +199,23 @@ def mostrar_clasificaciones(contenedor):
                 etiqueta = nombre_grupo.upper()
                 tabla.insert(
                     "", "end",
-                    values=(etiqueta, "", "", "", "", ""),
+                    values=(etiqueta, "", "", "", "", "", ""),
                     tags=("encabezado_grupo_0",)
                 )
 
                 filas_grupo = sorted(grupos[nombre_grupo], key=clave_grupo)
                 for posicion_grupo, fila in enumerate(filas_grupo, 1):
+                    tiempo, centesimas = (
+                        _separar_tiempo_tabla(fila.get("tiempo_mostrar", "00:0000"))
+                        if fila.get("ha_competido") else ("—", "")
+                    )
                     valores = (
                         f"{posicion_grupo}°",
                         fila.get("robot") or "—",
                         fila.get("puntos", 0) if fila.get("ha_competido") else "—",
                         f'{(fila.get("porcentaje_ataques") or 0):.1f}%' if fila.get("ha_competido") else "—",
-                        fila.get("tiempo_mostrar", "00:0000") if fila.get("ha_competido") else "—",
+                        tiempo,
+                        centesimas,
                         f'{(fila.get("porcentaje_victorias") or 0):.0f}%' if fila.get("ha_competido") else "—",
                     )
                     if not fase_terminada:
@@ -202,12 +227,17 @@ def mostrar_clasificaciones(contenedor):
                     tabla.insert("", "end", values=valores, tags=(tag,))
         else:
             for fila in filas:
+                tiempo, centesimas = (
+                    _separar_tiempo_tabla(fila.get("tiempo_mostrar", "00:0000"))
+                    if fila.get("ha_competido") else ("—", "")
+                )
                 valores = (
                     f'{fila.get("posicion", "—")}°',
                     fila.get("robot") or "—",
                     fila.get("puntos", 0) if fila.get("ha_competido") else "—",
                     f'{(fila.get("porcentaje_ataques") or 0):.1f}%' if fila.get("ha_competido") else "—",
-                    fila.get("tiempo_mostrar", "00:0000") if fila.get("ha_competido") else "—",
+                    tiempo,
+                    centesimas,
                     f'{(fila.get("porcentaje_victorias") or 0):.0f}%' if fila.get("ha_competido") else "—",
                 )
                 if not fase_terminada:
