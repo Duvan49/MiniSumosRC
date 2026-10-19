@@ -190,6 +190,22 @@ def limpiar_competencia_anterior():
 
     # El historial pertenece a una competencia; no debe mezclarse con la nueva.
     cursor.execute("""
+        CREATE TABLE IF NOT EXISTS historial_batallas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            batalla_id INTEGER,
+            etapa TEXT,
+            grupo TEXT,
+            robot1 TEXT,
+            robot2 TEXT,
+            tiempo TEXT,
+            ataques1 INTEGER,
+            ataques2 INTEGER,
+            ganador TEXT,
+            motivo TEXT,
+            fecha_registro TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    cursor.execute("""
         DELETE FROM historial_batallas
     """)
 
