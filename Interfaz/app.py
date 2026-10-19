@@ -77,11 +77,11 @@ def event_stream():
         try:
             with lock:
                 initial = snapshot()
-            yield "data: " + json.dumps({"type": "state", "data": initial}, ensure_ascii=False) + "\\n\\n"
+            yield "data: " + json.dumps({"type": "state", "data": initial}, ensure_ascii=False) + "\n\n"
             while True:
                 try:
                     message = subscriber.get(timeout=15)
-                    yield "data: " + message + "\\n\\n"
+                    yield "data: " + message + "\n\n"
                 except Empty:
                     yield ": keep-alive\\n\\n"
         finally:
