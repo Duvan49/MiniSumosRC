@@ -822,15 +822,6 @@ def mostrar_enfrentamientos(contenedor):
                 parent=contenedor.winfo_toplevel()
             )
 
-    boton_actualizar = tk.Button(
-        marco_botones, text="ACTUALIZAR",
-        command=lambda: actualizar_manual(), font=("Arial", 11, "bold"),
-        bg="#E5E7EB", fg="#1F2937",
-        activebackground="#D1D5DB", activeforeground="#111827",
-        relief="flat", bd=0, cursor="hand2", padx=18, pady=10
-    )
-    boton_actualizar.pack(side="left", padx=(0, 10))
-
     boton_reiniciar = tk.Button(
         marco_botones, text="REINICIAR FASE INICIAL",
         command=reiniciar, font=("Arial", 11, "bold"),
@@ -843,12 +834,6 @@ def mostrar_enfrentamientos(contenedor):
     boton_reiniciar.bind("<Leave>", lambda evento: boton_reiniciar.config(bg="#C62828"))
     boton_reiniciar.bind("<ButtonPress-1>", lambda evento: boton_reiniciar.config(bg="#761616"))
     boton_reiniciar.bind("<ButtonRelease-1>", lambda evento: boton_reiniciar.config(bg="#A91F1F"))
-
-    def actualizar_manual():
-        try:
-            cargar()
-        except (sqlite3.Error, IndexError, TypeError) as error:
-            print(f"No se pudieron actualizar los enfrentamientos: {error}")
 
     cargar()
 
