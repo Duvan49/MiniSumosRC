@@ -503,6 +503,213 @@ def obtener_inicio_epoch(id_batalla):
     return fila[0] if fila else None
 
 
+def obtener_batallas_para_reinicio():
+    """Lista todas las batallas existentes, con una etiqueta legible para elegir."""
+    conexion = conectar_bd()
+    cursor = conexion.cursor()
+    cursor.execute("""
+        SELECT e.id, e.etapa, COALESCE(g.nombre, ''), e.ronda,
+               COALESCE(p1.robot, p1.nombre, 'Robot 1'),
+               COALESCE(p2.robot, p2.nombre, 'Robot 2'), e.estado
+        FROM enfrentamientos e
+        LEFT JOIN grupos g ON g.id = e.grupo_id
+        JOIN participantes p1 ON p1.id = e.participante1
+        JOIN participantes p2 ON p2.id = e.participante2
+        ORDER BY e.id
+    """)
+    filas = cursor.fetchall()
+    conexion.close()
+
+    opciones = []
+    for bid, etapa, grupo, ronda, robot1, robot2, estado in filas:
+        if etapa == "Grupo":
+            fase = f"Grupos {grupo or ''} • Ronda {ronda or 1}".strip()
+        elif etapa == "Todos":
+            fase = "Todos contra todos"
+        elif etapa == "Final":
+            fase = f"Final • Batalla {bid}"
+        else:
+            fase = f"{etapa} • Ronda {ronda or 1}"
+        opciones.append((
+            bid,
+            f"#{bid} | {fase} | {robot1} vs {robot2} | {estado}"
+        ))
+    return opciones
+
+
+def reiniciar_batalla_en_bd(id_batalla):
+    """Limpia solo el resultado seleccionado, sin reconstruir fases ni emparejamientos."""
+    conexion = conectar_bd()
+    try:
+        cursor = conexion.cursor()
+        cursor.execute("""
+            SELECT etapa, COALESCE(ronda, 1), estado
+            FROM enfrentamientos WHERE id = ?
+        """, (id_batalla,))
+        objetivo = cursor.fetchone()
+        if not objetivo:
+            return False, "La batalla seleccionada ya no existe."
+
+        etapa, ronda, estado = objetivo
+
+        cursor.execute("""
+            SELECT id, estado FROM enfrentamientos
+            WHERE estado IN ('En curso', 'Pausada', 'Preparando')
+        """)
+        activas = cursor.fetchall()
+        if activas:
+            return False, (
+                "No se puede reiniciar otra batalla mientras hay una batalla "
+                "en curso, pausada o en preparación. Termina o resuelve primero "
+                "la batalla activa."
+            )
+
+        # Si ya se generó una ronda posterior, no se permite cambiar un combate
+        # eliminatorio anterior: sus ganadores alimentan los emparejamientos
+        # posteriores, que deben permanecer coherentes.
+        if etapa not in ("Grupo", "Todos", "Final"):
+            cursor.execute("""
+                SELECT COUNT(*) FROM enfrentamientos
+                WHERE etapa NOT IN ('Grupo', 'Todos', 'Final')
+                  AND COALESCE(ronda, 1) > ?
+            """, (ronda,))
+            if cursor.fetchone()[0]:
+                return False, (
+                    f"No se puede reiniciar {etapa} porque ya existe una ronda "
+                    "eliminatoria posterior. Así se evita dejar un cuadro "
+                    "incoherente."
+                )
+
+        cursor.execute("""
+            UPDATE enfrentamientos
+            SET ganador = NULL,
+                criterio_ganador = NULL,
+                estado = 'Pendiente',
+                tiempo = '0:00:00',
+                inicio_epoch = NULL,
+                ataques1 = 0,
+                ataques2 = 0
+            WHERE id = ?
+        """, (id_batalla,))
+
+        # Reemplazar el registro histórico de esta batalla; no dejar duplicados
+        # del resultado anterior cuando se vuelva a registrar.
+        cursor.execute(
+            "DELETE FROM historial_batallas WHERE batalla_id = ?",
+            (id_batalla,)
+        )
+
+        # Mantener sincronizada únicamente la casilla de esta batalla en el
+        # cuadro existente. No se recalculan clasificados ni emparejamientos.
+        cursor.execute("""
+            SELECT COUNT(*) FROM sqlite_master
+            WHERE type = 'table' AND name = 'llaves'
+        """)
+        if cursor.fetchone()[0] and etapa not in ("Grupo", "Todos", "Final"):
+            cursor.execute("""
+                SELECT COUNT(*) FROM enfrentamientos
+                WHERE etapa = ? AND id <= ?
+            """, (etapa, id_batalla))
+            posicion = cursor.fetchone()[0]
+            cursor.execute("""
+                UPDATE llaves
+                SET ganador = NULL, estado = 'Pendiente'
+                WHERE ronda = ? AND posicion = ?
+            """, (etapa, posicion))
+
+        conexion.commit()
+    except Exception as error:
+        conexion.rollback()
+        return False, f"No se pudo reiniciar la batalla: {error}"
+    finally:
+        conexion.close()
+
+    # Sincroniza los estados visibles de las llaves, pero no cambia los
+    # participantes clasificados ni genera o modifica rondas posteriores.
+    try:
+        actualizar_llaves_tras_resultado()
+    except Exception as error:
+        print(f"No se pudieron sincronizar las llaves tras el reinicio: {error}")
+
+    return True, "La batalla quedó pendiente y su resultado anterior fue eliminado."
+
+
+def agregar_controles_reinicio(principal, contenedor, id_actual=None,
+                                al_terminar_fase=None):
+    """Muestra un reinicio rápido de la batalla actual y una lista desplegable."""
+    opciones = obtener_batallas_para_reinicio()
+    if not opciones:
+        return
+
+    marco = tk.Frame(principal, bg="#f3f5f7")
+    marco.pack(fill="x", padx=22, pady=(8, 4))
+
+    tk.Label(
+        marco, text="REINICIAR BATALLA",
+        font=("Segoe UI", 10, "bold"), fg="#7a858e", bg="#f3f5f7"
+    ).pack(side="left", padx=(0, 10))
+
+    valores = [etiqueta for _, etiqueta in opciones]
+    seleccion = tk.StringVar()
+    combo = ttk.Combobox(
+        marco, textvariable=seleccion, values=valores,
+        state="readonly", width=62, font=("Segoe UI", 10)
+    )
+    combo.pack(side="left", fill="x", expand=True, padx=(0, 10))
+
+    indice = next(
+        (i for i, (bid, _) in enumerate(opciones) if bid == id_actual),
+        None
+    )
+    if indice is None:
+        indice = next(
+            (i for i in range(len(opciones) - 1, -1, -1)
+             if "Completado" in opciones[i][1]),
+            0
+        )
+    combo.current(indice)
+
+    def ejecutar_reinicio():
+        indice_actual = combo.current()
+        if indice_actual < 0 or indice_actual >= len(opciones):
+            return
+        bid, etiqueta = opciones[indice_actual]
+        if not messagebox.askyesno(
+            "Confirmar reinicio",
+            f"¿Quieres reiniciar esta batalla?\n\n{etiqueta}\n\n"
+            "Se borrará su resultado actual y podrás jugarla de nuevo. "
+            "Los demás resultados y los emparejamientos de fases posteriores "
+            "se conservarán.",
+            parent=contenedor.winfo_toplevel()
+        ):
+            return
+
+        exito, mensaje = reiniciar_batalla_en_bd(bid)
+        if not exito:
+            messagebox.showwarning(
+                "No se puede reiniciar", mensaje,
+                parent=contenedor.winfo_toplevel()
+            )
+            return
+
+        messagebox.showinfo(
+            "Batalla reiniciada", mensaje,
+            parent=contenedor.winfo_toplevel()
+        )
+        mostrar_batallas(
+            contenedor,
+            al_terminar_fase=al_terminar_fase
+        )
+
+    boton = tk.Button(
+        marco, text="REINICIAR", command=ejecutar_reinicio,
+        font=("Segoe UI", 10, "bold"), bg="#C62828", fg="white",
+        activebackground="#8E1B1B", activeforeground="white",
+        relief="flat", bd=0, cursor="hand2", padx=14, pady=7
+    )
+    boton.pack(side="left")
+
+
 # ============================================================
 # REGISTRAR RESULTADO
 # ============================================================
@@ -1058,6 +1265,11 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
     if batalla is None:
 
+        agregar_controles_reinicio(
+            principal, contenedor, id_actual=None,
+            al_terminar_fase=al_terminar_fase
+        )
+
         dashboard_bridge.set_time(0, running=False)
         dashboard_bridge.set_state({
             "battle_id": None, "battle_number": 0,
@@ -1325,6 +1537,11 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         ataques1_bd,
         ataques2_bd
     ) = batalla
+
+    agregar_controles_reinicio(
+        principal, contenedor, id_actual=id_batalla,
+        al_terminar_fase=al_terminar_fase
+    )
 
     imagen1 = _imagen_dashboard(robot1, participante1)
     imagen2 = _imagen_dashboard(robot2, participante2, imagen1)
