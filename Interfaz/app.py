@@ -16,7 +16,7 @@ state = {
     "attacks1": 0, "attacks2": 0,
     "status": "PREPARADOS PARA LA BATALLA",
     "elapsed_seconds": 0, "started_at": None,
-    "winner": "", "reason": "", "phase": "ready",
+    "winner": "", "winner_person": "", "reason": "", "phase": "ready",
     "ui_action": "", "ui_action_id": 0,
     "battle_id": None, "person1": "", "person2": "",
     "countdown_active": False, "countdown_value": "3",
