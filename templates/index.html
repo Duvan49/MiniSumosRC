@@ -249,8 +249,8 @@ let lastUiActionId=0;
 async function handleTerminalAction(s){
  if(!s.ui_action_id||s.ui_action_id===lastUiActionId)return;
  lastUiActionId=s.ui_action_id;
- if(s.ui_action==='countdown_start'){hideAnnouncements();$('countdownOverlay').hidden=false;playCountdownSound();return}
- if(s.ui_action==='alarm'){playAlarmSound();return}
+ if(s.ui_action==='countdown_start'){hideAnnouncements();$('countdownOverlay').hidden=false;playCountdownSound(true);return}
+ if(s.ui_action==='alarm'){playAlarmSound(true);return}
  if(s.ui_action==='home'){
   hideAnnouncements();stopAlarmSound();stopCountdownSound();
   // Al volver al inicio se mantiene la pantalla expandida para mostrar la arena.
@@ -265,23 +265,37 @@ async function handleTerminalAction(s){
 let alarmAudio=null;
 const alarmButton=$('alarmButton');
 function stopAlarmSound(){if(alarmAudio&&!alarmAudio.paused){alarmAudio.pause();alarmAudio.currentTime=0;alarmButton.textContent='🚨 ALARM'}}
-async function playAlarmSound(){
+async function playAlarmSound(notifyOnEnd=false){
  try{
-  if(!alarmAudio){alarmAudio=new Audio('/Audios/audio_final.m4a');alarmAudio.preload='auto';alarmAudio.addEventListener('ended',()=>{alarmButton.textContent='🚨 ALARM'})}
+  if(!alarmAudio){alarmAudio=new Audio('/Audios/audio_final.m4a');alarmAudio.preload='auto';alarmAudio.addEventListener('ended',()=>{alarmButton.textContent='🚨 ALARM';if(alarmNotifyOnEnd)completeUiAudio('alarm_complete')})}
+  alarmNotifyOnEnd=notifyOnEnd;
   alarmAudio.pause();alarmAudio.currentTime=0;await alarmAudio.play();alarmButton.textContent='■ DETENER ALARMA';
- }catch(e){console.warn('El navegador no permitió reproducir la alarma automáticamente.',e)}
+ }catch(e){
+  console.warn('El navegador no permitió reproducir la alarma automáticamente.',e);
+  if(notifyOnEnd)completeUiAudio('alarm_complete');
+ }
 }
+let alarmNotifyOnEnd=false;
+async function completeUiAudio(action){try{await api('/api/ui-complete','POST',{action})}catch(e){console.warn('No se pudo notificar el final del audio.',e)}}
 alarmButton.addEventListener('click',async()=>{
  if(alarmAudio&&!alarmAudio.paused){alarmAudio.pause();alarmAudio.currentTime=0;alarmButton.textContent='🚨 ALARM';return}
  await playAlarmSound();
 });
 let countdownAudio=null;
-async function playCountdownSound(){
+async function playCountdownSound(notifyOnEnd=false){
  try{
-  if(!countdownAudio){countdownAudio=new Audio('/Audios/videoplayback.m4a');countdownAudio.preload='auto'}
+  if(!countdownAudio){
+   countdownAudio=new Audio('/Audios/videoplayback.m4a');countdownAudio.preload='auto';
+   countdownAudio.addEventListener('ended',()=>{if(countdownNotifyOnEnd)completeUiAudio('countdown_complete')});
+  }
+  countdownNotifyOnEnd=notifyOnEnd;
   countdownAudio.pause();countdownAudio.currentTime=0;await countdownAudio.play();
- }catch(e){console.warn('El navegador bloqueó el audio de la cuenta regresiva.',e)}
+ }catch(e){
+  console.warn('El navegador bloqueó el audio de la cuenta regresiva.',e);
+  if(notifyOnEnd)completeUiAudio('countdown_complete');
+ }
 }
+let countdownNotifyOnEnd=false;
 function stopCountdownSound(){if(countdownAudio&&!countdownAudio.paused){countdownAudio.pause();countdownAudio.currentTime=0}}
 $('saveNames').addEventListener('click',async()=>{try{render(await api('/api/config','POST',{robot1:$('inputRobot1').value,robot2:$('inputRobot2').value}))}catch(e){alert(e.message||'No se pudieron guardar los nombres.')}});
 let countdownRunning=false;
