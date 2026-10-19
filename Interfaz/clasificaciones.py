@@ -190,8 +190,8 @@ def mostrar_clasificaciones(contenedor):
                         fila.get("robot") or "—",
                         fila.get("puntos", 0) if fila.get("ha_competido") else "—",
                         f'{(fila.get("porcentaje_ataques") or 0):.1f}%' if fila.get("ha_competido") else "—",
-                        fila.get("tiempo_mostrar", "0:00:00") if fila.get("ha_competido") else "—",
-                        fila.get("victorias", 0) if fila.get("ha_competido") else "—",
+                        fila.get("tiempo_mostrar", "00:0000") if fila.get("ha_competido") else "—",
+                        f'{(fila.get("porcentaje_victorias") or 0):.0f}%' if fila.get("ha_competido") else "—",
                     )
                     if not fase_terminada:
                         tag = "pendiente"
@@ -207,8 +207,8 @@ def mostrar_clasificaciones(contenedor):
                     fila.get("robot") or "—",
                     fila.get("puntos", 0) if fila.get("ha_competido") else "—",
                     f'{(fila.get("porcentaje_ataques") or 0):.1f}%' if fila.get("ha_competido") else "—",
-                    fila.get("tiempo_mostrar", "0:00:00") if fila.get("ha_competido") else "—",
-                    fila.get("victorias", 0) if fila.get("ha_competido") else "—",
+                    fila.get("tiempo_mostrar", "00:0000") if fila.get("ha_competido") else "—",
+                    f'{(fila.get("porcentaje_victorias") or 0):.0f}%' if fila.get("ha_competido") else "—",
                 )
                 if not fase_terminada:
                     tag = "pendiente"
