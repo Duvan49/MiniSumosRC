@@ -139,7 +139,8 @@ def mostrar_clasificaciones(contenedor):
                 continue
             x, y, ancho, alto = caja
             seleccionado = item in tabla.selection()
-            fondo_celda = "#ffb900" if seleccionado else color_fondo
+            fondo_seleccion = estilo.lookup("Treeview", "background", ("selected",)) or "#4A6984"
+            fondo_celda = fondo_seleccion if seleccionado else color_fondo
             celda = tk.Frame(tabla, bg=fondo_celda, bd=0, highlightthickness=0)
             celda.place(x=x, y=y, width=ancho, height=alto)
             contenido_tiempo = tk.Frame(celda, bg=fondo_celda, bd=0, highlightthickness=0)
@@ -150,8 +151,8 @@ def mostrar_clasificaciones(contenedor):
             ).pack(side="left", anchor="center", padx=0)
             tk.Label(
                 contenido_tiempo, text=centesimas, font=("Arial", 9),
-                bg=color_fondo, fg="#1F2937", bd=0, padx=0
-            ).pack(side="left", anchor="s", padx=0, pady=(0, 7))
+                bg=fondo_celda, fg="#1F2937", bd=0, padx=0
+            ).pack(side="left", anchor="n", padx=0, pady=(1, 0))
             def seleccionar_tiempo(_evento, iid=item):
                 tabla.selection_set(iid)
                 tabla.focus(iid)
