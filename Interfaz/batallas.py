@@ -740,7 +740,7 @@ def abrir_resultado(
         if titulo == "TIEMPO":
             tiempo_resultado_frame = tk.Frame(datos.content, bg="white")
             tiempo_resultado_frame.grid(
-                row=1, column=columna, padx=18, pady=(0, 12), sticky="nsew"
+                row=1, column=columna, padx=18, pady=(0, 12)
             )
             tiempo_resultado_principal = tk.Label(
                 tiempo_resultado_frame, text="00:00",
