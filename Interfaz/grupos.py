@@ -111,11 +111,7 @@ def mostrar_grupos(contenedor):
             fg=GRIS
         )
 
-    def actualizar_periodicamente():
-        if not principal.winfo_exists():
-            return
-        cargar()
-        principal.after(2500, actualizar_periodicamente)
+    cargar()
 
     cargar()
     principal.after(2500, actualizar_periodicamente)
