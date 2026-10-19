@@ -19,6 +19,8 @@ class DashboardBridge:
         self._condition = threading.Condition(self._lock)
         self._state = None
         self._elapsed = 0.0
+        self._time_anchor = time.monotonic()
+        self._time_running = False
         self._event_id = int(time.time() * 1000)
         self._event = {"ui_action": "", "ui_action_id": 0}
         self._attacks = (0, 0)
@@ -67,13 +69,18 @@ class DashboardBridge:
             except Exception:
                 pass
 
-    def set_time(self, elapsed_seconds):
+    def set_time(self, elapsed_seconds, running=None):
+        """Actualiza el reloj y permite al puente mantenerlo aunque se cierre Batallas."""
         try:
             value = max(0.0, float(elapsed_seconds))
         except (TypeError, ValueError):
             value = 0.0
+        now = time.monotonic()
         with self._lock:
             self._elapsed = value
+            self._time_anchor = now
+            if running is not None:
+                self._time_running = bool(running)
 
     def trigger(self, action, **payload):
         """Encola una acción visual para enviarla inmediatamente."""
@@ -103,6 +110,8 @@ class DashboardBridge:
             with self._condition:
                 state = dict(self._state) if self._state is not None else None
                 elapsed = self._elapsed
+                if self._time_running:
+                    elapsed += max(0.0, now - self._time_anchor)
                 event = dict(self._event)
                 dirty = self._dirty
                 if dirty:
