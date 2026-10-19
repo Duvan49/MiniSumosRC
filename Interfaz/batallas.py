@@ -1499,6 +1499,14 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         fg="#17202a", bg="white"
     )
     ataques1_label.grid(row=1, column=0, padx=18, pady=(0, 12), sticky="ew")
+    dashboard_bridge.set_attacks_callback(
+        lambda a1, a2: principal.after(
+            0, lambda: (
+                ataques1_label.config(text=str(a1)),
+                ataques2_label.config(text=str(a2))
+            ) if principal.winfo_exists() else None
+        )
+    )
 
     tk.Label(
         datos, text="◷  TIEMPO",
@@ -1616,9 +1624,6 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         if not principal.winfo_exists():
             return
 
-        ataques_actuales1, ataques_actuales2 = dashboard_bridge.attacks()
-        ataques1_label.config(text=str(ataques_actuales1))
-        ataques2_label.config(text=str(ataques_actuales2))
         tiempo_actual = reloj.segundos()
         dashboard_bridge.set_time(tiempo_actual)
         if (not alarma_activada and reloj.estado == "En curso" and reloj.segundos() >= 115):
