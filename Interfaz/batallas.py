@@ -3,7 +3,7 @@ from tkinter import messagebox
 import sqlite3
 import os
 from tkinter import ttk
-from esp32 import esp32
+from logica import RelojBatalla
 from llaves import (actualizar_llaves_tras_resultado, generar_llaves_manualmente, generar_final_todos_manualmente, avanzar_ronda_manualmente)
 
 
@@ -578,21 +578,10 @@ def abrir_resultado(
         ataques2_bd
     ) = batalla
 
-    # --------------------------------------------------------
-    # OBTENER ÚLTIMOS DATOS ESP32
-    # --------------------------------------------------------
-
-    tiempo, ataques1, ataques2 = esp32.obtener_datos()
-
-    # Si ESP32 no tiene datos, usamos los de BD
-    if tiempo in ("--:--", "0:00:00") and tiempo_bd:
-        tiempo = tiempo_bd
-
-    if ataques1 == 0 and ataques1_bd:
-        ataques1 = ataques1_bd
-
-    if ataques2 == 0 and ataques2_bd:
-        ataques2 = ataques2_bd
+    # El resultado ahora se gestiona localmente, sin depender de la ESP32.
+    tiempo = tiempo_bd or "0:00:00"
+    ataques1 = 0
+    ataques2 = 0
 
     # --------------------------------------------------------
     # VENTANA
@@ -1222,21 +1211,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         anchor="center"
     ).grid(row=0, column=1, sticky="nsew", padx=(4, 18), pady=8)
 
-    # El puerto serial se administra en segundo plano, sin controles visibles.
-    def conectar_automaticamente():
-        if not principal.winfo_exists():
-            return
-        try:
-            puertos = esp32.listar_puertos()
-            if puertos and not getattr(esp32, "conectado", False):
-                esp32.conectar(puertos[0])
-            elif not puertos and getattr(esp32, "conectado", False):
-                esp32.desconectar()
-        except Exception as error:
-            print(f"Conexión serial automática: {error}")
-        principal.after(2500, conectar_automaticamente)
-
-    conectar_automaticamente()
+    # Las batallas se controlan completamente desde Python; no se usa puerto serie.
 
     # --------------------------------------------------------
     # ESTADO
@@ -1444,98 +1419,64 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     )
 
     # --------------------------------------------------------
-    # ACTUALIZACIÓN ESP32
+    # ACTUALIZACIÓN LOCAL DEL CRONÓMETRO
     # --------------------------------------------------------
 
     finalizacion_automatica_activada = False
-    # En una batalla pendiente, la interfaz muestra cero aunque la ESP32
-    # conserve todavía los datos de la batalla anterior.
-    datos_de_batalla_activa = estado != "Pendiente"
+    reloj = RelojBatalla(tiempo_inicial=tiempo_bd or "0:00:00")
+    cuenta_regresiva_activa = False
+    cuenta_regresiva_restante = 0
 
     def actualizar_datos():
-
-        nonlocal finalizacion_automatica_activada
-
         if not principal.winfo_exists():
             return
 
-        evento = esp32.consumir_evento()
-        if evento == "TIEMPO_LIMITE" and not finalizacion_automatica_activada:
-            finalizacion_automatica_activada = True
-            finalizar(automatica=True)
-
-        tiempo, ataques1, ataques2 = esp32.obtener_datos()
-        if not datos_de_batalla_activa:
-            tiempo, ataques1, ataques2 = "0:00:00", 0, 0
-
-        if puerto_var.get() != "No disponible" and getattr(esp32, "conectado", False):
-            estado_conexion.config(text=f"● Conectado ({puerto_var.get()})", fg="#86efac")
-        else:
-            estado_conexion.config(text="● No conectado", fg="#d1d5db")
-
-        tiempo_label.config(
-            text=tiempo
-        )
-
-        ataques1_label.config(
-            text=str(ataques1)
-        )
-
-        ataques2_label.config(
-            text=str(ataques2)
-        )
-
-        principal.after(
-            100,
-            actualizar_datos
-        )
+        tiempo_label.config(text=reloj.obtener_tiempo())
+        ataques1_label.config(text="0")
+        ataques2_label.config(text="0")
+        principal.after(100, actualizar_datos)
 
     # --------------------------------------------------------
     # INICIAR
     # --------------------------------------------------------
 
     def iniciar():
+        nonlocal cuenta_regresiva_activa, cuenta_regresiva_restante
 
-        nonlocal datos_de_batalla_activa
-
-        # Primero se confirma que el comando pudo enviarse a la ESP32.
-        enviado = esp32.iniciar_batalla(id_batalla, robot1, robot2)
-        if not enviado:
-            messagebox.showwarning(
-                "ESP32 no conectada",
-                "No se pudo enviar el comando de inicio. Revisa el puerto serie.",
-                parent=contenedor.winfo_toplevel()
-            )
+        if cuenta_regresiva_activa or reloj.estado in ("En curso", "Pausada", "Finalizada"):
             return
 
-        # INICIAR hace que la ESP32 reinicie tiempo y ataques. Desde este
-        # momento la interfaz vuelve a mostrar los datos recibidos de la placa.
-        datos_de_batalla_activa = True
+        reloj.reiniciar()
+        cuenta_regresiva_activa = True
+        cuenta_regresiva_restante = 3
+        estado_label.config(text="PREPÁRATE...")
+        tiempo_label.config(text="3")
+        boton_iniciar.config(state="disabled")
+        boton_pausar.config(state="disabled")
+        boton_continuar.config(state="disabled")
+        boton_finalizar.config(state="disabled")
 
-        actualizar_estado(
-            id_batalla,
-            "En curso"
-        )
+        def avanzar_cuenta():
+            nonlocal cuenta_regresiva_activa, cuenta_regresiva_restante
+            if not principal.winfo_exists() or not cuenta_regresiva_activa:
+                return
+            if cuenta_regresiva_restante > 0:
+                tiempo_label.config(text=str(cuenta_regresiva_restante))
+                estado_label.config(text="PREPÁRATE...")
+                cuenta_regresiva_restante -= 1
+                principal.after(1000, avanzar_cuenta)
+                return
 
-        estado_label.config(
-            text="EN CURSO"
-        )
+            cuenta_regresiva_activa = False
+            reloj.iniciar()
+            actualizar_estado(id_batalla, "En curso")
+            estado_label.config(text="EN CURSO")
+            boton_pausar.config(state="normal")
+            boton_continuar.config(state="disabled")
+            boton_finalizar.config(state="normal")
+            tiempo_label.config(text=reloj.obtener_tiempo())
 
-        boton_iniciar.config(
-            state="disabled"
-        )
-
-        boton_pausar.config(
-            state="normal"
-        )
-
-        boton_continuar.config(
-            state="disabled"
-        )
-
-        boton_finalizar.config(
-            state="normal"
-        )
+        principal.after(1000, avanzar_cuenta)
 
     # --------------------------------------------------------
     # PAUSAR
@@ -1548,7 +1489,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             "Pausada"
         )
 
-        esp32.pausar_batalla()
+        reloj.pausar()
 
         estado_label.config(
             text="PAUSADA"
@@ -1573,7 +1514,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             "En curso"
         )
 
-        esp32.continuar_batalla()
+        reloj.continuar()
 
         estado_label.config(
             text="EN CURSO"
@@ -1600,10 +1541,8 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             return
         finalizacion_automatica_activada = True
 
-        # En el límite de tiempo la ESP32 ya congeló el cronómetro.
-        # En el cierre manual enviamos el mismo comando de pausa final.
-        if not automatica:
-            esp32.pausar_para_resultado()
+        reloj.finalizar()
+        actualizar_estado(id_batalla, "En curso")
 
         boton_iniciar.config(
             state="disabled"
@@ -1621,9 +1560,16 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             state="disabled"
         )
 
+        tiempo_final = reloj.obtener_tiempo()
+        batalla_resultado = list(batalla)
+        batalla_resultado[9] = "En curso"
+        batalla_resultado[12] = tiempo_final
+        batalla_resultado[13] = 0
+        batalla_resultado[14] = 0
+
         abrir_resultado(
             contenedor.winfo_toplevel(),
-            batalla,
+            tuple(batalla_resultado),
             lambda: mostrar_batallas(
                 contenedor,
                 al_terminar_fase=al_terminar_fase,
