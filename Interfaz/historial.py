@@ -145,7 +145,7 @@ def mostrar_historial(contenedor):
             tk.Label(
                 contenido_tiempo, text=centesimas, font=("Arial", 8),
                 bg=fondo_celda, fg="#1F2937", bd=0, padx=0
-            ).pack(side="left", anchor="s", padx=0, pady=(7, 0))
+            ).pack(side="left", anchor="s", padx=0, pady=(6, 0))
             def seleccionar_tiempo(_evento, iid=item):
                 tabla.selection_set(iid)
                 tabla.focus(iid)
