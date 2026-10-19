@@ -67,6 +67,19 @@ def get_time():
         })
 
 
+@app.get("/api/events")
+def get_events():
+    with lock:
+        return jsonify({
+            "ui_action": state.get("ui_action", ""),
+            "ui_action_id": state.get("ui_action_id", 0),
+            "countdown_active": state.get("countdown_active", False),
+            "countdown_value": state.get("countdown_value", "3"),
+            "python_mode": state.get("python_mode", False),
+            "phase": state.get("phase", "ready")
+        })
+
+
 @app.post("/api/python/time")
 def python_time():
     payload = request.get_json(silent=True) or {}
