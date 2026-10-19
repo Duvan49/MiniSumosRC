@@ -8,7 +8,7 @@
 :root{color-scheme:dark;--cyan:#49eaff;--white:#f5fbff}
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;min-height:100svh;width:100%;background:radial-gradient(ellipse at 50% 20%,#10304a 0,#061321 45%,#020710 100%);color:var(--white);font-family:Arial,Helvetica,sans-serif;display:grid;place-items:center;padding:24px}
-.fullscreen{position:fixed;z-index:10;left:clamp(12px,1.6vw,24px);top:clamp(12px,1.6vw,24px);width:48px;height:48px;display:grid;place-items:center;border:1px solid #78dfffaa;border-radius:14px;background:#061525e8;color:white;font-size:26px;cursor:pointer;box-shadow:0 4px 20px #0008}.fullscreen:hover{border-color:var(--cyan);box-shadow:0 0 22px #32dfff55}
+.fullscreen{position:fixed;z-index:10;left:clamp(12px,1.6vw,24px);top:clamp(12px,1.6vw,24px);width:48px;height:48px;display:grid;place-items:center;border:1px solid #78dfffaa;border-radius:14px;background:#061525e8;color:white;font-size:26px;cursor:pointer;box-shadow:0 4px 20px #0008}.fullscreen:hover{border-color:var(--cyan);box-shadow:0 0 22px #32dfff55}.fullscreen #fullscreenIcon{display:block;line-height:1;transform:translateY(0)}.fullscreen #fullscreenIcon.is-exit{transform:translateY(-2px)}
 .gear{position:fixed;z-index:10;right:clamp(12px,1.6vw,24px);top:clamp(12px,1.6vw,24px);width:48px;height:48px;display:grid;place-items:center;border:1px solid #78dfffaa;border-radius:14px;background:#061525e8;color:white;font-size:24px;cursor:pointer;box-shadow:0 4px 20px #0008;transition:.2s}
 .gear:hover{border-color:var(--cyan);box-shadow:0 0 22px #32dfff55;transform:rotate(25deg)}
 #quickMenu{position:fixed;z-index:20;top:calc(clamp(12px,1.6vw,24px) + 56px);right:clamp(12px,1.6vw,24px);width:min(250px,calc(100vw - 24px));padding:9px;display:flex;flex-direction:column;gap:7px;border:1px solid #50dfff90;border-radius:14px;background:#04101bf7;box-shadow:0 16px 45px #000b}
@@ -35,7 +35,7 @@ button.action:disabled{opacity:.3;filter:grayscale(1);cursor:not-allowed}
 </style>
 </head>
 <body>
-<button class="fullscreen" id="fullscreenToggle" type="button" aria-label="Activar pantalla completa" title="Pantalla completa">⛶</button>
+<button class="fullscreen" id="fullscreenToggle" type="button" aria-label="Activar pantalla completa" title="Pantalla completa"><span id="fullscreenIcon">⛶</span></button>
 <main class="page" style="--robot-color:{{ '#ffe34d' if robot == 1 else '#c28cff' }}">
 <div class="kicker">MINISUMOS RC · PANEL DE ATAQUES</div>
 <h1>Control de ataques</h1>
@@ -54,11 +54,11 @@ button.action:disabled{opacity:.3;filter:grayscale(1);cursor:not-allowed}
 const ROBOT={{ robot }};
 const $=id=>document.getElementById(id);
 async function toggleFullscreen(){if(window.parent!==window){window.parent.postMessage({type:'toggleAttackFullscreen'},window.location.origin);return}try{if(!document.fullscreenElement){await document.documentElement.requestFullscreen()}else{await document.exitFullscreen()}}catch(e){alert('El navegador no permitió la pantalla completa. Prueba de nuevo con el botón ⛶.')}}
-window.addEventListener('message',event=>{if(event.origin!==window.location.origin||!event.data||event.data.type!=='fullscreenState')return;const active=!!event.data.active;$('fullscreenToggle').textContent=active?'⤢':'⛶';$('fullscreenToggle').title=active?'Salir de pantalla completa':'Pantalla completa';$('fullscreenToggle').setAttribute('aria-label',active?'Salir de pantalla completa':'Activar pantalla completa')});
+window.addEventListener('message',event=>{if(event.origin!==window.location.origin||!event.data||event.data.type!=='fullscreenState')return;const active=!!event.data.active;$('fullscreenIcon').textContent=active?'⤢':'⛶';$('fullscreenIcon').classList.toggle('is-exit',active);$('fullscreenToggle').title=active?'Salir de pantalla completa':'Pantalla completa';$('fullscreenToggle').setAttribute('aria-label',active?'Salir de pantalla completa':'Activar pantalla completa')});
 window.addEventListener('load',()=>{if(window.parent!==window)window.parent.postMessage({type:'attackFullscreenState'},window.location.origin)});
 $('fullscreenToggle').addEventListener('click',toggleFullscreen);
 $('backHome').addEventListener('click',async event=>{event.preventDefault();if(window.parent!==window){window.parent.postMessage({type:'closeAttackView'},window.location.origin);return}try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen()}catch(e){}window.location.href='/'});
-document.addEventListener('fullscreenchange',()=>{const active=!!document.fullscreenElement;$('fullscreenToggle').textContent=active?'⤢':'⛶';$('fullscreenToggle').title=active?'Salir de pantalla completa':'Pantalla completa';$('fullscreenToggle').setAttribute('aria-label',active?'Salir de pantalla completa':'Activar pantalla completa')});
+document.addEventListener('fullscreenchange',()=>{const active=!!document.fullscreenElement;$('fullscreenIcon').textContent=active?'⤢':'⛶';$('fullscreenIcon').classList.toggle('is-exit',active);$('fullscreenToggle').title=active?'Salir de pantalla completa':'Pantalla completa';$('fullscreenToggle').setAttribute('aria-label',active?'Salir de pantalla completa':'Activar pantalla completa')});
 async function api(path,method='GET'){const res=await fetch(path,{method,headers:{'Content-Type':'application/json'}});const data=await res.json().catch(()=>({}));if(!res.ok)throw Error(data.error||'Error');return data}
 function render(s){
  const one=ROBOT===1,name=one?s.robot1:s.robot2,count=one?s.attacks1:s.attacks2,image=one?s.robot1_image:s.robot2_image;
