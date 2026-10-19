@@ -23,6 +23,7 @@ class DashboardBridge:
         self._event = {"ui_action": "", "ui_action_id": 0}
         self._attacks = (0, 0)
         self._attacks_callback = None
+        self._ui_callback = None
         self._dirty = False
         self._running = True
         threading.Thread(target=self._worker, name="MiniSumosDashboardBridge", daemon=True).start()
@@ -38,6 +39,11 @@ class DashboardBridge:
                 callback(*attacks)
             except Exception:
                 pass
+
+    def set_ui_callback(self, callback):
+        """Registra eventos de finalización de audio enviados por el dashboard."""
+        with self._lock:
+            self._ui_callback = callback
 
     def set_state(self, payload):
         """Marca el estado pendiente solo cuando cambia algún dato."""
@@ -144,6 +150,15 @@ class DashboardBridge:
                                 if changed and callback:
                                     try:
                                         callback(*updated)
+                                    except Exception:
+                                        pass
+                            elif message.get("type") == "command":
+                                action = str(data.get("action", ""))
+                                with self._lock:
+                                    callback = self._ui_callback
+                                if callback and action in ("countdown_complete", "alarm_complete"):
+                                    try:
+                                        callback(action)
                                     except Exception:
                                         pass
                         except (ValueError, TypeError, json.JSONDecodeError):
