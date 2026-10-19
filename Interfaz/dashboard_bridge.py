@@ -68,6 +68,7 @@ class DashboardBridge:
     def _worker(self):
         last_time = 0.0
         last_sync = 0.0
+        last_synced_event_id = -1
         retry_after = 0.0
         while self._running:
             now = time.monotonic()
@@ -80,7 +81,9 @@ class DashboardBridge:
                     if now - last_time >= 0.08:
                         self._request("/api/python/time", "POST", {"elapsed_seconds": elapsed}, timeout=0.10)
                         last_time = now
-                    sync_interval = 0.08 if state.get("countdown_active") else 0.25
+                    event_id = int(event.get("ui_action_id", 0) or 0)
+                    urgent_event = event_id != last_synced_event_id
+                    sync_interval = 0.08 if state.get("countdown_active") or urgent_event else 0.25
                     if now - last_sync >= sync_interval:
                         payload = {**state, **event}
                         payload.pop("elapsed_seconds", None)
@@ -94,6 +97,7 @@ class DashboardBridge:
                         except (TypeError, ValueError):
                             pass
                         last_sync = now
+                        last_synced_event_id = event_id
                 except (URLError, HTTPError, TimeoutError, OSError, ValueError):
                     # El dashboard puede no estar abierto aún. No se bloquea Tkinter;
                     # se reintenta en un segundo sin llenar una cola de peticiones.
