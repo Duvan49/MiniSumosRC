@@ -80,6 +80,100 @@ input{width:100%;padding:13px 12px;background:#071a2c;border:1px solid #31536f;b
 .next-vs{font:1000 italic clamp(48px,9vw,132px)/.9 Impact,'Arial Black',sans-serif;color:#fff;-webkit-text-stroke:3px #000;paint-order:stroke fill;text-shadow:0 5px 0 #000,0 0 25px #00dfff}
 @media(max-width:700px){.announcement{padding:12px}#winnerAnnouncement .announcement-content{grid-template-columns:minmax(125px,.85fr) minmax(0,1.15fr);grid-template-rows:minmax(0,1fr) auto;column-gap:12px;row-gap:5px;padding:44px 0 0}#winnerAnnouncement .winner-heading{font-size:clamp(31px,8vw,52px);-webkit-text-stroke:2px #000}#winnerAnnouncement .winner-robot-image{width:145%;height:min(50vh,380px)}#winnerAnnouncement .announcement-name{font-size:clamp(31px,8vw,52px);-webkit-text-stroke:2px #000}.winner-details{gap:0}.winner-data-panel{margin-top:0}.winner-data-cell{padding:8px 9px;gap:7px}.winner-data-label{font-size:12px;letter-spacing:1.5px}.winner-duration,.announcement-reason{font-size:clamp(22px,5vw,34px)}.no-battles-message{font-size:clamp(32px,8vw,58px);-webkit-text-stroke:2px #000}.announcement-title{font-size:clamp(26px,8vw,48px)}.announcement-name{font-size:clamp(38px,12vw,76px);-webkit-text-stroke:2px #000}.announcement-button{min-width:120px;padding:12px 16px}.next-matchup{gap:5px}.next-robot img{height:clamp(150px,37vh,300px)}.next-robot-name{font-size:clamp(25px,7.5vw,48px);-webkit-text-stroke:1.5px #000}.next-vs{font-size:clamp(34px,9vw,60px);-webkit-text-stroke:2px #000}}
 @media(max-height:520px){.announcement-content{gap:8px}#winnerAnnouncement .announcement-content{padding-top:42px;grid-template-rows:minmax(0,1fr) auto}#winnerAnnouncement .winner-robot-image{height:42vh}.winner-data-cell{padding-top:7px;padding-bottom:7px}.winner-duration,.announcement-reason{font-size:clamp(25px,4vw,44px)}.next-robot img{height:36vh}.announcement-title{font-size:clamp(24px,5vw,48px)}.announcement-actions{margin-top:0}}
+
+/* Ajustes de la pantalla GANADOR para teléfonos: bloques apilados y texto sin desbordes. */
+@media(max-width:700px){
+  #winnerAnnouncement{padding:10px;overflow:auto}
+  #winnerAnnouncement .announcement-content{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:minmax(0,1fr) auto auto;
+    align-content:stretch;
+    justify-items:stretch;
+    column-gap:0;
+    row-gap:3px;
+    padding:12px 4px 8px;
+    min-height:100%;
+    height:auto;
+  }
+  #winnerAnnouncement .winner-robot-image{
+    grid-column:1;
+    grid-row:1;
+    width:100%;
+    max-width:100%;
+    height:min(34vh,260px);
+    min-height:120px;
+    object-fit:contain;
+    justify-self:center;
+  }
+  #winnerAnnouncement .winner-details{
+    grid-column:1;
+    grid-row:2;
+    width:100%;
+    align-items:center;
+    text-align:center;
+    gap:2px;
+    min-width:0;
+  }
+  #winnerAnnouncement .winner-heading{
+    font-size:clamp(27px,7vw,44px);
+    line-height:.95;
+    letter-spacing:1px;
+    -webkit-text-stroke:1.5px #000;
+    text-align:center;
+    overflow-wrap:anywhere;
+  }
+  #winnerAnnouncement .announcement-name{
+    max-width:100%;
+    font-size:clamp(28px,7.5vw,48px);
+    line-height:1;
+    letter-spacing:0;
+    -webkit-text-stroke:1.5px #000;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+  }
+  #winnerAnnouncement .winner-data-panel{
+    grid-column:1;
+    grid-row:3;
+    width:100%;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    margin:0;
+    transform:none;
+    align-self:end;
+  }
+  #winnerAnnouncement .winner-data-cell{
+    min-width:0;
+    padding:8px 6px 4px;
+    gap:5px;
+    text-align:center;
+    justify-content:start;
+    overflow-wrap:anywhere;
+  }
+  #winnerAnnouncement .winner-data-label{
+    font-size:clamp(10px,3vw,13px);
+    letter-spacing:1px;
+    line-height:1.1;
+    overflow-wrap:anywhere;
+  }
+  #winnerAnnouncement .winner-duration,
+  #winnerAnnouncement .announcement-reason{
+    max-width:100%;
+    font-size:clamp(18px,5vw,29px);
+    line-height:1.05;
+    letter-spacing:0;
+    -webkit-text-stroke:1px #000;
+    white-space:normal;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+  }
+}
+@media(max-width:380px){
+  #winnerAnnouncement .winner-data-panel{grid-template-columns:minmax(0,1fr)}
+  #winnerAnnouncement .winner-data-cell{padding:5px 4px}
+  #winnerAnnouncement .winner-duration,
+  #winnerAnnouncement .announcement-reason{font-size:clamp(17px,5.5vw,22px)}
+}
+
 </style>
 </head>
 <body>
@@ -151,7 +245,8 @@ async function handleTerminalAction(s){
  lastUiActionId=s.ui_action_id;
  if(s.ui_action==='home'){
   hideAnnouncements();
-  if(document.fullscreenElement){try{await document.exitFullscreen()}catch(e){}}
+  // Al volver al inicio se mantiene la pantalla expandida para mostrar la arena.
+  await enterAnnouncementFullscreen();
   return;
  }
  await enterAnnouncementFullscreen();
