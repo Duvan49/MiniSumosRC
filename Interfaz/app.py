@@ -212,6 +212,16 @@ def python_sync():
         return jsonify(current)
 
 
+@app.post("/api/ui-complete")
+def ui_audio_complete():
+    payload = request.get_json(silent=True) or {}
+    action = str(payload.get("action", ""))
+    if action not in ("countdown_complete", "alarm_complete"):
+        return jsonify({"error": "Evento de audio inválido"}), 400
+    publish_event("command", {"action": action})
+    return jsonify({"ok": True, "action": action})
+
+
 @app.post("/api/attack/<int:robot>")
 def add_attack(robot):
     if robot not in (1, 2):
