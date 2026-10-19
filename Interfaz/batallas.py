@@ -523,16 +523,14 @@ def obtener_batallas_para_reinicio():
     opciones = []
     for bid, etapa, grupo, ronda, robot1, robot2, estado in filas:
         if etapa == "Grupo":
-            fase = f"Grupos {grupo or ''} • Ronda {ronda or 1}".strip()
+            fase = f"Grupo {grupo}".strip()
         elif etapa == "Todos":
             fase = "Todos contra todos"
-        elif etapa == "Final":
-            fase = f"Final • Batalla {bid}"
         else:
-            fase = f"{etapa} • Ronda {ronda or 1}"
+            fase = etapa
         opciones.append((
             bid,
-            f"#{bid} | {fase} | {robot1} vs {robot2} | {estado}"
+            f"#{bid} | {robot1} vs {robot2} | {fase}"
         ))
     return opciones
 
@@ -565,20 +563,31 @@ def reiniciar_batalla_en_bd(id_batalla):
                 "la batalla activa."
             )
 
-        # Si ya se generó una ronda posterior, no se permite cambiar un combate
-        # eliminatorio anterior: sus ganadores alimentan los emparejamientos
-        # posteriores, que deben permanecer coherentes.
-        if etapa not in ("Grupo", "Todos", "Final"):
+        # Se permite corregir una fase anterior mientras ninguna batalla
+        # de una fase posterior haya comenzado.
+        if etapa in ("Grupo", "Todos", "Final"):
+            cursor.execute("""
+                SELECT COUNT(*) FROM enfrentamientos
+                WHERE etapa NOT IN ('Grupo', 'Todos', 'Final')
+                  AND estado != 'Pendiente'
+            """)
+            if cursor.fetchone()[0]:
+                return False, (
+                    "No se puede reiniciar esta batalla porque ya se jugó una "
+                    "batalla eliminatoria. Solo se pueden corregir batallas de "
+                    "la fase actual."
+                )
+        else:
             cursor.execute("""
                 SELECT COUNT(*) FROM enfrentamientos
                 WHERE etapa NOT IN ('Grupo', 'Todos', 'Final')
                   AND COALESCE(ronda, 1) > ?
+                  AND estado != 'Pendiente'
             """, (ronda,))
             if cursor.fetchone()[0]:
                 return False, (
-                    f"No se puede reiniciar {etapa} porque ya existe una ronda "
-                    "eliminatoria posterior. Así se evita dejar un cuadro "
-                    "incoherente."
+                    f"No se puede reiniciar {etapa} porque ya se jugó una "
+                    "batalla de una fase eliminatoria posterior."
                 )
 
         cursor.execute("""
@@ -665,14 +674,14 @@ def agregar_controles_reinicio(principal, contenedor, id_actual=None,
 
     tk.Label(
         marco, text="REINICIAR BATALLA",
-        font=("Segoe UI", 10, "bold"), fg="#7a858e", bg="#f3f5f7"
+        font=("Segoe UI", 12, "bold"), fg="#7a858e", bg="#f3f5f7"
     ).pack(side="left", padx=(0, 10))
 
     valores = [etiqueta for _, etiqueta in opciones]
     seleccion = tk.StringVar()
     combo = ttk.Combobox(
         marco, textvariable=seleccion, values=valores,
-        state="readonly", width=62, font=("Segoe UI", 10)
+        state="readonly", width=62, font=("Segoe UI", 12)
     )
     combo.pack(side="left", fill="x", expand=True, padx=(0, 10))
 
