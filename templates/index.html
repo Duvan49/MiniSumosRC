@@ -252,7 +252,7 @@ async function handleTerminalAction(s){
  if(s.ui_action==='countdown_start'){hideAnnouncements();$('countdownOverlay').hidden=false;playCountdownSound();return}
  if(s.ui_action==='alarm'){playAlarmSound();return}
  if(s.ui_action==='home'){
-  hideAnnouncements();stopAlarmSound();
+  hideAnnouncements();stopAlarmSound();stopCountdownSound();
   // Al volver al inicio se mantiene la pantalla expandida para mostrar la arena.
   await enterAnnouncementFullscreen();
   return;
@@ -282,6 +282,7 @@ async function playCountdownSound(){
   countdownAudio.pause();countdownAudio.currentTime=0;await countdownAudio.play();
  }catch(e){console.warn('El navegador bloqueó el audio de la cuenta regresiva.',e)}
 }
+function stopCountdownSound(){if(countdownAudio&&!countdownAudio.paused){countdownAudio.pause();countdownAudio.currentTime=0}}
 $('saveNames').addEventListener('click',async()=>{try{render(await api('/api/config','POST',{robot1:$('inputRobot1').value,robot2:$('inputRobot2').value}))}catch(e){alert(e.message||'No se pudieron guardar los nombres.')}});
 let countdownRunning=false;
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
