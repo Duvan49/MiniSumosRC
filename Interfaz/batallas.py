@@ -1619,6 +1619,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
     finalizacion_automatica_activada = False
     alarma_activada = False
+    alarma_audio_completada = False
     alarma_inicio_monotonic = None
     inicio_epoch_bd = obtener_inicio_epoch(id_batalla)
     reloj = RelojBatalla(
@@ -1641,7 +1642,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     cuenta_regresiva_restante = 0
 
     def actualizar_datos():
-        nonlocal alarma_activada, alarma_inicio_monotonic
+        nonlocal alarma_activada, alarma_audio_completada, alarma_inicio_monotonic
         if not principal.winfo_exists():
             return
 
@@ -1660,6 +1661,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             and reloj.segundos() >= 120
             and (
                 not alarma_activada
+                or alarma_audio_completada
                 or (alarma_inicio_monotonic is not None
                     and time.monotonic() - alarma_inicio_monotonic >= 10)
             )
@@ -1677,13 +1679,15 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     # --------------------------------------------------------
 
     def iniciar():
-        nonlocal cuenta_regresiva_activa, cuenta_regresiva_restante, alarma_activada
+        nonlocal cuenta_regresiva_activa, cuenta_regresiva_restante
+        nonlocal alarma_activada, alarma_audio_completada
 
         if cuenta_regresiva_activa or reloj.estado in ("En curso", "Pausada", "Finalizada"):
             return
 
         reloj.reiniciar()
         alarma_activada = False
+        alarma_audio_completada = False
         dashboard_bridge.set_time(0, running=False)
         cuenta_regresiva_activa = True
         cuenta_regresiva_restante = 2
@@ -1746,20 +1750,21 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             dashboard_bridge.trigger("home")
 
         def completar_audio(action):
+            nonlocal alarma_audio_completada
             if action == "countdown_complete":
                 try:
                     principal.after(0, iniciar_batalla_tras_audio)
                 except tk.TclError:
                     pass
             elif action == "alarm_complete":
-                try:
-                    principal.after(
-                        0,
-                        lambda: finalizar(automatica=True)
-                        if reloj.estado == "En curso" else None
-                    )
-                except tk.TclError:
-                    pass
+                alarma_audio_completada = True
+                # Si el audio termina antes de los 120 s, esperar al límite
+                # exacto; si ya llegó, abrir el registro inmediatamente.
+                if reloj.estado == "En curso" and reloj.segundos() >= 120:
+                    try:
+                        principal.after(0, lambda: finalizar(automatica=True))
+                    except tk.TclError:
+                        pass
 
         dashboard_bridge.set_ui_callback(completar_audio)
         principal.after(1000, avanzar_cuenta)
@@ -1795,11 +1800,12 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     # --------------------------------------------------------
 
     def continuar():
-        nonlocal alarma_activada
+        nonlocal alarma_activada, alarma_audio_completada
 
         reloj.continuar()
         if reloj.segundos() >= 115:
             alarma_activada = False
+            alarma_audio_completada = False
         guardar_reloj(
             id_batalla, "En curso",
             reloj.obtener_tiempo_base(), reloj.inicio_epoch()
