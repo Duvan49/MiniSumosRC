@@ -18,7 +18,7 @@ body:after{content:"";position:fixed;inset:0;pointer-events:none;background:line
 .combatant{height:100%;min-height:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;position:relative;min-width:0}
 .combatant:before{content:"";position:absolute;width:90%;height:38%;bottom:14%;border-radius:50%;filter:blur(36px);opacity:.4;z-index:-1;background:var(--robot-color,#00bfff)}
 .robot-art{display:block;width:100%;height:min(58vh,620px);object-fit:contain;filter:drop-shadow(0 22px 32px #000d);animation:float 4.5s ease-in-out infinite;transition:filter .25s,transform .25s}.combatant.right .robot-art{animation-delay:-2.2s}
-.robot-name{max-width:100%;margin-top:clamp(0px,.8vh,10px);font-family:Impact,'Arial Black',sans-serif;font-size:clamp(32px,5.5vw,90px);line-height:.95;letter-spacing:clamp(1px,.25vw,5px);font-weight:1000;text-transform:uppercase;overflow-wrap:anywhere;color:#fff;-webkit-text-stroke:2.5px #000;paint-order:stroke fill;text-shadow:0 4px 0 #000,0 0 16px var(--robot-color,#49eaff),0 0 32px var(--robot-color,#49eaff),0 0 48px #178cff88}
+.robot-name{max-width:100%;margin-top:clamp(0px,.8vh,10px);font-family:Impact,'Arial Black',sans-serif;font-size:clamp(32px,5.5vw,90px);line-height:.95;letter-spacing:clamp(1px,.25vw,5px);font-weight:1000;text-transform:uppercase;overflow-wrap:anywhere;color:#fff;-webkit-text-stroke:2.5px #000;paint-order:stroke fill;text-shadow:0 4px 0 #000,0 0 16px var(--robot-color,#49eaff),0 0 32px var(--robot-color,#49eaff),0 0 48px #178cff88}.robot-person{margin-top:4px;font:800 clamp(11px,1.15vw,17px)/1.1 Arial,Helvetica,sans-serif;letter-spacing:1.2px;text-transform:uppercase;color:#e8f7ff;text-shadow:0 2px 3px #000;opacity:.9;overflow-wrap:anywhere}
 .attack-score{display:flex;align-items:center;justify-content:center;gap:clamp(8px,1.5vw,22px);margin-top:clamp(10px,2vh,25px);font-family:Arial,Helvetica,sans-serif;font-size:clamp(20px,2vw,30px);font-weight:1000;letter-spacing:clamp(1px,.25vw,4px);color:#fff;-webkit-text-stroke:.7px #000;paint-order:stroke fill;text-shadow:0 3px 0 #000,0 0 12px var(--robot-color,#49eaff),0 0 22px #000}
 .attack-score strong{font-family:Impact,'Arial Black',sans-serif;font-size:clamp(56px,8vw,124px);line-height:.82;letter-spacing:1px;color:#fff;-webkit-text-stroke:2.5px #000;paint-order:stroke fill;text-shadow:3px 0 0 var(--robot-color,#fff),-3px 0 0 var(--robot-color,#fff),0 3px 0 var(--robot-color,#fff),0 -3px 0 var(--robot-color,#fff),2px 2px 0 var(--robot-color,#fff),-2px -2px 0 var(--robot-color,#fff),2px -2px 0 var(--robot-color,#fff),-2px 2px 0 var(--robot-color,#fff),0 0 10px var(--robot-color,#fff),0 0 24px var(--robot-color,#fff),0 0 46px var(--robot-color,#fff),0 6px 0 #000;font-variant-numeric:tabular-nums}
 .center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;text-align:center}
@@ -39,7 +39,7 @@ input{width:100%;padding:13px 12px;background:#071a2c;border:1px solid #31536f;b
 .help{font-size:12px;line-height:1.55;color:#91abc1;margin-top:18px}#scrim{display:none!important;position:fixed;inset:0;z-index:1500;background:#0009;opacity:0;pointer-events:none;transition:opacity .25s}#scrim.open{opacity:1;pointer-events:auto}#settings{pointer-events:none}#settings.open{pointer-events:auto}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}@keyframes pulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
 @media(min-width:1500px){.robot-art{height:min(62vh,740px)}}
-@media(max-width:700px){ #arena{padding:8px 7px}.status-wrap{min-height:56px;padding:6px 45px}.status{font-size:clamp(17px,4.6vw,29px);letter-spacing:1px;-webkit-text-stroke:1px #000}.fullscreen{width:36px;height:36px;top:8px;left:8px;font-size:21px}.gear{width:40px;height:40px;top:8px;right:8px;font-size:20px}.matchup{grid-template-columns:minmax(0,1fr) minmax(74px,.52fr) minmax(0,1fr);gap:1px}.robot-art{height:clamp(160px,37vh,340px);width:118%}.robot-name{font-size:clamp(21px,6vw,38px);letter-spacing:0;-webkit-text-stroke:1.4px #000}.attack-score{flex-direction:column;gap:8px;letter-spacing:1px;font-size:clamp(15px,4vw,21px);margin-top:14px}.attack-score strong{font-size:clamp(48px,13vw,76px);-webkit-text-stroke:1.5px #000}.vs{font-size:clamp(35px,9vw,58px);margin-bottom:25px;-webkit-text-stroke:2.5px #000}.timer-label{font-size:clamp(12px,3.2vw,16px);letter-spacing:1px;margin-bottom:9px}.timer{font-size:clamp(28px,7vw,45px);-webkit-text-stroke:2px #000}}
+@media(max-width:700px){ #arena{padding:8px 7px}.status-wrap{min-height:56px;padding:6px 45px}.status{font-size:clamp(17px,4.6vw,29px);letter-spacing:1px;-webkit-text-stroke:1px #000}.fullscreen{width:36px;height:36px;top:8px;left:8px;font-size:21px}.gear{width:40px;height:40px;top:8px;right:8px;font-size:20px}.matchup{grid-template-columns:minmax(0,1fr) minmax(74px,.52fr) minmax(0,1fr);gap:1px}.robot-art{height:clamp(160px,37vh,340px);width:118%}.robot-name{font-size:clamp(21px,6vw,38px);letter-spacing:0;-webkit-text-stroke:1.4px #000}.robot-person{font-size:11px;letter-spacing:.5px;margin-top:3px}.attack-score{flex-direction:column;gap:8px;letter-spacing:1px;font-size:clamp(15px,4vw,21px);margin-top:14px}.attack-score strong{font-size:clamp(48px,13vw,76px);-webkit-text-stroke:1.5px #000}.vs{font-size:clamp(35px,9vw,58px);margin-bottom:25px;-webkit-text-stroke:2.5px #000}.timer-label{font-size:clamp(12px,3.2vw,16px);letter-spacing:1px;margin-bottom:9px}.timer{font-size:clamp(28px,7vw,45px);-webkit-text-stroke:2px #000}}
 @media(max-height:560px) and (min-width:701px){ #arena{padding-top:4px;padding-bottom:4px}.status-wrap{min-height:34px}.status{font-size:clamp(18px,2.4vw,30px)}.robot-art{height:48vh}.vs{margin-bottom:12px}.timer-label{margin-bottom:4px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
 
@@ -188,9 +188,9 @@ input{width:100%;padding:13px 12px;background:#071a2c;border:1px solid #31536f;b
 <div id="arena">
  <div class="status-wrap"><div class="status ready" id="status">EN PROCESO</div></div>
  <main class="matchup">
-  <section class="combatant left" id="combatant1" style="--robot-color:#ffe34d"><img class="robot-art" id="robotImage1" src="/Imagenes/R_Amarillo.png" alt="Robot izquierdo"><div class="robot-name" id="robot1">AMARILLO</div><div class="attack-score"><span>ATAQUES</span><strong id="attacks1">0</strong></div></section>
+  <section class="combatant left" id="combatant1" style="--robot-color:#ffe34d"><img class="robot-art" id="robotImage1" src="/Imagenes/R_Amarillo.png" alt="Robot izquierdo"><div class="robot-name" id="robot1">AMARILLO</div><div class="robot-person" id="person1"></div><div class="attack-score"><span>ATAQUES</span><strong id="attacks1">0</strong></div></section>
   <section class="center"><div class="vs">VS</div><div class="timer-label">TIEMPO</div><div class="timer" id="time">00:0000</div></section>
-  <section class="combatant right" id="combatant2" style="--robot-color:#c28cff"><img class="robot-art" id="robotImage2" src="/Imagenes/R_Morado.png" alt="Robot derecho"><div class="robot-name" id="robot2">MORADO</div><div class="attack-score"><span>ATAQUES</span><strong id="attacks2">0</strong></div></section>
+  <section class="combatant right" id="combatant2" style="--robot-color:#c28cff"><img class="robot-art" id="robotImage2" src="/Imagenes/R_Morado.png" alt="Robot derecho"><div class="robot-name" id="robot2">MORADO</div><div class="robot-person" id="person2"></div><div class="attack-score"><span>ATAQUES</span><strong id="attacks2">0</strong></div></section>
  </main>
 </div><div id="attackView" aria-hidden="true"><iframe id="attackFrame" title="Panel de ataques" allowfullscreen></iframe></div><div id="scrim" onclick="toggleSettings(false)" aria-hidden="true"></div>
 <aside id="settings" aria-label="Parámetros de batalla">
@@ -222,8 +222,9 @@ function colorClass(image,name){const v=(String(image||'')+' '+String(name||''))
 let timerBaseSeconds=0,timerBaseAt=performance.now(),timerRunning=false;
 function updateClock(){const elapsed=timerBaseSeconds+(timerRunning?(performance.now()-timerBaseAt)/1000:0);$('time').innerHTML=fmt(elapsed)}
 function render(s){
- timerBaseSeconds=Math.max(0,Number(s.elapsed_seconds)||0);timerBaseAt=performance.now();timerRunning=s.phase==='running';updateClock();
- $('robot1').textContent=s.robot1;$('robot2').textContent=s.robot2;
+ timerBaseSeconds=Math.max(0,Number(s.elapsed_seconds)||0);timerBaseAt=performance.now();timerRunning=s.phase==='running'&&s.time_source!=='python';updateClock();
+ if(s.python_mode){const overlay=$('countdownOverlay'),number=$('countdownNumber');overlay.hidden=!s.countdown_active;if(s.countdown_active){number.textContent=s.countdown_value||'3';number.className=s.countdown_value==='¡YA!'?'countdown-number go':'countdown-number'}}
+ $('robot1').textContent=s.robot1;$('robot2').textContent=s.robot2;$('person1').textContent=s.person1||'';$('person2').textContent=s.person2||'';
  $('robotImage1').src=s.robot1_image||'/Imagenes/R_Amarillo.png';$('robotImage2').src=s.robot2_image||'/Imagenes/R_Morado.png';
  $('combatant1').style.setProperty('--robot-color',robotColor(s.robot1_image,s.robot1));$('combatant2').style.setProperty('--robot-color',robotColor(s.robot2_image,s.robot2));
  $('attacks1').textContent=s.attacks1;$('attacks2').textContent=s.attacks2;
@@ -247,6 +248,8 @@ let lastUiActionId=0;
 async function handleTerminalAction(s){
  if(!s.ui_action_id||s.ui_action_id===lastUiActionId)return;
  lastUiActionId=s.ui_action_id;
+ if(s.ui_action==='countdown_start'){hideAnnouncements();$('countdownOverlay').hidden=false;playCountdownSound();return}
+ if(s.ui_action==='alarm'){playAlarmSound();return}
  if(s.ui_action==='home'){
   hideAnnouncements();
   // Al volver al inicio se mantiene la pantalla expandida para mostrar la arena.
@@ -260,26 +263,23 @@ async function handleTerminalAction(s){
 }
 let alarmAudio=null;
 const alarmButton=$('alarmButton');
-alarmButton.addEventListener('click',async()=>{
- if(alarmAudio&&!alarmAudio.paused){
-  alarmAudio.pause();
-  alarmAudio.currentTime=0;
-  alarmButton.textContent='🚨 ALARM';
-  return;
- }
+async function playAlarmSound(){
  try{
-  if(!alarmAudio){
-   alarmAudio=new Audio('/Audios/audio_final.m4a');
-   alarmAudio.preload='auto';
-   alarmAudio.addEventListener('ended',()=>{alarmButton.textContent='🚨 ALARM'});
-  }
-  alarmAudio.currentTime=0;
-  await alarmAudio.play();
-  alarmButton.textContent='■ DETENER ALARMA';
- }catch(e){
-  alert('No se pudo reproducir el audio de alarma. Revisa que audio_final.m4a esté disponible y vuelve a intentarlo.');
- }
+  if(!alarmAudio){alarmAudio=new Audio('/Audios/audio_final.m4a');alarmAudio.preload='auto';alarmAudio.addEventListener('ended',()=>{alarmButton.textContent='🚨 ALARM'})}
+  alarmAudio.pause();alarmAudio.currentTime=0;await alarmAudio.play();alarmButton.textContent='■ DETENER ALARMA';
+ }catch(e){console.warn('El navegador no permitió reproducir la alarma automáticamente.',e)}
+}
+alarmButton.addEventListener('click',async()=>{
+ if(alarmAudio&&!alarmAudio.paused){alarmAudio.pause();alarmAudio.currentTime=0;alarmButton.textContent='🚨 ALARM';return}
+ await playAlarmSound();
 });
+let countdownAudio=null;
+async function playCountdownSound(){
+ try{
+  if(!countdownAudio){countdownAudio=new Audio('/Audios/videoplayback.m4a');countdownAudio.preload='auto'}
+  countdownAudio.pause();countdownAudio.currentTime=0;await countdownAudio.play();
+ }catch(e){console.warn('El navegador bloqueó el audio de la cuenta regresiva.',e)}
+}
 $('saveNames').addEventListener('click',async()=>{try{render(await api('/api/config','POST',{robot1:$('inputRobot1').value,robot2:$('inputRobot2').value}))}catch(e){alert(e.message||'No se pudieron guardar los nombres.')}});
 let countdownRunning=false;
 function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
@@ -319,20 +319,21 @@ $('finish').addEventListener('click',async()=>{try{render(await api('/api/finish
 function hideAnnouncements(){ $('winnerAnnouncement').hidden=true; $('nextAnnouncement').hidden=true; $('noBattlesAnnouncement').hidden=true; }
 async function enterAnnouncementFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen()}catch(e){/* Algunos navegadores bloquean la pantalla completa; la pantalla de anuncio sigue funcionando. */}}
 function showWinnerAnnouncement(s){
- const winner=String(s.winner||$('winnerInput').value||'').trim();
- if(!winner){alert('Escribe el nombre del robot ganador en el panel de control.');return}
+ const winnerRobot=String(s.winner||'').trim();
+ const winner=String(s.winner_person||winnerRobot||$('winnerInput').value||'').trim();
+ if(!winner){console.warn('No hay un ganador disponible para mostrar.');return}
  const reason=String(s.reason||$('reasonInput').value||'').trim();
  let winnerImage=s.robot1_image||'/Imagenes/R_Amarillo.png';
- if(winner.toLocaleLowerCase()===String(s.robot2||'').trim().toLocaleLowerCase())winnerImage=s.robot2_image||'/Imagenes/R_Morado.png';
- else if(winner.toLocaleLowerCase()!==String(s.robot1||'').trim().toLocaleLowerCase()){
-  const normalized=winner.toLocaleLowerCase();
+ if(winnerRobot.toLocaleLowerCase()===String(s.robot2||'').trim().toLocaleLowerCase())winnerImage=s.robot2_image||'/Imagenes/R_Morado.png';
+ else if(winnerRobot.toLocaleLowerCase()!==String(s.robot1||'').trim().toLocaleLowerCase()){
+  const normalized=winnerRobot.toLocaleLowerCase();
   if(normalized.includes('verde'))winnerImage='/Imagenes/R_Verde.png';
   else if(normalized.includes('rojo'))winnerImage='/Imagenes/R_Rojo.png';
   else if(normalized.includes('morado'))winnerImage='/Imagenes/R_Morado.png';
   else if(normalized.includes('amarillo'))winnerImage='/Imagenes/R_Amarillo.png';
  }
  $('winnerRobotImage').src=winnerImage;
- $('winnerRobotImage').alt='Robot ganador: '+winner;
+ $('winnerRobotImage').alt='Robot ganador: '+winnerRobot;
  $('winnerAnnouncement').style.setProperty('--winner-glow',robotColor(winnerImage,winner));
  $('winnerAnnouncementName').textContent=winner;
  $('winnerAnnouncementTime').innerHTML=fmt(s.elapsed_seconds);
@@ -369,7 +370,7 @@ $('noBattlesButton').addEventListener('click',async()=>{await enterAnnouncementF
 $('next').addEventListener('click',async()=>{await enterAnnouncementFullscreen();try{const s=await api('/api/next','POST');render(s);$('winnerInput').value='';$('reasonInput').value='';showNextAnnouncement(s)}catch(e){alert(e.message||'No se pudo preparar la siguiente batalla.')}});
 async function attack(robot,action){try{render(await api(action==='add'?'/api/attack/'+robot:'/api/attack/'+robot+'/decrement','POST'))}catch(e){alert(e.message||'No se pudo actualizar el contador de ataques.')}}
 $('addAttack1').addEventListener('click',()=>attack(1,'add'));$('removeAttack1').addEventListener('click',()=>attack(1,'remove'));$('addAttack2').addEventListener('click',()=>attack(2,'add'));$('removeAttack2').addEventListener('click',()=>attack(2,'remove'));
-async function refresh(){try{const s=await api('/api/state');render(s);await handleTerminalAction(s)}catch(e){$('status').textContent='SIN CONEXIÓN';$('status').classList.remove('running','paused','finished','ready')}}if(new URLSearchParams(window.location.search).get('panel')==='control'){showTab('control');toggleSettings(true)}
+async function refresh(){try{const s=await api('/api/state');render(s);await handleTerminalAction(s)}catch(e){$('status').textContent='SIN CONEXIÓN';$('status').classList.remove('running','paused','finished','ready')}}async function refreshTime(){try{const t=await api('/api/time');if(t.time_source==='python'){timerBaseSeconds=Math.max(0,Number(t.elapsed_seconds)||0);timerBaseAt=performance.now();timerRunning=false;updateClock()}}catch(e){}}if(new URLSearchParams(window.location.search).get('panel')==='control'){showTab('control');toggleSettings(true)}
 async function openDirectWinnerPage(){
  if(window.location.pathname!=='/winner')return;
  try{
@@ -385,6 +386,6 @@ async function openDirectWinnerPage(){
   }
  }catch(e){alert('No se pudo cargar el resultado de la batalla. Comprueba que el dashboard esté activo.')}
 }
-refresh();openDirectWinnerPage();setInterval(refresh,250);setInterval(updateClock,80);</script>
+refresh();openDirectWinnerPage();setInterval(refresh,250);setInterval(refreshTime,80);setInterval(updateClock,80);</script>
 </body>
 </html>
