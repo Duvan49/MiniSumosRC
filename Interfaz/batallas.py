@@ -1507,6 +1507,12 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             ) if principal.winfo_exists() else None
         )
     )
+    principal.bind(
+        "<Destroy>",
+        lambda evento: dashboard_bridge.set_attacks_callback(None)
+        if evento.widget is principal else None,
+        add="+"
+    )
 
     tk.Label(
         datos, text="◷  TIEMPO",
