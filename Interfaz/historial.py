@@ -120,12 +120,52 @@ def mostrar_historial(contenedor):
     )
     tabla.configure(style="Historial.Treeview")
 
-    barra_vertical = ttk.Scrollbar(marco, orient="vertical", command=tabla.yview)
-    barra_horizontal = ttk.Scrollbar(principal, orient="horizontal", command=tabla.xview)
-    tabla.configure(yscrollcommand=barra_vertical.set, xscrollcommand=barra_horizontal.set)
+    tiempos_visuales = []
+    etiquetas_tiempo = []
+
+    def dibujar_tiempos_visuales():
+        for widget in etiquetas_tiempo:
+            widget.destroy()
+        etiquetas_tiempo.clear()
+        for item, tiempo_principal, centesimas in tiempos_visuales:
+            caja = tabla.bbox(item, "tiempo")
+            caja_cent = tabla.bbox(item, "centesimas")
+            if not caja or not caja_cent:
+                continue
+            x, y, _ancho, alto = caja
+            ancho_total = caja_cent[0] + caja_cent[2] - x
+            celda = tk.Frame(tabla, bg="#FFFFFF", bd=0, highlightthickness=0)
+            celda.place(x=x, y=y, width=ancho_total, height=alto)
+            tk.Label(
+                celda, text=tiempo_principal, font=("Arial", 12),
+                bg="#FFFFFF", fg="#1F2937", bd=0
+            ).pack(side="left", anchor="center")
+            tk.Label(
+                celda, text=centesimas, font=("Arial", 8),
+                bg="#FFFFFF", fg="#1F2937", bd=0
+            ).pack(side="left", anchor="s", pady=(0, 6))
+            celda.bind("<Button-1>", lambda _e, iid=item: tabla.selection_set(iid))
+            etiquetas_tiempo.append(celda)
+
+    barra_vertical = ttk.Scrollbar(
+        marco, orient="vertical",
+        command=lambda *args: (tabla.yview(*args), dibujar_tiempos_visuales())
+    )
+    barra_horizontal = ttk.Scrollbar(
+        principal, orient="horizontal",
+        command=lambda *args: (tabla.xview(*args), dibujar_tiempos_visuales())
+    )
+    tabla.configure(
+        yscrollcommand=lambda *args: (barra_vertical.set(*args), dibujar_tiempos_visuales()),
+        xscrollcommand=lambda *args: (barra_horizontal.set(*args), dibujar_tiempos_visuales())
+    )
     tabla.pack(side="left", fill="both", expand=True)
     barra_vertical.pack(side="right", fill="y")
     barra_horizontal.pack(fill="x")
+    tabla.bind("<Configure>", lambda _e: dibujar_tiempos_visuales(), add="+")
+    tabla.bind("<MouseWheel>", lambda _e: tabla.after_idle(dibujar_tiempos_visuales), add="+")
+    tabla.bind("<Button-4>", lambda _e: tabla.after_idle(dibujar_tiempos_visuales), add="+")
+    tabla.bind("<Button-5>", lambda _e: tabla.after_idle(dibujar_tiempos_visuales), add="+")
 
     def cargar():
         if not principal.winfo_exists():
@@ -133,16 +173,20 @@ def mostrar_historial(contenedor):
         try:
             filas = obtener_historial()
             tabla.delete(*tabla.get_children())
+            tiempos_visuales.clear()
 
             for fila in filas:
                 valores = list(fila)
                 valores[0] = str(valores[0])
                 tiempo, centesimas = _separar_tiempo_tabla(valores[3])
-                valores[3] = tiempo
-                valores.insert(4, centesimas)
+                valores[3] = ""
+                valores.insert(4, "")
                 valores[5] = "—" if valores[5] in ("", None) else valores[5]
                 valores[6] = "—" if valores[6] in ("", None) else valores[6]
-                tabla.insert("", "end", values=valores)
+                item = tabla.insert("", "end", values=valores)
+                if tiempo != "—":
+                    tiempos_visuales.append((item, tiempo, centesimas))
+            tabla.after_idle(dibujar_tiempos_visuales)
 
         except sqlite3.Error as error:
             print(f"No se pudo cargar el historial: {error}")
