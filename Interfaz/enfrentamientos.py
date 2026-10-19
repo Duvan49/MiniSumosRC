@@ -824,7 +824,7 @@ def mostrar_enfrentamientos(contenedor):
 
     boton_actualizar = tk.Button(
         marco_botones, text="ACTUALIZAR",
-        command=actualizar_manual, font=("Arial", 11, "bold"),
+        command=lambda: actualizar_manual(), font=("Arial", 11, "bold"),
         bg="#E5E7EB", fg="#1F2937",
         activebackground="#D1D5DB", activeforeground="#111827",
         relief="flat", bd=0, cursor="hand2", padx=18, pady=10
