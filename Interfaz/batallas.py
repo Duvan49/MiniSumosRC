@@ -654,7 +654,8 @@ def centrar_ventana(ventana, ancho, alto):
 def abrir_resultado(
     parent,
     batalla,
-    actualizar
+    actualizar,
+    tiempo_agotado=False
 ):
 
     (
@@ -793,7 +794,9 @@ def abrir_resultado(
                 tiempo_resultado_frame, text="00",
                 font=("Segoe UI", 10, "bold"), fg="#17202a", bg="white"
             )
-            tiempo_resultado_centesimas.pack(side="left", anchor="s", pady=(0, 2))
+            tiempo_resultado_centesimas.pack(
+                side="left", anchor="s", padx=0, pady=(0, 2), ipadx=0
+            )
             _actualizar_tiempo_visual(
                 tiempo_resultado_principal, tiempo_resultado_centesimas, valor
             )
@@ -932,6 +935,15 @@ def abrir_resultado(
         )
         boton.pack(fill="x", pady=3)
         botones_criterio[texto] = boton
+
+    # Si se agotaron los dos minutos, sugerir automáticamente al robot con
+    # más ataques y el criterio correspondiente. Si empatan, no se adivina.
+    if tiempo_agotado and ataques1 != ataques2:
+        if ataques1 > ataques2:
+            seleccionar_ganador(participante1)
+        else:
+            seleccionar_ganador(participante2)
+        seleccionar_criterio("Mayor cantidad de ataques")
 
     # --------------------------------------------------------
     # REGISTRAR
@@ -1821,7 +1833,8 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             return
         finalizacion_automatica_activada = True
 
-        reloj.finalizar(limite_segundos=120 if automatica else None)
+        tiempo_agotado = reloj.segundos() >= 120
+        reloj.finalizar(limite_segundos=120)
         guardar_reloj(
             id_batalla, "En curso", reloj.obtener_tiempo(), None
         )
@@ -1868,7 +1881,8 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         abrir_resultado(
             contenedor.winfo_toplevel(),
             tuple(batalla_resultado),
-            despues_resultado
+            despues_resultado,
+            tiempo_agotado=tiempo_agotado
         )
 
     # --------------------------------------------------------
