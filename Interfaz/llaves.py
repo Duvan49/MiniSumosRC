@@ -59,14 +59,14 @@ def _tiempo_a_segundos(valor):
 
 
 def _segundos_a_tiempo(segundos):
-    """Formatea segundos como M:SS:CC (minutos:segundos:centésimas)."""
+    """Formatea minutos, segundos y centésimas como MM:SSCC para las tablas."""
     if segundos is None:
-        return "0:00:00"
+        return "00:0000"
     total_centesimas = max(0, int(round(float(segundos) * 100)))
     minutos = total_centesimas // 6000
     segundos_restantes = (total_centesimas % 6000) // 100
     centesimas = total_centesimas % 100
-    return f"{minutos}:{segundos_restantes:02d}:{centesimas:02d}"
+    return f"{minutos:02d}:{segundos_restantes:02d}{centesimas:02d}"
 
 
 def _cantidad_participantes_validos(cursor):
