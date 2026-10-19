@@ -34,7 +34,10 @@ class DashboardBridge:
             self._attacks_callback = callback
             attacks = self._attacks
         if callback:
-            callback(*attacks)
+            try:
+                callback(*attacks)
+            except Exception:
+                pass
 
     def set_state(self, payload):
         """Marca el estado pendiente solo cuando cambia algún dato."""
@@ -53,7 +56,10 @@ class DashboardBridge:
                 self._dirty = True
                 self._condition.notify()
         if callback:
-            callback(*attacks)
+            try:
+                callback(*attacks)
+            except Exception:
+                pass
 
     def set_time(self, elapsed_seconds):
         try:
@@ -136,7 +142,10 @@ class DashboardBridge:
                                     self._attacks = updated
                                     callback = self._attacks_callback
                                 if changed and callback:
-                                    callback(*updated)
+                                    try:
+                                        callback(*updated)
+                                    except Exception:
+                                        pass
                         except (ValueError, TypeError, json.JSONDecodeError):
                             continue
             except (URLError, HTTPError, TimeoutError, OSError):
