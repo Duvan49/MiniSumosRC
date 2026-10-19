@@ -47,6 +47,11 @@ class DashboardBridge:
         with self._lock:
             self._ui_callback = callback
 
+    def get_state(self):
+        """Devuelve una copia del último estado, útil al reconstruir una pestaña."""
+        with self._lock:
+            return dict(self._state) if self._state is not None else {}
+
     def set_state(self, payload):
         """Marca el estado pendiente solo cuando cambia algún dato."""
         callback = None
