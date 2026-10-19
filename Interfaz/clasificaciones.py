@@ -294,6 +294,8 @@ def mostrar_clasificaciones(contenedor):
                     color_tiempo = "#DCFCE7" if tag == "clasifica" else "#FEE2E2" if tag == "eliminado" else "#FFFFFF"
                     tiempos_visuales.append((item, tiempo, centesimas, color_tiempo))
 
+        tabla.after_idle(dibujar_tiempos_visuales)
+
     def actualizar_periodicamente():
         if not principal.winfo_exists():
             return
