@@ -252,7 +252,7 @@ async function handleTerminalAction(s){
  if(s.ui_action==='countdown_start'){hideAnnouncements();$('countdownOverlay').hidden=false;playCountdownSound();return}
  if(s.ui_action==='alarm'){playAlarmSound();return}
  if(s.ui_action==='home'){
-  hideAnnouncements();
+  hideAnnouncements();stopAlarmSound();
   // Al volver al inicio se mantiene la pantalla expandida para mostrar la arena.
   await enterAnnouncementFullscreen();
   return;
