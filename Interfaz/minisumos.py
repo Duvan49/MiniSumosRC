@@ -539,12 +539,15 @@ def iniciar_dashboard():
     if not dashboard_disponible():
         opciones = {}
 
+        # En Windows, ejecuta el servidor sin abrir una ventana de consola.
         if os.name == "nt":
-            opciones["creationflags"] = subprocess.CREATE_NEW_CONSOLE
+            opciones["creationflags"] = subprocess.CREATE_NO_WINDOW
 
         proceso_dashboard = subprocess.Popen(
             [sys.executable, RUTA_APP_DASHBOARD],
             cwd=BASE_DIR,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
             **opciones
         )
         dashboard_iniciado_por_minisumos = True
