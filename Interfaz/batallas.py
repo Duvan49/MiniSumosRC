@@ -1619,6 +1619,14 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     # ACTUALIZACIÓN LOCAL DEL CRONÓMETRO
     # --------------------------------------------------------
 
+    ventana_raiz = principal.winfo_toplevel()
+
+    def interfaz_batallas_disponible():
+        try:
+            return bool(principal.winfo_exists())
+        except tk.TclError:
+            return False
+
     finalizacion_automatica_activada = False
     alarma_activada = False
     alarma_audio_completada = False
@@ -1645,7 +1653,12 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
     def actualizar_datos():
         nonlocal alarma_activada, alarma_audio_completada, alarma_inicio_monotonic
-        if not principal.winfo_exists():
+
+        # El reloj y la finalización automática deben seguir activos aunque
+        # el usuario cambie de pestaña y se destruya el panel de Batallas.
+        if (not interfaz_batallas_disponible()
+                and not cuenta_regresiva_activa
+                and reloj.estado in ("Pausada", "Finalizada")):
             return
 
         tiempo_actual = reloj.segundos()
@@ -1672,9 +1685,9 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             return
 
         # La actualización periódica no debe tapar los números 3, 2 y 1.
-        if not cuenta_regresiva_activa:
+        if not cuenta_regresiva_activa and interfaz_batallas_disponible():
             _actualizar_tiempo_visual(tiempo_principal_label, tiempo_centesimas_label, reloj.obtener_tiempo())
-        principal.after(80, actualizar_datos)
+        ventana_raiz.after(80, actualizar_datos)
 
     # --------------------------------------------------------
     # INICIAR
@@ -1708,28 +1721,30 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
         def avanzar_cuenta():
             nonlocal cuenta_regresiva_activa, cuenta_regresiva_restante
-            if not principal.winfo_exists() or not cuenta_regresiva_activa:
+            if not cuenta_regresiva_activa:
                 return
             if cuenta_regresiva_restante > 0:
                 valor = cuenta_regresiva_restante
-                tiempo_principal_label.config(text=str(valor))
-                tiempo_centesimas_label.config(text="")
-                estado_label.config(text="PREPÁRATE...")
+                if interfaz_batallas_disponible():
+                    tiempo_principal_label.config(text=str(valor))
+                    tiempo_centesimas_label.config(text="")
+                    estado_label.config(text="PREPÁRATE...")
                 dashboard_bridge.set_state({"countdown_value": str(valor)})
                 cuenta_regresiva_restante -= 1
-                principal.after(1000, avanzar_cuenta)
+                ventana_raiz.after(1000, avanzar_cuenta)
                 return
 
-            # El reloj espera la confirmación de finalización del audio del dashboard.
-            tiempo_principal_label.config(text="¡YA!")
-            tiempo_centesimas_label.config(text="")
-            estado_label.config(text="¡YA!")
+            # La cuenta y el inicio dependen de la ventana principal, no de la pestaña.
+            if interfaz_batallas_disponible():
+                tiempo_principal_label.config(text="¡YA!")
+                tiempo_centesimas_label.config(text="")
+                estado_label.config(text="¡YA!")
             dashboard_bridge.set_state({"countdown_value": "¡YA!"})
-            principal.after(8000, iniciar_batalla_tras_audio)
+            ventana_raiz.after(8000, iniciar_batalla_tras_audio)
 
         def iniciar_batalla_tras_audio():
             nonlocal cuenta_regresiva_activa
-            if not principal.winfo_exists() or not cuenta_regresiva_activa:
+            if not cuenta_regresiva_activa:
                 return
             cuenta_regresiva_activa = False
             dashboard_bridge.set_state({
@@ -1742,20 +1757,21 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 id_batalla, "En curso",
                 reloj.obtener_tiempo_base(), reloj.inicio_epoch()
             )
-            estado_label.config(text="EN CURSO")
-            _actualizar_tiempo_visual(
-                tiempo_principal_label, tiempo_centesimas_label, reloj.obtener_tiempo()
-            )
-            boton_pausar.config(state="normal")
-            boton_continuar.config(state="disabled")
-            boton_finalizar.config(state="normal")
+            if interfaz_batallas_disponible():
+                estado_label.config(text="EN CURSO")
+                _actualizar_tiempo_visual(
+                    tiempo_principal_label, tiempo_centesimas_label, reloj.obtener_tiempo()
+                )
+                boton_pausar.config(state="normal")
+                boton_continuar.config(state="disabled")
+                boton_finalizar.config(state="normal")
             dashboard_bridge.trigger("home")
 
         def completar_audio(action):
             nonlocal alarma_audio_completada
             if action == "countdown_complete":
                 try:
-                    principal.after(0, iniciar_batalla_tras_audio)
+                    ventana_raiz.after(0, iniciar_batalla_tras_audio)
                 except tk.TclError:
                     pass
             elif action == "alarm_complete":
@@ -1764,12 +1780,12 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 # exacto; si ya llegó, abrir el registro inmediatamente.
                 if reloj.estado == "En curso" and reloj.segundos() >= 120:
                     try:
-                        principal.after(0, lambda: finalizar(automatica=True))
+                        ventana_raiz.after(0, lambda: finalizar(automatica=True))
                     except tk.TclError:
                         pass
 
         dashboard_bridge.set_ui_callback(completar_audio)
-        principal.after(1000, avanzar_cuenta)
+        ventana_raiz.after(1000, avanzar_cuenta)
 
     # --------------------------------------------------------
     # PAUSAR
