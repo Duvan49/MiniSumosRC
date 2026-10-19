@@ -1458,6 +1458,14 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         reloj.estado = "Pausada"
     elif estado == "En curso":
         reloj.estado = "En curso"
+        # Compatibilidad con batallas que ya estaban activas antes de guardar
+        # la marca temporal en la base de datos.
+        if inicio_epoch_bd is None:
+            reloj._inicio_tramo = __import__("time").time()
+            guardar_reloj(
+                id_batalla, "En curso",
+                reloj.obtener_tiempo_base(), reloj.inicio_epoch()
+            )
     cuenta_regresiva_activa = False
     cuenta_regresiva_restante = 0
 
