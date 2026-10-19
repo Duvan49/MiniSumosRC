@@ -1,5 +1,7 @@
-from flask import Flask, jsonify, request, render_template, send_from_directory
+from flask import Flask, jsonify, request, render_template, send_from_directory, Response, stream_with_context
 from threading import Lock, Thread
+from queue import Queue, Empty
+import json
 import os
 import time
 
@@ -8,6 +10,20 @@ TEMPLATE_DIR = os.path.join(PROJECT_ROOT, "templates")
 
 app = Flask(__name__, template_folder=TEMPLATE_DIR)
 lock = Lock()
+event_lock = Lock()
+event_subscribers = set()
+
+
+def publish_event(kind, data):
+    message = json.dumps({"type": kind, "data": data}, ensure_ascii=False)
+    with event_lock:
+        subscribers = list(event_subscribers)
+    for subscriber in subscribers:
+        try:
+            subscriber.put_nowait(message)
+        except Exception:
+            pass
+
 
 state = {
     "robot1": "AMARILLO", "robot2": "MORADO",
@@ -51,6 +67,31 @@ def assets(filename):
         return jsonify({"error": "Recurso no encontrado"}), 404
     return send_from_directory(PROJECT_ROOT, filename)
 
+@app.get("/api/stream")
+def event_stream():
+    subscriber = Queue()
+    with event_lock:
+        event_subscribers.add(subscriber)
+
+    def generate():
+        try:
+            with lock:
+                initial = snapshot()
+            yield "data: " + json.dumps({"type": "state", "data": initial}, ensure_ascii=False) + "\\n\\n"
+            while True:
+                try:
+                    message = subscriber.get(timeout=15)
+                    yield "data: " + message + "\\n\\n"
+                except Empty:
+                    yield ": keep-alive\\n\\n"
+        finally:
+            with event_lock:
+                event_subscribers.discard(subscriber)
+
+    return Response(stream_with_context(generate()), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
 @app.get("/api/state")
 def get_state():
     with lock:
@@ -92,6 +133,7 @@ def python_time():
         state["started_at"] = None
         state["time_source"] = "python"
         state["python_mode"] = True
+        publish_event("time", {"elapsed_seconds": state["elapsed_seconds"], "phase": state["phase"], "time_source": "python"})
         return jsonify({"elapsed_seconds": state["elapsed_seconds"]})
 
 
@@ -165,7 +207,9 @@ def python_sync():
                             state[key] = max(0, int(payload[key]))
                         except (TypeError, ValueError):
                             pass
-        return jsonify(snapshot())
+        current = snapshot()
+        publish_event("state", current)
+        return jsonify(current)
 
 
 @app.post("/api/attack/<int:robot>")
@@ -177,7 +221,9 @@ def add_attack(robot):
             return jsonify({"error": "Solo se pueden registrar ataques durante una batalla en curso"}), 409
         key = "attacks1" if robot == 1 else "attacks2"
         state[key] += 1
-        return jsonify(snapshot())
+        current = snapshot()
+        publish_event("state", current)
+        return jsonify(current)
 
 @app.post("/api/attack/<int:robot>/decrement")
 def remove_attack(robot):
@@ -188,7 +234,9 @@ def remove_attack(robot):
             return jsonify({"error": "Solo se pueden corregir ataques durante una batalla en curso"}), 409
         key = "attacks1" if robot == 1 else "attacks2"
         state[key] = max(0, state[key] - 1)
-        return jsonify(snapshot())
+        current = snapshot()
+        publish_event("state", current)
+        return jsonify(current)
 
 @app.post("/api/config")
 def configure():
@@ -199,7 +247,9 @@ def configure():
                 name = str(payload[key]).strip()[:40]
                 if name:
                     state[key] = name
-        return jsonify(snapshot())
+        current = snapshot()
+        publish_event("state", current)
+        return jsonify(current)
 
 @app.post("/api/start")
 def start_battle():
@@ -209,7 +259,9 @@ def start_battle():
             "elapsed_seconds": 0, "started_at": time.time(), "time_source": "dashboard", "python_mode": False,
             "status": "BATALLA EN CURSO", "phase": "running"
         })
-        return jsonify(snapshot())
+        current = snapshot()
+        publish_event("state", current)
+        return jsonify(current)
 
 @app.post("/api/pause")
 def pause_battle():
@@ -219,7 +271,9 @@ def pause_battle():
         state["started_at"] = None
         state["phase"] = "paused"
         state["status"] = "BATALLA PAUSADA"
-        return jsonify(snapshot())
+        current = snapshot()
+        publish_event("state", current)
+        return jsonify(current)
 
 @app.post("/api/finish")
 def finish_battle():
@@ -232,7 +286,9 @@ def finish_battle():
         state["status"] = "BATALLA FINALIZADA"
         state["winner"] = str(payload.get("winner", "")).strip()[:40]
         state["reason"] = str(payload.get("reason", "")).strip()[:80]
-        return jsonify(snapshot())
+        current = snapshot()
+        publish_event("state", current)
+        return jsonify(current)
 
 @app.post("/api/next")
 def next_battle():
@@ -254,7 +310,9 @@ def next_battle():
             "status": "PREPARADOS PARA LA BATALLA", "phase": "ready", "time_source": "dashboard", "python_mode": False,
             "battle_id": None, "person1": "", "person2": "", "countdown_active": False, "countdown_value": "3"
         })
-        return jsonify(snapshot())
+        current = snapshot()
+        publish_event("state", current)
+        return jsonify(current)
 
 def terminal_command_loop():
     print("\nComandos: r.NOMBRE | rr.NOMBRE | t.MIN.SEG.CENTESIMAS | mot.MOTIVO | ini | pau | con | fin | g.1 | g.2 | p.NOMBRE1.NOMBRE2 | pn | home | salir")
@@ -323,6 +381,7 @@ def terminal_command_loop():
                     state.update({"ui_action": "no_battles", "ui_action_id": state["ui_action_id"] + 1})
                 else:
                     raise ValueError("Comando no reconocido.")
+            publish_event("state", snapshot())
             print("Comando aplicado:", raw)
         except ValueError as exc:
             print("Error:", exc)
