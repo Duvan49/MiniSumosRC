@@ -71,10 +71,11 @@ function render(s){
  $('phase').classList.toggle('running',running);
 }
 async function refresh(){try{render(await api('/api/state'))}catch(e){$('phase').textContent='SIN CONEXIÓN'}}
-async function attack(action){try{render(await api(action==='add'?'/api/attack/'+ROBOT:'/api/attack/'+ROBOT+'/decrement','POST'))}catch(e){alert(e.message);refresh()}}
+const events=new EventSource('/api/stream');events.onmessage=event=>{try{const message=JSON.parse(event.data);if(message.type==='state')render(message.data)}catch(e){}};
+async function attack(action){try{render(await api(action==='add'?'/api/attack/'+ROBOT:'/api/attack/'+ROBOT+'/decrement','POST'))}catch(e){alert(e.message)}}
 $('addAttack').addEventListener('click',()=>attack('add'));$('removeAttack').addEventListener('click',()=>attack('remove'));
 
-refresh();setInterval(refresh,250);
+refresh();
 </script>
 </body>
 </html>
