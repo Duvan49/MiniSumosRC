@@ -63,7 +63,9 @@ async function api(path,method='GET'){const res=await fetch(path,{method,headers
 function render(s){
  const one=ROBOT===1,name=one?s.robot1:s.robot2,count=one?s.attacks1:s.attacks2,image=one?s.robot1_image:s.robot2_image;
  $('robotName').textContent=name;$('attackCount').textContent=count;$('robotImage').src=image|| (one?'/Imagenes/R_Amarillo.png':'/Imagenes/R_Morado.png');
- document.querySelector('.page').style.setProperty('--robot-color',one?'#ffe34d': '#c28cff');
+ const imageName=String(image||'').toLowerCase();
+ const color=imageName.includes('amarillo')?'#ffe34d':imageName.includes('morado')?'#c28cff':imageName.includes('rojo')?'#ff5878':imageName.includes('verde')?'#63ffad':(one?'#ffe34d':'#c28cff');
+ document.querySelector('.page').style.setProperty('--robot-color',color);
  const running=s.phase==='running';$('addAttack').disabled=!running;$('removeAttack').disabled=!running;
  $('phase').textContent=running?'BATALLA EN CURSO':s.phase==='paused'?'BATALLA PAUSADA':s.phase==='finished'?'BATALLA FINALIZADA':'ESPERANDO INICIO';
  $('phase').classList.toggle('running',running);
@@ -72,7 +74,7 @@ async function refresh(){try{render(await api('/api/state'))}catch(e){$('phase')
 async function attack(action){try{render(await api(action==='add'?'/api/attack/'+ROBOT:'/api/attack/'+ROBOT+'/decrement','POST'))}catch(e){alert(e.message);refresh()}}
 $('addAttack').addEventListener('click',()=>attack('add'));$('removeAttack').addEventListener('click',()=>attack('remove'));
 
-refresh();setInterval(refresh,500);
+refresh();setInterval(refresh,250);
 </script>
 </body>
 </html>
