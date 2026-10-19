@@ -127,10 +127,49 @@ def mostrar_clasificaciones(contenedor):
     )
     tabla.configure(style="Clasificaciones.Treeview")
 
-    barra = ttk.Scrollbar(marco, orient="vertical", command=tabla.yview)
-    tabla.configure(yscrollcommand=barra.set)
+    tiempos_visuales = []
+    etiquetas_tiempo = []
+
+    def dibujar_tiempos_visuales():
+        for widget in etiquetas_tiempo:
+            widget.destroy()
+        etiquetas_tiempo.clear()
+        for item, tiempo_principal, centesimas, color_fondo in tiempos_visuales:
+            caja = tabla.bbox(item, "tiempo")
+            caja_cent = tabla.bbox(item, "centesimas")
+            if not caja or not caja_cent:
+                continue
+            x, y, _ancho, alto = caja
+            ancho_total = caja_cent[0] + caja_cent[2] - x
+            celda = tk.Frame(tabla, bg=color_fondo, bd=0, highlightthickness=0)
+            celda.place(x=x, y=y, width=ancho_total, height=alto)
+            tk.Label(
+                celda, text=tiempo_principal, font=("Arial", 14),
+                bg=color_fondo, fg="#1F2937", bd=0
+            ).pack(side="left", anchor="center")
+            tk.Label(
+                celda, text=centesimas, font=("Arial", 9),
+                bg=color_fondo, fg="#1F2937", bd=0
+            ).pack(side="left", anchor="s", pady=(0, 7))
+            celda.bind("<Button-1>", lambda _e, iid=item: tabla.selection_set(iid))
+            etiquetas_tiempo.append(celda)
+
+    def desplazar_tiempos(*_args):
+        dibujar_tiempos_visuales()
+
+    barra = ttk.Scrollbar(
+        marco, orient="vertical",
+        command=lambda *args: (tabla.yview(*args), dibujar_tiempos_visuales())
+    )
+    tabla.configure(
+        yscrollcommand=lambda *args: (barra.set(*args), dibujar_tiempos_visuales())
+    )
     tabla.pack(side="left", fill="both", expand=True)
     barra.pack(side="right", fill="y")
+    tabla.bind("<Configure>", lambda _e: dibujar_tiempos_visuales(), add="+")
+    tabla.bind("<MouseWheel>", lambda _e: tabla.after_idle(dibujar_tiempos_visuales), add="+")
+    tabla.bind("<Button-4>", lambda _e: tabla.after_idle(dibujar_tiempos_visuales), add="+")
+    tabla.bind("<Button-5>", lambda _e: tabla.after_idle(dibujar_tiempos_visuales), add="+")
 
     tabla.tag_configure("clasifica", background="#DCFCE7", foreground="#166534")
     tabla.tag_configure("eliminado", background="#FEE2E2", foreground="#991B1B")
@@ -175,6 +214,7 @@ def mostrar_clasificaciones(contenedor):
             return
 
         tabla.delete(*tabla.get_children())
+        tiempos_visuales.clear()
         hay_grupos = estado["hay_grupos"]
         if hay_grupos:
             fase_terminada = (
@@ -214,8 +254,8 @@ def mostrar_clasificaciones(contenedor):
                         fila.get("robot") or "—",
                         fila.get("puntos", 0) if fila.get("ha_competido") else "—",
                         f'{(fila.get("porcentaje_ataques") or 0):.1f}%' if fila.get("ha_competido") else "—",
-                        tiempo,
-                        centesimas,
+                        "",
+                        "",
                         f'{(fila.get("porcentaje_victorias") or 0):.0f}%' if fila.get("ha_competido") else "—",
                     )
                     if not fase_terminada:
@@ -224,7 +264,10 @@ def mostrar_clasificaciones(contenedor):
                         tag = "eliminado"
                     else:
                         tag = "clasifica" if fila.get("clasifica") else "eliminado"
-                    tabla.insert("", "end", values=valores, tags=(tag,))
+                    item = tabla.insert("", "end", values=valores, tags=(tag,))
+                    if fila.get("ha_competido"):
+                        color_tiempo = "#DCFCE7" if tag == "clasifica" else "#FEE2E2" if tag == "eliminado" else "#FFFFFF"
+                        tiempos_visuales.append((item, tiempo, centesimas, color_tiempo))
         else:
             for fila in filas:
                 tiempo, centesimas = (
@@ -236,8 +279,8 @@ def mostrar_clasificaciones(contenedor):
                     fila.get("robot") or "—",
                     fila.get("puntos", 0) if fila.get("ha_competido") else "—",
                     f'{(fila.get("porcentaje_ataques") or 0):.1f}%' if fila.get("ha_competido") else "—",
-                    tiempo,
-                    centesimas,
+                    "",
+                    "",
                     f'{(fila.get("porcentaje_victorias") or 0):.0f}%' if fila.get("ha_competido") else "—",
                 )
                 if not fase_terminada:
@@ -246,7 +289,10 @@ def mostrar_clasificaciones(contenedor):
                     tag = "eliminado"
                 else:
                     tag = "clasifica" if fila.get("clasifica") else "eliminado"
-                tabla.insert("", "end", values=valores, tags=(tag,))
+                item = tabla.insert("", "end", values=valores, tags=(tag,))
+                if fila.get("ha_competido"):
+                    color_tiempo = "#DCFCE7" if tag == "clasifica" else "#FEE2E2" if tag == "eliminado" else "#FFFFFF"
+                    tiempos_visuales.append((item, tiempo, centesimas, color_tiempo))
 
     def actualizar_periodicamente():
         if not principal.winfo_exists():
@@ -255,4 +301,5 @@ def mostrar_clasificaciones(contenedor):
         principal.after(1000, actualizar_periodicamente)
 
     cargar()
+    principal.after_idle(dibujar_tiempos_visuales)
     principal.after(1000, actualizar_periodicamente)
