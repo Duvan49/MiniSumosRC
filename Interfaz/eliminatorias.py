@@ -276,6 +276,3 @@ def mostrar_eliminatorias(contenedor):
         )
         return True
     cargar_cuadro_llaves()
-
-    cargar_cuadro_llaves()
-    principal.after(1000, actualizar_periodicamente)
