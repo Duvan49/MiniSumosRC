@@ -1621,20 +1621,6 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         ataques2_label.config(text=str(ataques_actuales2))
         tiempo_actual = reloj.segundos()
         dashboard_bridge.set_time(tiempo_actual)
-        estado_dashboard = "running" if reloj.estado == "En curso" else "paused" if reloj.estado == "Pausada" else "finished" if reloj.estado == "Finalizada" else "ready"
-        dashboard_bridge.set_state({
-            "battle_id": id_batalla, "battle_number": id_batalla,
-            "robot1": str(robot1 or nombre1 or "ROBOT 1"),
-            "robot2": str(robot2 or nombre2 or "ROBOT 2"),
-            "robot1_image": imagen1, "robot2_image": imagen2,
-            "person1": str(nombre1 or ""), "person2": str(nombre2 or ""),
-            "phase": estado_dashboard,
-            "status": "PREPARADOS PARA LA BATALLA" if cuenta_regresiva_activa else ("BATALLA EN CURSO" if estado_dashboard == "running" else "BATALLA PAUSADA" if estado_dashboard == "paused" else "BATALLA FINALIZADA" if estado_dashboard == "finished" else "PREPARADOS PARA LA BATALLA"),
-            "elapsed_seconds": tiempo_actual,
-            "countdown_active": cuenta_regresiva_activa,
-            "countdown_value": str(tiempo_principal_label.cget("text")) if cuenta_regresiva_activa else "3"
-        })
-
         if (not alarma_activada and reloj.estado == "En curso" and reloj.segundos() >= 115):
             alarma_activada = True
             dashboard_bridge.trigger("alarm")
