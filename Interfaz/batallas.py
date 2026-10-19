@@ -565,29 +565,29 @@ def reiniciar_batalla_en_bd(id_batalla):
 
         # Se permite corregir una fase anterior mientras ninguna batalla
         # de una fase posterior haya comenzado.
-        if etapa in ("Grupo", "Todos", "Final"):
+        if etapa in ("Grupo", "Todos"):
             cursor.execute("""
                 SELECT COUNT(*) FROM enfrentamientos
-                WHERE etapa NOT IN ('Grupo', 'Todos', 'Final')
+                WHERE etapa NOT IN ('Grupo', 'Todos')
                   AND estado != 'Pendiente'
             """)
             if cursor.fetchone()[0]:
                 return False, (
                     "No se puede reiniciar esta batalla porque ya se jugó una "
-                    "batalla eliminatoria. Solo se pueden corregir batallas de "
-                    "la fase actual."
+                    "batalla de una fase posterior. Solo se pueden corregir "
+                    "batallas de la fase actual."
                 )
         else:
             cursor.execute("""
                 SELECT COUNT(*) FROM enfrentamientos
-                WHERE etapa NOT IN ('Grupo', 'Todos', 'Final')
+                WHERE etapa NOT IN ('Grupo', 'Todos')
                   AND COALESCE(ronda, 1) > ?
                   AND estado != 'Pendiente'
             """, (ronda,))
             if cursor.fetchone()[0]:
                 return False, (
                     f"No se puede reiniciar {etapa} porque ya se jugó una "
-                    "batalla de una fase eliminatoria posterior."
+                    "batalla de una fase posterior."
                 )
 
         cursor.execute("""
