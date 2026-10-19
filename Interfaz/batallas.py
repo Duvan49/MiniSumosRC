@@ -1957,9 +1957,13 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         estado_label.config(text="PREPÁRATE..." if estado_puente_previo.get("countdown_value", "3") != "¡YA!" else "¡YA!")
 
         def refrescar_cuenta_recuperada():
+            nonlocal cuenta_regresiva_activa
             if not interfaz_batallas_disponible() or not cuenta_regresiva_activa:
                 return
             estado_actual = dashboard_bridge.get_state()
+            if not estado_actual.get("countdown_active", False):
+                cuenta_regresiva_activa = False
+                return
             valor = estado_actual.get("countdown_value", "3")
             tiempo_principal_label.config(text=valor)
             tiempo_centesimas_label.config(text="")
