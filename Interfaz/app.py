@@ -3,7 +3,10 @@ from threading import Lock, Thread
 import os
 import time
 
-app = Flask(__name__)
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TEMPLATE_DIR = os.path.join(PROJECT_ROOT, "templates")
+
+app = Flask(__name__, template_folder=TEMPLATE_DIR)
 lock = Lock()
 
 state = {
@@ -27,6 +30,11 @@ def snapshot():
 def home():
     return render_template("index.html")
 
+@app.get("/winner")
+def winner_page():
+    """Abre directamente la pantalla de ganador; los datos vienen del estado actual."""
+    return render_template("index.html")
+
 @app.get("/attacks/<int:robot>")
 def attacks_page(robot):
     if robot not in (1, 2):
@@ -38,9 +46,7 @@ def assets(filename):
     allowed = {"Imagenes/Fondo.jpg", "Imagenes/Fondo_Ganar.jpg", "Imagenes/Fondo_Proxima.jpg", "Imagenes/No_Batalla.png", "Imagenes/R_Amarillo.png", "Imagenes/R_Morado.png", "Imagenes/R_Rojo.png", "Imagenes/R_Verde.png", "Audios/videoplayback.m4a", "Audios/audio_final.m4a"}
     if filename not in allowed:
         return jsonify({"error": "Recurso no encontrado"}), 404
-    # Los recursos están en la raíz del proyecto, un nivel por encima de Visualizacion/.
-    project_root = os.path.dirname(app.root_path)
-    return send_from_directory(project_root, filename)
+    return send_from_directory(PROJECT_ROOT, filename)
 
 @app.get("/api/state")
 def get_state():
