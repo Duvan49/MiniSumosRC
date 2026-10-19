@@ -1591,7 +1591,6 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
     finalizacion_automatica_activada = False
     alarma_activada = False
-    valor_cuenta_dashboard = "3"
     inicio_epoch_bd = obtener_inicio_epoch(id_batalla)
     reloj = RelojBatalla(
         tiempo_inicial=tiempo_bd or "0:00:00",
@@ -1659,7 +1658,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     # --------------------------------------------------------
 
     def iniciar():
-        nonlocal cuenta_regresiva_activa, cuenta_regresiva_restante, valor_cuenta_dashboard, alarma_activada
+        nonlocal cuenta_regresiva_activa, cuenta_regresiva_restante, alarma_activada
 
         if cuenta_regresiva_activa or reloj.estado in ("En curso", "Pausada", "Finalizada"):
             return
@@ -1669,7 +1668,6 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         dashboard_bridge.set_time(0)
         cuenta_regresiva_activa = True
         cuenta_regresiva_restante = 2
-        valor_cuenta_dashboard = "3"
         dashboard_bridge.set_state({"phase": "ready", "status": "PREPARADOS PARA LA BATALLA", "elapsed_seconds": 0, "countdown_active": True, "countdown_value": "3"})
         dashboard_bridge.trigger("countdown_start")
         estado_label.config(text="PREPÁRATE...")
@@ -1686,7 +1684,6 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 return
             if cuenta_regresiva_restante > 0:
                 tiempo_principal_label.config(text=str(cuenta_regresiva_restante))
-                valor_cuenta_dashboard = str(cuenta_regresiva_restante)
                 tiempo_centesimas_label.config(text="")
                 estado_label.config(text="PREPÁRATE...")
                 cuenta_regresiva_restante -= 1
