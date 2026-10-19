@@ -1553,7 +1553,8 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         cuenta_regresiva_activa = True
         cuenta_regresiva_restante = 2
         estado_label.config(text="PREPÁRATE...")
-        tiempo_label.config(text="3")
+        tiempo_principal_label.config(text="3")
+        tiempo_centesimas_label.config(text="")
         boton_iniciar.config(state="disabled")
         boton_pausar.config(state="disabled")
         boton_continuar.config(state="disabled")
@@ -1564,7 +1565,8 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             if not principal.winfo_exists() or not cuenta_regresiva_activa:
                 return
             if cuenta_regresiva_restante > 0:
-                tiempo_label.config(text=str(cuenta_regresiva_restante))
+                tiempo_principal_label.config(text=str(cuenta_regresiva_restante))
+                tiempo_centesimas_label.config(text="")
                 estado_label.config(text="PREPÁRATE...")
                 cuenta_regresiva_restante -= 1
                 principal.after(1000, avanzar_cuenta)
@@ -1577,6 +1579,9 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 reloj.obtener_tiempo_base(), reloj.inicio_epoch()
             )
             estado_label.config(text="EN CURSO")
+            _actualizar_tiempo_visual(
+                tiempo_principal_label, tiempo_centesimas_label, reloj.obtener_tiempo()
+            )
             boton_pausar.config(state="normal")
             boton_continuar.config(state="disabled")
             boton_finalizar.config(state="normal")
