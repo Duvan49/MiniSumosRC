@@ -264,6 +264,7 @@ async function handleTerminalAction(s){
 }
 let alarmAudio=null;
 const alarmButton=$('alarmButton');
+function stopAlarmSound(){if(alarmAudio&&!alarmAudio.paused){alarmAudio.pause();alarmAudio.currentTime=0;alarmButton.textContent='🚨 ALARM'}}
 async function playAlarmSound(){
  try{
   if(!alarmAudio){alarmAudio=new Audio('/Audios/audio_final.m4a');alarmAudio.preload='auto';alarmAudio.addEventListener('ended',()=>{alarmButton.textContent='🚨 ALARM'})}
