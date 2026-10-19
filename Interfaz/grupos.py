@@ -112,6 +112,3 @@ def mostrar_grupos(contenedor):
         )
 
     cargar()
-
-    cargar()
-    principal.after(2500, actualizar_periodicamente)
