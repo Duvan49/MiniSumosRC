@@ -1,6 +1,12 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
 import os
+import subprocess
+import sys
+import threading
+import time
+import urllib.request
+import webbrowser
 from PIL import Image, ImageTk
 from registro import mostrar_registro, cerrar_registro
 from enfrentamientos import mostrar_enfrentamientos
@@ -507,12 +513,84 @@ crear_boton_menu(
 
 
 # ============================================================
+# INICIAR Y CERRAR DASHBOARD
+# ============================================================
+
+URL_DASHBOARD = "http://127.0.0.1:8000"
+RUTA_APP_DASHBOARD = os.path.join(BASE_DIR, "Interfaz", "app.py")
+proceso_dashboard = None
+dashboard_iniciado_por_minisumos = False
+
+
+def dashboard_disponible():
+    try:
+        with urllib.request.urlopen(
+            f"{URL_DASHBOARD}/api/state",
+            timeout=0.5
+        ):
+            return True
+    except Exception:
+        return False
+
+
+def iniciar_dashboard():
+    global proceso_dashboard, dashboard_iniciado_por_minisumos
+
+    if not dashboard_disponible():
+        opciones = {}
+
+        if os.name == "nt":
+            opciones["creationflags"] = subprocess.CREATE_NEW_CONSOLE
+
+        proceso_dashboard = subprocess.Popen(
+            [sys.executable, RUTA_APP_DASHBOARD],
+            cwd=BASE_DIR,
+            **opciones
+        )
+        dashboard_iniciado_por_minisumos = True
+
+    def esperar_y_abrir_dashboard():
+        limite = time.time() + 20
+
+        while time.time() < limite:
+            if dashboard_disponible():
+                webbrowser.open(URL_DASHBOARD)
+                return
+
+            if (
+                proceso_dashboard is not None
+                and proceso_dashboard.poll() is not None
+                and dashboard_iniciado_por_minisumos
+            ):
+                return
+
+            time.sleep(0.25)
+
+    threading.Thread(
+        target=esperar_y_abrir_dashboard,
+        daemon=True
+    ).start()
+
+
+# ============================================================
 # CERRAR PROGRAMA
 # ============================================================
 
 def cerrar_programa():
 
     cerrar_registro()
+
+    if (
+        dashboard_iniciado_por_minisumos
+        and proceso_dashboard is not None
+        and proceso_dashboard.poll() is None
+    ):
+        proceso_dashboard.terminate()
+
+        try:
+            proceso_dashboard.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            proceso_dashboard.kill()
 
     ventana.destroy()
 
@@ -528,6 +606,7 @@ ventana.protocol(
 # ============================================================
 
 mostrar_pagina_registro()
+iniciar_dashboard()
 
 
 # ============================================================
