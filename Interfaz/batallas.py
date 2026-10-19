@@ -856,10 +856,6 @@ def abrir_resultado(
             ataques2
         )
 
-        # Solo después de registrar el resultado se cierra la batalla en la ESP32.
-        nombre_ganador = robot1 if ganador_id == participante1 else robot2
-        esp32.finalizar_batalla(nombre_ganador, criterio_texto)
-
         ventana.grab_release()
         ventana.destroy()
 
@@ -1424,6 +1420,10 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
     finalizacion_automatica_activada = False
     reloj = RelojBatalla(tiempo_inicial=tiempo_bd or "0:00:00")
+    if estado == "En curso":
+        reloj.iniciar()
+    elif estado == "Pausada":
+        reloj.estado = "Pausada"
     cuenta_regresiva_activa = False
     cuenta_regresiva_restante = 0
 
