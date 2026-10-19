@@ -83,7 +83,7 @@ def event_stream():
                     message = subscriber.get(timeout=15)
                     yield "data: " + message + "\n\n"
                 except Empty:
-                    yield ": keep-alive\\n\\n"
+                    yield ": keep-alive\n\n"
         finally:
             with event_lock:
                 event_subscribers.discard(subscriber)
