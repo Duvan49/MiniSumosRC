@@ -22,23 +22,38 @@ class DashboardBridge:
         self._event_id = int(time.time() * 1000)
         self._event = {"ui_action": "", "ui_action_id": 0}
         self._attacks = (0, 0)
+        self._attacks_callback = None
         self._dirty = False
         self._running = True
         threading.Thread(target=self._worker, name="MiniSumosDashboardBridge", daemon=True).start()
         threading.Thread(target=self._listen_events, name="MiniSumosDashboardEvents", daemon=True).start()
 
+    def set_attacks_callback(self, callback):
+        """Registra el refresco visual de ataques, sin temporizador."""
+        with self._lock:
+            self._attacks_callback = callback
+            attacks = self._attacks
+        if callback:
+            callback(*attacks)
+
     def set_state(self, payload):
         """Marca el estado pendiente solo cuando cambia algún dato."""
+        callback = None
+        attacks = None
         with self._condition:
             if self._state is None:
                 self._state = {}
             changed = any(self._state.get(key) != value for key, value in payload.items())
             if "battle_id" in payload and self._state.get("battle_id") != payload["battle_id"]:
                 self._attacks = (0, 0)
+                callback = self._attacks_callback
+                attacks = self._attacks
             self._state.update(payload)
             if changed:
                 self._dirty = True
                 self._condition.notify()
+        if callback:
+            callback(*attacks)
 
     def set_time(self, elapsed_seconds):
         try:
@@ -112,11 +127,16 @@ class DashboardBridge:
                             message = json.loads(line[5:].strip())
                             data = message.get("data") or {}
                             if message.get("type") == "state":
+                                updated = (
+                                    max(0, int(data.get("attacks1", 0))),
+                                    max(0, int(data.get("attacks2", 0))),
+                                )
                                 with self._lock:
-                                    self._attacks = (
-                                        max(0, int(data.get("attacks1", 0))),
-                                        max(0, int(data.get("attacks2", 0))),
-                                    )
+                                    changed = updated != self._attacks
+                                    self._attacks = updated
+                                    callback = self._attacks_callback
+                                if changed and callback:
+                                    callback(*updated)
                         except (ValueError, TypeError, json.JSONDecodeError):
                             continue
             except (URLError, HTTPError, TimeoutError, OSError):
