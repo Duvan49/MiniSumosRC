@@ -275,14 +275,7 @@ def mostrar_eliminatorias(contenedor):
             )
         )
         return True
-    def actualizar_periodicamente():
-        if not principal.winfo_exists():
-            return
-        try:
-            cargar_cuadro_llaves()
-        except (sqlite3.Error, KeyError, TypeError, IndexError) as error:
-            print(f"No se pudo actualizar el cuadro eliminatorio: {error}")
-        principal.after(1000, actualizar_periodicamente)
+    cargar_cuadro_llaves()
 
     cargar_cuadro_llaves()
     principal.after(1000, actualizar_periodicamente)
