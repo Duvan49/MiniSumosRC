@@ -17,12 +17,15 @@ state = {
     "status": "PREPARADOS PARA LA BATALLA",
     "elapsed_seconds": 0, "started_at": None,
     "winner": "", "reason": "", "phase": "ready",
-    "ui_action": "", "ui_action_id": 0
+    "ui_action": "", "ui_action_id": 0,
+    "battle_id": None, "person1": "", "person2": "",
+    "countdown_active": False, "countdown_value": "3",
+    "time_source": "dashboard", "python_mode": False
 }
 
 def snapshot():
     data = dict(state)
-    if data["phase"] == "running" and data["started_at"] is not None:
+    if data["time_source"] != "python" and data["phase"] == "running" and data["started_at"] is not None:
         data["elapsed_seconds"] = time.time() - data["started_at"]
     return data
 
@@ -52,6 +55,105 @@ def assets(filename):
 def get_state():
     with lock:
         return jsonify(snapshot())
+
+@app.get("/api/time")
+def get_time():
+    with lock:
+        data = snapshot()
+        return jsonify({
+            "elapsed_seconds": data["elapsed_seconds"],
+            "phase": data["phase"],
+            "time_source": data.get("time_source", "dashboard")
+        })
+
+
+@app.post("/api/python/time")
+def python_time():
+    payload = request.get_json(silent=True) or {}
+    try:
+        elapsed = max(0.0, min(float(payload.get("elapsed_seconds", 0)), 86400.0))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Tiempo inválido"}), 400
+    with lock:
+        state["elapsed_seconds"] = elapsed
+        state["started_at"] = None
+        state["time_source"] = "python"
+        state["python_mode"] = True
+        return jsonify({"elapsed_seconds": state["elapsed_seconds"]})
+
+
+@app.post("/api/python/sync")
+def python_sync():
+    payload = request.get_json(silent=True) or {}
+    allowed = (
+        "robot1", "robot2", "robot1_image", "robot2_image",
+        "battle_number", "battle_id", "person1", "person2",
+        "status", "phase", "winner", "winner_person", "reason",
+        "countdown_active", "countdown_value"
+    )
+    with lock:
+        incoming_battle = payload.get("battle_id", state.get("battle_id"))
+        if incoming_battle != state.get("battle_id"):
+            state["attacks1"] = 0
+            state["attacks2"] = 0
+        for key in allowed:
+            if key not in payload:
+                continue
+            value = payload[key]
+            if key in ("robot1", "robot2", "person1", "person2", "winner", "winner_person", "reason", "status"):
+                value = str(value or "")[:100]
+            elif key == "phase":
+                if value not in ("ready", "running", "paused", "finished"):
+                    continue
+            elif key == "battle_number":
+                try:
+                    value = max(0, int(value))
+                except (TypeError, ValueError):
+                    continue
+            elif key == "battle_id":
+                try:
+                    value = int(value) if value is not None else None
+                except (TypeError, ValueError):
+                    continue
+            elif key in ("robot1_image", "robot2_image"):
+                value = str(value or "")
+                if value not in ("/Imagenes/R_Amarillo.png", "/Imagenes/R_Morado.png",
+                                 "/Imagenes/R_Rojo.png", "/Imagenes/R_Verde.png"):
+                    continue
+            elif key == "countdown_active":
+                value = bool(value)
+            elif key == "countdown_value":
+                value = str(value or "3")[:8]
+            state[key] = value
+
+        state["time_source"] = "python"
+        state["python_mode"] = True
+        state["started_at"] = None
+        if "elapsed_seconds" in payload:
+            try:
+                state["elapsed_seconds"] = max(0.0, min(float(payload["elapsed_seconds"]), 86400.0))
+            except (TypeError, ValueError):
+                pass
+
+        # Los ataques los gestiona este servidor. Python solo entrega los valores
+        # finales al mostrar al ganador, no sobrescribe el contador durante la pelea.
+        action = str(payload.get("ui_action", ""))
+        try:
+            action_id = int(payload.get("ui_action_id", 0))
+        except (TypeError, ValueError):
+            action_id = 0
+        if action_id > int(state.get("ui_action_id", 0)):
+            state["ui_action"] = action[:40]
+            state["ui_action_id"] = action_id
+            if action == "winner":
+                for key in ("attacks1", "attacks2"):
+                    if key in payload:
+                        try:
+                            state[key] = max(0, int(payload[key]))
+                        except (TypeError, ValueError):
+                            pass
+        return jsonify(snapshot())
+
 
 @app.post("/api/attack/<int:robot>")
 def add_attack(robot):
@@ -91,7 +193,7 @@ def start_battle():
     with lock:
         state.update({
             "attacks1": 0, "attacks2": 0, "winner": "", "reason": "",
-            "elapsed_seconds": 0, "started_at": time.time(),
+            "elapsed_seconds": 0, "started_at": time.time(), "time_source": "dashboard", "python_mode": False,
             "status": "BATALLA EN CURSO", "phase": "running"
         })
         return jsonify(snapshot())
@@ -135,8 +237,9 @@ def next_battle():
             "robot1_image": pair[0], "robot2_image": pair[1],
             "battle_number": next_number,
             "attacks1": 0, "attacks2": 0, "elapsed_seconds": 0,
-            "started_at": None, "winner": "", "reason": "",
-            "status": "PREPARADOS PARA LA BATALLA", "phase": "ready"
+            "started_at": None, "winner": "", "winner_person": "", "reason": "",
+            "status": "PREPARADOS PARA LA BATALLA", "phase": "ready", "time_source": "dashboard", "python_mode": False,
+            "battle_id": None, "person1": "", "person2": "", "countdown_active": False, "countdown_value": "3"
         })
         return jsonify(snapshot())
 
