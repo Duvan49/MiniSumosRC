@@ -844,23 +844,11 @@ def mostrar_enfrentamientos(contenedor):
     boton_reiniciar.bind("<ButtonPress-1>", lambda evento: boton_reiniciar.config(bg="#761616"))
     boton_reiniciar.bind("<ButtonRelease-1>", lambda evento: boton_reiniciar.config(bg="#A91F1F"))
 
-    firma_anterior, _ = cargar()
-
     def actualizar_manual():
-        nonlocal firma_anterior
         try:
-            firma_actual, filas = cargar()
-            if firma_actual != firma_anterior:
-                hay_actividad = any(fila[5] != "Pendiente" for fila in filas)
-                if not hay_actividad:
-                    if len(firma_actual) >= 2:
-                        exito, _ = preparar_competencia()
-                        if exito:
-                            firma_actual, _ = cargar()
-                    else:
-                        limpiar_competencia_anterior()
-                        firma_actual, _ = cargar()
-                firma_anterior = firma_actual
+            cargar()
         except (sqlite3.Error, IndexError, TypeError) as error:
-            print(f"No se pudo actualizar la fase inicial: {error}")
+            print(f"No se pudieron actualizar los enfrentamientos: {error}")
+
+    cargar()
 
