@@ -3,6 +3,24 @@ import sqlite3
 import tkinter as tk
 from tkinter import ttk
 
+
+def _formatear_tiempo_tabla(valor):
+    """Muestra minutos, segundos y centésimas como MM:SSCC."""
+    partes = str(valor or "").strip().split(":")
+    try:
+        if len(partes) == 3:
+            minutos, segundos, centesimas = (int(p) for p in partes)
+        elif len(partes) == 2:
+            minutos, segundos = (int(p) for p in partes)
+            centesimas = 0
+        else:
+            return valor or "—"
+        if minutos < 0 or not 0 <= segundos < 60 or not 0 <= centesimas < 100:
+            return valor or "—"
+        return f"{minutos:02d}:{segundos:02d}{centesimas:02d}"
+    except (TypeError, ValueError):
+        return valor or "—"
+
 FONDO = "#FFFFFF"
 ROJO_OSCURO = "#8E1B1B"
 TEXTO = "#1F2937"
@@ -117,7 +135,7 @@ def mostrar_historial(contenedor):
             for fila in filas:
                 valores = list(fila)
                 valores[0] = str(valores[0])
-                valores[3] = valores[3] or "—"
+                valores[3] = _formatear_tiempo_tabla(valores[3])
                 valores[4] = "—" if valores[4] in ("", None) else valores[4]
                 valores[5] = "—" if valores[5] in ("", None) else valores[5]
                 tabla.insert("", "end", values=valores)
