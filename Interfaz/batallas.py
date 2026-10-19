@@ -787,12 +787,14 @@ def abrir_resultado(
             )
             tiempo_resultado_principal = tk.Label(
                 tiempo_resultado_frame, text="00:00",
-                font=("Segoe UI", 18, "bold"), fg="#17202a", bg="white"
+                font=("Segoe UI", 18, "bold"), fg="#17202a", bg="white",
+                padx=0, pady=0, bd=0, highlightthickness=0, anchor="e"
             )
-            tiempo_resultado_principal.pack(side="left", anchor="s")
+            tiempo_resultado_principal.pack(side="left", anchor="s", padx=0, pady=0)
             tiempo_resultado_centesimas = tk.Label(
                 tiempo_resultado_frame, text="00",
-                font=("Segoe UI", 10, "bold"), fg="#17202a", bg="white"
+                font=("Segoe UI", 10, "bold"), fg="#17202a", bg="white",
+                padx=0, pady=0, bd=0, highlightthickness=0, anchor="w"
             )
             tiempo_resultado_centesimas.pack(
                 side="left", anchor="s", padx=0, pady=(0, 2), ipadx=0
