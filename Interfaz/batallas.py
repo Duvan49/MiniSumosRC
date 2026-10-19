@@ -1957,13 +1957,43 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         estado_label.config(text="PREPÁRATE..." if estado_puente_previo.get("countdown_value", "3") != "¡YA!" else "¡YA!")
 
         def refrescar_cuenta_recuperada():
-            nonlocal cuenta_regresiva_activa
+            nonlocal cuenta_regresiva_activa, reloj
             if not interfaz_batallas_disponible() or not cuenta_regresiva_activa:
                 return
+
             estado_actual = dashboard_bridge.get_state()
             if not estado_actual.get("countdown_active", False):
                 cuenta_regresiva_activa = False
+
+                # La cuenta original pudo terminar mientras esta vista estaba
+                # reconstruida. Recuperar el inicio real guardado en la BD para
+                # activar también el reloj local de esta nueva instancia.
+                if estado_actual.get("phase") == "running":
+                    inicio_epoch_actual = obtener_inicio_epoch(id_batalla)
+                    reloj = RelojBatalla(
+                        tiempo_inicial=obtener_batalla_actual()[12] or "0:00:00",
+                        inicio_epoch=inicio_epoch_actual
+                    )
+                    if reloj.estado != "En curso":
+                        reloj.iniciar()
+                        guardar_reloj(
+                            id_batalla, "En curso",
+                            reloj.obtener_tiempo_base(), reloj.inicio_epoch()
+                        )
+
+                    estado_label.config(text="EN CURSO")
+                    _actualizar_tiempo_visual(
+                        tiempo_principal_label,
+                        tiempo_centesimas_label,
+                        reloj.obtener_tiempo()
+                    )
+                    boton_iniciar.config(state="disabled")
+                    boton_pausar.config(state="normal")
+                    boton_continuar.config(state="disabled")
+                    boton_finalizar.config(state="normal")
+                    actualizar_datos()
                 return
+
             valor = estado_actual.get("countdown_value", "3")
             tiempo_principal_label.config(text=valor)
             tiempo_centesimas_label.config(text="")
