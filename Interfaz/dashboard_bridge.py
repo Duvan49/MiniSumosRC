@@ -1,8 +1,7 @@
-"""Puente no bloqueante entre la interfaz Tkinter y el dashboard web local.
+"""Puente por eventos entre Tkinter y el dashboard web.
 
-Tkinter sigue siendo la fuente de verdad para batalla/tiempo/estado.
-El contador de ataques se conserva en el servidor del dashboard y se consulta
-periódicamente para incorporarlo al resultado oficial de Python.
+El único envío periódico es el reloj (80 ms). El estado se envía cuando cambia
+y los contadores de ataques llegan por el flujo SSE del servidor.
 """
 import json
 import os
@@ -17,23 +16,29 @@ DASHBOARD_URL = os.environ.get("MINISUMOS_DASHBOARD_URL", "http://127.0.0.1:8000
 class DashboardBridge:
     def __init__(self):
         self._lock = threading.Lock()
+        self._condition = threading.Condition(self._lock)
         self._state = None
         self._elapsed = 0.0
         self._event_id = int(time.time() * 1000)
         self._event = {"ui_action": "", "ui_action_id": 0}
         self._attacks = (0, 0)
+        self._dirty = False
         self._running = True
-        self._thread = threading.Thread(target=self._worker, name="MiniSumosDashboardBridge", daemon=True)
-        self._thread.start()
+        threading.Thread(target=self._worker, name="MiniSumosDashboardBridge", daemon=True).start()
+        threading.Thread(target=self._listen_events, name="MiniSumosDashboardEvents", daemon=True).start()
 
     def set_state(self, payload):
-        """Actualiza datos de batalla sin bloquear el hilo de Tkinter."""
-        with self._lock:
+        """Marca el estado pendiente solo cuando cambia algún dato."""
+        with self._condition:
             if self._state is None:
                 self._state = {}
+            changed = any(self._state.get(key) != value for key, value in payload.items())
             if "battle_id" in payload and self._state.get("battle_id") != payload["battle_id"]:
                 self._attacks = (0, 0)
             self._state.update(payload)
+            if changed:
+                self._dirty = True
+                self._condition.notify()
 
     def set_time(self, elapsed_seconds):
         try:
@@ -44,14 +49,12 @@ class DashboardBridge:
             self._elapsed = value
 
     def trigger(self, action, **payload):
-        """Publica una acción visual una sola vez, identificada por secuencia."""
-        with self._lock:
+        """Encola una acción visual para enviarla inmediatamente."""
+        with self._condition:
             self._event_id += 1
-            self._event = {
-                "ui_action": str(action),
-                "ui_action_id": self._event_id,
-                **payload,
-            }
+            self._event = {"ui_action": str(action), "ui_action_id": self._event_id, **payload}
+            self._dirty = True
+            self._condition.notify()
 
     def attacks(self):
         with self._lock:
@@ -66,43 +69,58 @@ class DashboardBridge:
         return json.loads(raw.decode("utf-8")) if raw else {}
 
     def _worker(self):
-        last_time = 0.0
-        last_sync = 0.0
-        last_synced_event_id = -1
         retry_after = 0.0
+        last_time = 0.0
         while self._running:
             now = time.monotonic()
-            with self._lock:
+            with self._condition:
                 state = dict(self._state) if self._state is not None else None
                 elapsed = self._elapsed
                 event = dict(self._event)
+                dirty = self._dirty
+                if dirty:
+                    self._dirty = False
             if state is not None and now >= retry_after:
                 try:
                     if now - last_time >= 0.08:
                         self._request("/api/python/time", "POST", {"elapsed_seconds": elapsed}, timeout=0.10)
                         last_time = now
-                    event_id = int(event.get("ui_action_id", 0) or 0)
-                    urgent_event = event_id != last_synced_event_id
-                    sync_interval = 0.08 if state.get("countdown_active") or urgent_event else 0.25
-                    if now - last_sync >= sync_interval:
+                    if dirty:
                         payload = {**state, **event}
                         payload.pop("elapsed_seconds", None)
                         self._request("/api/python/sync", "POST", payload, timeout=0.15)
-                        latest = self._request("/api/state", timeout=0.15)
-                        try:
-                            a1 = max(0, int(latest.get("attacks1", 0)))
-                            a2 = max(0, int(latest.get("attacks2", 0)))
-                            with self._lock:
-                                self._attacks = (a1, a2)
-                        except (TypeError, ValueError):
-                            pass
-                        last_sync = now
-                        last_synced_event_id = event_id
                 except (URLError, HTTPError, TimeoutError, OSError, ValueError):
-                    # El dashboard puede no estar abierto aún. No se bloquea Tkinter;
-                    # se reintenta en un segundo sin llenar una cola de peticiones.
                     retry_after = time.monotonic() + 1.0
-            time.sleep(0.02)
+                    with self._condition:
+                        self._dirty = True
+            with self._condition:
+                self._condition.wait(timeout=max(0.001, 0.08 - (time.monotonic() - now)))
+
+    def _listen_events(self):
+        """Recibe cambios del servidor sin consultar /api/state periódicamente."""
+        while self._running:
+            try:
+                request = Request(DASHBOARD_URL + "/api/stream", headers={"Accept": "text/event-stream"})
+                with urlopen(request, timeout=30) as response:
+                    for raw_line in response:
+                        if not self._running:
+                            return
+                        line = raw_line.decode("utf-8", errors="replace").strip()
+                        if not line.startswith("data:"):
+                            continue
+                        try:
+                            message = json.loads(line[5:].strip())
+                            data = message.get("data") or {}
+                            if message.get("type") == "state":
+                                with self._lock:
+                                    self._attacks = (
+                                        max(0, int(data.get("attacks1", 0))),
+                                        max(0, int(data.get("attacks2", 0)),
+                                    )
+                        except (ValueError, TypeError, json.JSONDecodeError):
+                            continue
+            except (URLError, HTTPError, TimeoutError, OSError):
+                time.sleep(1)
 
 
 dashboard_bridge = DashboardBridge()
