@@ -822,6 +822,15 @@ def mostrar_enfrentamientos(contenedor):
                 parent=contenedor.winfo_toplevel()
             )
 
+    boton_actualizar = tk.Button(
+        marco_botones, text="ACTUALIZAR",
+        command=actualizar_manual, font=("Arial", 11, "bold"),
+        bg="#E5E7EB", fg="#1F2937",
+        activebackground="#D1D5DB", activeforeground="#111827",
+        relief="flat", bd=0, cursor="hand2", padx=18, pady=10
+    )
+    boton_actualizar.pack(side="left", padx=(0, 10))
+
     boton_reiniciar = tk.Button(
         marco_botones, text="REINICIAR FASE INICIAL",
         command=reiniciar, font=("Arial", 11, "bold"),
@@ -837,15 +846,11 @@ def mostrar_enfrentamientos(contenedor):
 
     firma_anterior, _ = cargar()
 
-    def actualizar_periodicamente():
+    def actualizar_manual():
         nonlocal firma_anterior
-        if not contenido.winfo_exists():
-            return
         try:
             firma_actual, filas = cargar()
             if firma_actual != firma_anterior:
-                # Si aún no se han registrado resultados, sincronizar el calendario
-                # con la lista nueva sin interrumpir una competencia ya iniciada.
                 hay_actividad = any(fila[5] != "Pendiente" for fila in filas)
                 if not hay_actividad:
                     if len(firma_actual) >= 2:
@@ -858,6 +863,5 @@ def mostrar_enfrentamientos(contenedor):
                 firma_anterior = firma_actual
         except (sqlite3.Error, IndexError, TypeError) as error:
             print(f"No se pudo actualizar la fase inicial: {error}")
-        contenido.after(1500, actualizar_periodicamente)
 
     contenido.after(1500, actualizar_periodicamente)
