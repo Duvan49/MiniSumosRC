@@ -1605,6 +1605,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
     finalizacion_automatica_activada = False
     alarma_activada = False
+    alarma_inicio_monotonic = None
     inicio_epoch_bd = obtener_inicio_epoch(id_batalla)
     reloj = RelojBatalla(
         tiempo_inicial=tiempo_bd or "0:00:00",
@@ -1626,7 +1627,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     cuenta_regresiva_restante = 0
 
     def actualizar_datos():
-        nonlocal alarma_activada
+        nonlocal alarma_activada, alarma_inicio_monotonic
         if not principal.winfo_exists():
             return
 
@@ -1634,13 +1635,20 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         dashboard_bridge.set_time(tiempo_actual)
         if (not alarma_activada and reloj.estado == "En curso" and reloj.segundos() >= 115):
             alarma_activada = True
+            alarma_inicio_monotonic = time.monotonic()
             dashboard_bridge.trigger("alarm")
 
-        # Al alcanzar los 2 minutos, detener el reloj y abrir la elección de ganador.
+        # Se espera a que termine el audio de alarma antes de elegir ganador.
+        # Si el navegador no confirma el final, se conserva un límite de seguridad.
         if (
             not cuenta_regresiva_activa
             and reloj.estado == "En curso"
             and reloj.segundos() >= 120
+            and (
+                not alarma_activada
+                or (alarma_inicio_monotonic is not None
+                    and time.monotonic() - alarma_inicio_monotonic >= 10)
+            )
         ):
             finalizar(automatica=True)
             return
@@ -1665,7 +1673,10 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         dashboard_bridge.set_time(0)
         cuenta_regresiva_activa = True
         cuenta_regresiva_restante = 2
-        dashboard_bridge.set_state({"phase": "ready", "status": "PREPARADOS PARA LA BATALLA", "elapsed_seconds": 0, "countdown_active": True, "countdown_value": "3"})
+        dashboard_bridge.set_state({
+            "phase": "ready", "status": "PREPARADOS PARA LA BATALLA",
+            "elapsed_seconds": 0, "countdown_active": True, "countdown_value": "3"
+        })
         dashboard_bridge.trigger("countdown_start")
         estado_label.config(text="PREPÁRATE...")
         tiempo_principal_label.config(text="3")
@@ -1680,15 +1691,31 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             if not principal.winfo_exists() or not cuenta_regresiva_activa:
                 return
             if cuenta_regresiva_restante > 0:
-                tiempo_principal_label.config(text=str(cuenta_regresiva_restante))
+                valor = cuenta_regresiva_restante
+                tiempo_principal_label.config(text=str(valor))
                 tiempo_centesimas_label.config(text="")
                 estado_label.config(text="PREPÁRATE...")
+                dashboard_bridge.set_state({"countdown_value": str(valor)})
                 cuenta_regresiva_restante -= 1
                 principal.after(1000, avanzar_cuenta)
                 return
 
+            # El reloj espera la confirmación de finalización del audio del dashboard.
+            tiempo_principal_label.config(text="¡YA!")
+            tiempo_centesimas_label.config(text="")
+            estado_label.config(text="¡YA!")
+            dashboard_bridge.set_state({"countdown_value": "¡YA!"})
+            principal.after(8000, iniciar_batalla_tras_audio)
+
+        def iniciar_batalla_tras_audio():
+            nonlocal cuenta_regresiva_activa
+            if not principal.winfo_exists() or not cuenta_regresiva_activa:
+                return
             cuenta_regresiva_activa = False
-            dashboard_bridge.set_state({"countdown_active": False, "phase": "running", "status": "BATALLA EN CURSO", "elapsed_seconds": 0})
+            dashboard_bridge.set_state({
+                "countdown_active": False, "phase": "running",
+                "status": "BATALLA EN CURSO", "elapsed_seconds": 0
+            })
             dashboard_bridge.set_time(0)
             reloj.iniciar()
             guardar_reloj(
@@ -1704,6 +1731,23 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             boton_finalizar.config(state="normal")
             dashboard_bridge.trigger("home")
 
+        def completar_audio(action):
+            if action == "countdown_complete":
+                try:
+                    principal.after(0, iniciar_batalla_tras_audio)
+                except tk.TclError:
+                    pass
+            elif action == "alarm_complete":
+                try:
+                    principal.after(
+                        0,
+                        lambda: finalizar(automatica=True)
+                        if reloj.estado == "En curso" else None
+                    )
+                except tk.TclError:
+                    pass
+
+        dashboard_bridge.set_ui_callback(completar_audio)
         principal.after(1000, avanzar_cuenta)
 
     # --------------------------------------------------------
