@@ -1044,7 +1044,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
     if batalla is None:
 
-        dashboard_bridge.set_time(0)
+        dashboard_bridge.set_time(0, running=False)
         dashboard_bridge.set_state({
             "battle_id": None, "battle_number": 0,
             "robot1": "POR DEFINIR", "robot2": "POR DEFINIR",
@@ -1320,7 +1320,9 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         "Pausada": "paused",
         "Completado": "finished",
     }.get(estado, "ready")
-    dashboard_bridge.set_time(_tiempo_a_segundos(tiempo_bd))
+    dashboard_bridge.set_time(
+        _tiempo_a_segundos(tiempo_bd), running=(estado == "En curso")
+    )
     dashboard_bridge.set_state({
         "battle_id": id_batalla, "battle_number": id_batalla,
         "robot1": str(robot1 or nombre1 or "ROBOT 1"),
@@ -1716,7 +1718,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 "countdown_active": False, "phase": "running",
                 "status": "BATALLA EN CURSO", "elapsed_seconds": 0
             })
-            dashboard_bridge.set_time(0)
+            dashboard_bridge.set_time(0, running=True)
             reloj.iniciar()
             guardar_reloj(
                 id_batalla, "En curso",
@@ -1761,7 +1763,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             id_batalla, "Pausada", reloj.obtener_tiempo(), None
         )
 
-        dashboard_bridge.set_time(reloj.segundos())
+        dashboard_bridge.set_time(reloj.segundos(), running=False)
         dashboard_bridge.set_state({"phase": "paused", "status": "BATALLA PAUSADA", "elapsed_seconds": reloj.segundos(), "countdown_active": False})
         dashboard_bridge.trigger("home")
         estado_label.config(
@@ -1791,7 +1793,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             reloj.obtener_tiempo_base(), reloj.inicio_epoch()
         )
 
-        dashboard_bridge.set_time(reloj.segundos())
+        dashboard_bridge.set_time(reloj.segundos(), running=True)
         dashboard_bridge.set_state({"phase": "running", "status": "BATALLA EN CURSO", "elapsed_seconds": reloj.segundos(), "countdown_active": False})
         dashboard_bridge.trigger("home")
         estado_label.config(
@@ -1842,7 +1844,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
         tiempo_final = reloj.obtener_tiempo()
         ataques_finales1, ataques_finales2 = dashboard_bridge.attacks()
-        dashboard_bridge.set_time(_tiempo_a_segundos(tiempo_final))
+        dashboard_bridge.set_time(_tiempo_a_segundos(tiempo_final), running=False)
         dashboard_bridge.set_state({"phase": "finished", "status": "BATALLA FINALIZADA", "elapsed_seconds": _tiempo_a_segundos(tiempo_final), "countdown_active": False})
         dashboard_bridge.trigger("home")
         batalla_resultado = list(batalla)
