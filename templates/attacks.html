@@ -53,7 +53,9 @@ button.action:disabled{opacity:.3;filter:grayscale(1);cursor:not-allowed}
 <script>
 const ROBOT={{ robot }};
 const $=id=>document.getElementById(id);
-async function toggleFullscreen(){try{if(!document.fullscreenElement){await document.documentElement.requestFullscreen()}else{await document.exitFullscreen()}}catch(e){alert('El navegador no permitió la pantalla completa. Prueba de nuevo con el botón ⛶.')}}
+async function toggleFullscreen(){if(window.parent!==window){window.parent.postMessage({type:'toggleAttackFullscreen'},window.location.origin);return}try{if(!document.fullscreenElement){await document.documentElement.requestFullscreen()}else{await document.exitFullscreen()}}catch(e){alert('El navegador no permitió la pantalla completa. Prueba de nuevo con el botón ⛶.')}}
+window.addEventListener('message',event=>{if(event.origin!==window.location.origin||!event.data||event.data.type!=='fullscreenState')return;const active=!!event.data.active;$('fullscreenToggle').textContent=active?'⤢':'⛶';$('fullscreenToggle').title=active?'Salir de pantalla completa':'Pantalla completa';$('fullscreenToggle').setAttribute('aria-label',active?'Salir de pantalla completa':'Activar pantalla completa')});
+window.addEventListener('load',()=>{if(window.parent!==window)window.parent.postMessage({type:'attackFullscreenState'},window.location.origin)});
 $('fullscreenToggle').addEventListener('click',toggleFullscreen);
 $('backHome').addEventListener('click',async event=>{event.preventDefault();if(window.parent!==window){window.parent.postMessage({type:'closeAttackView'},window.location.origin);return}try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen()}catch(e){}window.location.href='/'});
 document.addEventListener('fullscreenchange',()=>{const active=!!document.fullscreenElement;$('fullscreenToggle').textContent=active?'⤢':'⛶';$('fullscreenToggle').title=active?'Salir de pantalla completa':'Pantalla completa';$('fullscreenToggle').setAttribute('aria-label',active?'Salir de pantalla completa':'Activar pantalla completa')});
