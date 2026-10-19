@@ -188,6 +188,11 @@ def limpiar_competencia_anterior():
         DELETE FROM enfrentamientos
     """)
 
+    # El historial pertenece a una competencia; no debe mezclarse con la nueva.
+    cursor.execute("""
+        DELETE FROM historial_batallas
+    """)
+
     # Reinicia el contador de IDs de enfrentamientos
     cursor.execute("""
     DELETE FROM sqlite_sequence
