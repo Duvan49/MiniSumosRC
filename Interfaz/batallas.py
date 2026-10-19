@@ -2116,11 +2116,11 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
         def completar_audio(action):
             nonlocal alarma_audio_completada
+            # El final del audio puede notificarse desde cualquiera de los
+            # dashboards conectados. No debe adelantar la cuenta regresiva
+            # controlada por Python; el inicio ya está programado con after().
             if action == "countdown_complete":
-                try:
-                    ventana_raiz.after(0, iniciar_batalla_tras_audio)
-                except tk.TclError:
-                    pass
+                return
             elif action == "alarm_complete":
                 alarma_audio_completada = True
                 # Si el audio termina antes de los 120 s, esperar al límite
