@@ -400,7 +400,7 @@ def obtener_batalla_actual():
         LEFT JOIN grupos g
             ON e.grupo_id = g.id
 
-        WHERE e.estado IN ('En curso', 'Pausada')
+        WHERE e.estado IN ('En curso', 'Pausada', 'Preparando')
 
         ORDER BY e.id
 
@@ -1330,10 +1330,17 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     imagen2 = _imagen_dashboard(robot2, participante2, imagen1)
     fase_dashboard = {
         "Pendiente": "ready",
+        "Preparando": "ready",
         "En curso": "running",
         "Pausada": "paused",
         "Completado": "finished",
     }.get(estado, "ready")
+    estado_puente_previo = dashboard_bridge.get_state()
+    cuenta_ya_activa = (
+        estado == "Preparando"
+        and estado_puente_previo.get("battle_id") == id_batalla
+        and estado_puente_previo.get("countdown_active", False)
+    )
     dashboard_bridge.set_time(
         _tiempo_a_segundos(tiempo_bd), running=(estado == "En curso")
     )
@@ -1345,12 +1352,13 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         "person1": str(nombre1 or ""), "person2": str(nombre2 or ""),
         "phase": fase_dashboard, "status": str(estado or "Pendiente").upper(),
         "elapsed_seconds": _tiempo_a_segundos(tiempo_bd),
-        "countdown_active": False, "countdown_value": "3",
+        "countdown_active": cuenta_ya_activa,
+        "countdown_value": estado_puente_previo.get("countdown_value", "3") if cuenta_ya_activa else "3",
         "winner": "", "winner_person": "", "reason": ""
     })
     if estado == "Pendiente":
         dashboard_bridge.trigger("next")
-    elif estado in ("En curso", "Pausada"):
+    elif estado in ("Preparando", "En curso", "Pausada"):
         dashboard_bridge.trigger("home")
 
     # --------------------------------------------------------
@@ -1648,7 +1656,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 id_batalla, "En curso",
                 reloj.obtener_tiempo_base(), reloj.inicio_epoch()
             )
-    cuenta_regresiva_activa = False
+    cuenta_regresiva_activa = cuenta_ya_activa
     cuenta_regresiva_restante = 0
 
     def actualizar_datos():
@@ -1701,12 +1709,14 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             return
 
         reloj.reiniciar()
+        guardar_reloj(id_batalla, "Preparando", reloj.obtener_tiempo_base(), None)
         alarma_activada = False
         alarma_audio_completada = False
         dashboard_bridge.set_time(0, running=False)
         cuenta_regresiva_activa = True
         cuenta_regresiva_restante = 2
         dashboard_bridge.set_state({
+            "battle_id": id_batalla,
             "phase": "ready", "status": "PREPARADOS PARA LA BATALLA",
             "elapsed_seconds": 0, "countdown_active": True, "countdown_value": "3"
         })
@@ -1784,8 +1794,11 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                     except tk.TclError:
                         pass
 
-        dashboard_bridge.set_ui_callback(completar_audio)
-        ventana_raiz.after(1000, avanzar_cuenta)
+        # Si la cuenta ya estaba activa en una vista anterior, su callback sigue
+        # siendo el propietario del audio y del inicio; no lo reemplazamos.
+        if not cuenta_ya_activa:
+            dashboard_bridge.set_ui_callback(completar_audio)
+            ventana_raiz.after(1000, avanzar_cuenta)
 
     # --------------------------------------------------------
     # PAUSAR
@@ -1933,7 +1946,29 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     # ESTADO INICIAL
     # --------------------------------------------------------
 
-    if estado == "Pendiente":
+    if estado == "Preparando":
+
+        boton_iniciar.config(state="disabled")
+        boton_pausar.config(state="disabled")
+        boton_continuar.config(state="disabled")
+        boton_finalizar.config(state="disabled")
+        tiempo_principal_label.config(text=estado_puente_previo.get("countdown_value", "3"))
+        tiempo_centesimas_label.config(text="")
+        estado_label.config(text="PREPÁRATE..." if estado_puente_previo.get("countdown_value", "3") != "¡YA!" else "¡YA!")
+
+        def refrescar_cuenta_recuperada():
+            if not interfaz_batallas_disponible() or not cuenta_regresiva_activa:
+                return
+            estado_actual = dashboard_bridge.get_state()
+            valor = estado_actual.get("countdown_value", "3")
+            tiempo_principal_label.config(text=valor)
+            tiempo_centesimas_label.config(text="")
+            estado_label.config(text="¡YA!" if valor == "¡YA!" else "PREPÁRATE...")
+            ventana_raiz.after(100, refrescar_cuenta_recuperada)
+
+        refrescar_cuenta_recuperada()
+
+    elif estado == "Pendiente":
 
         boton_iniciar.config(
             state="normal"
