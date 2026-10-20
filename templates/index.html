@@ -308,18 +308,17 @@ input{width:100%;padding:13px 12px;background:#071a2c;border:1px solid #31536f;b
     -webkit-text-stroke:1.5px #000;
   }
   #winnerAnnouncement .winner-data-panel{
-    grid-template-columns:repeat(2,minmax(0,1fr));
+    grid-template-columns:repeat(3,minmax(0,1fr));
     width:100%;
   }
   #winnerAnnouncement .winner-data-cell{
-    padding:7px 5px;
+    padding:7px 3px;
     gap:5px;
   }
-  #winnerAnnouncement .winner-data-cell+.winner-data-cell{border-left:0}
-  #winnerAnnouncement .winner-data-cell:nth-child(2){border-left:1px solid #ffffff45}
+  #winnerAnnouncement .winner-data-cell+.winner-data-cell{border-left:1px solid #ffffff45}
   #winnerAnnouncement .winner-data-cell:nth-child(3){
-    grid-column:1/-1;
-    border-top:1px solid #ffffff45;
+    grid-column:auto;
+    border-top:0;
   }
   #winnerAnnouncement .winner-data-label{
     font-size:clamp(10px,3vw,13px);
@@ -339,6 +338,19 @@ input{width:100%;padding:13px 12px;background:#071a2c;border:1px solid #31536f;b
   #winnerAnnouncement .winner-data-cell{padding-top:4px;padding-bottom:4px}
   #winnerAnnouncement .winner-duration,
   #winnerAnnouncement .announcement-reason{font-size:clamp(17px,3.5vh,28px)}
+}
+
+
+/* Mantener siempre los tres datos en una sola fila, incluso en teléfonos. */
+#winnerAnnouncement .winner-data-panel{grid-template-columns:repeat(3,minmax(0,1fr))}
+#winnerAnnouncement .winner-data-cell{overflow:hidden}
+#winnerAnnouncement .winner-duration{white-space:nowrap}
+#winnerAnnouncement .announcement-reason{overflow-wrap:anywhere}
+@media(max-width:420px){
+  #winnerAnnouncement .winner-data-label{font-size:clamp(9px,2.8vw,12px);letter-spacing:.4px}
+  #winnerAnnouncement .winner-duration,
+  #winnerAnnouncement .announcement-reason{font-size:clamp(14px,4vw,19px);letter-spacing:0}
+  #winnerAnnouncement .winner-data-cell{padding-left:2px;padding-right:2px}
 }
 
 </style>
@@ -530,7 +542,11 @@ function showWinnerAnnouncement(s){
  $('winnerAnnouncement').style.setProperty('--winner-glow',robotColor(winnerImage,winnerRobot));
  const nameElement=$('winnerAnnouncementName');
  nameElement.textContent=winnerRobot;
- $('winnerAnnouncementTime').textContent=fmt(s.elapsed_seconds);$('winnerAnnouncementAttacks').textContent=String(s.attacks1??0)+' — '+String(s.attacks2??0);
+ $('winnerAnnouncementTime').innerHTML=fmt(s.elapsed_seconds);
+ const winnerIsRobot2=winnerRobot.toLocaleLowerCase()===String(s.robot2||'').trim().toLocaleLowerCase();
+ const attacksLeft=Number(winnerIsRobot2?s.attacks2:s.attacks1)||0;
+ const attacksRight=Number(winnerIsRobot2?s.attacks1:s.attacks2)||0;
+ $('winnerAnnouncementAttacks').textContent=attacksLeft+'-'+attacksRight;
  $('winnerAnnouncementReason').textContent=reason||'¡Victoria en la arena!';
  $('winnerAnnouncement').hidden=false;
  $('nextAnnouncement').hidden=true;
