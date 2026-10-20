@@ -533,21 +533,49 @@ window.addEventListener('message',event=>{if(event.origin!==window.location.orig
 function showView(view){toggleQuickMenu(false);if(view==='attack1'||view==='attack2'){if(!document.fullscreenElement&&document.documentElement.requestFullscreen){document.documentElement.requestFullscreen().catch(()=>{});}openAttackView(view==='attack1'?'1':'2');return}showTab(document.body.classList.contains('python-mode')?'attacks':'control');toggleSettings(true)}
 $('quickMenu').querySelectorAll('button[data-view]').forEach(button=>button.addEventListener('click',()=>showView(button.dataset.view)));$('openSettings').addEventListener('click',e=>{e.stopPropagation();toggleQuickMenu()});$('closeSettings').addEventListener('click',()=>toggleSettings(false));$('scrim').addEventListener('click',()=>{toggleSettings(false);toggleQuickMenu(false)});$('tabControl').addEventListener('click',()=>showTab('control'));$('tabAttacks').addEventListener('click',()=>showTab('attacks'));document.addEventListener('click',e=>{if(!$('quickMenu').hidden&&!$('quickMenu').contains(e.target)&&e.target!==$('openSettings'))toggleQuickMenu(false)});document.addEventListener('keydown',e=>{if(e.key==='Escape'){toggleSettings(false);toggleQuickMenu(false);if(!$('winnerAnnouncement').hidden||!$('nextAnnouncement').hidden)hideAnnouncements()}});
 let lastUiActionId=0;
+let winnerHoldUntil=0;
+let winnerHoldTimer=null;
+let deferredTerminalAction=null;
+async function presentTerminalAction(action,s,ensureFullscreen=true){
+ if(action==='home'){
+  hideAnnouncements();stopAlarmSound();stopCountdownSound();
+  if(ensureFullscreen)await enterAnnouncementFullscreen();
+  return;
+ }
+ if(ensureFullscreen)await enterAnnouncementFullscreen();
+ if(action==='next')showNextAnnouncement(s);
+ else if(action==='no_battles')showNoBattlesAnnouncement();
+}
 async function handleTerminalAction(s){
  if(!s.ui_action_id||s.ui_action_id===lastUiActionId)return;
  lastUiActionId=s.ui_action_id;
  if(s.ui_action==='countdown_start'){hideAnnouncements();$('countdownOverlay').hidden=false;playCountdownSound(true);return}
  if(s.ui_action==='alarm'){playAlarmSound(true);return}
- if(s.ui_action==='home'){
-  hideAnnouncements();stopAlarmSound();stopCountdownSound();
-  // Al volver al inicio se mantiene la pantalla expandida para mostrar la arena.
+ if(s.ui_action==='winner'){
+  if(winnerHoldTimer)window.clearTimeout(winnerHoldTimer);
+  deferredTerminalAction=null;
   await enterAnnouncementFullscreen();
+  showWinnerAnnouncement(s);
+  // El dashboard conserva el ganador durante 10 segundos aunque Batallas ya
+  // haya cargado la siguiente pelea o una pantalla de transición.
+  winnerHoldUntil=Date.now()+10000;
+  winnerHoldTimer=window.setTimeout(async()=>{
+   winnerHoldTimer=null;
+   winnerHoldUntil=0;
+   const pending=deferredTerminalAction;
+   deferredTerminalAction=null;
+   if(pending)await presentTerminalAction(pending.action,pending.data,false);
+   else hideAnnouncements();
+  },10000);
   return;
  }
- await enterAnnouncementFullscreen();
- if(s.ui_action==='winner')showWinnerAnnouncement(s);
- else if(s.ui_action==='next')showNextAnnouncement(s);
- else if(s.ui_action==='no_battles')showNoBattlesAnnouncement();
+ if(['next','no_battles','home'].includes(s.ui_action)&&Date.now()<winnerHoldUntil){
+  // Solo se conserva la acción más reciente: si el organizador avanza de fase
+  // antes de acabar el anuncio, se mostrará el estado final al cumplirse los 10 s.
+  deferredTerminalAction={action:s.ui_action,data:s};
+  return;
+ }
+ await presentTerminalAction(s.ui_action,s,true);
 }
 let alarmAudio=null;
 const alarmButton=$('alarmButton');
