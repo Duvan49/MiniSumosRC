@@ -2100,7 +2100,9 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 tiempo_centesimas_label.config(text="")
                 estado_label.config(text="¡YA!")
             dashboard_bridge.set_state({"countdown_value": "¡YA!"})
-            ventana_raiz.after(8000, iniciar_batalla_tras_audio)
+            # Inicia un segundo después de mostrar ¡YA!, sin esperar a que
+            # termine el audio de fondo del dashboard.
+            ventana_raiz.after(1000, iniciar_batalla_tras_audio)
 
         def iniciar_batalla_tras_audio():
             nonlocal cuenta_regresiva_activa
