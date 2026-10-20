@@ -995,6 +995,22 @@ def abrir_resultado(
     )
 
     ventana.transient(parent)
+
+    # Asegura que el diálogo aparezca incluso si la aplicación estaba
+    # minimizada o detrás de otra ventana cuando venció el tiempo.
+    try:
+        raiz = parent.winfo_toplevel()
+        if raiz.state() == "iconic":
+            raiz.deiconify()
+        raiz.lift()
+        ventana.lift()
+        ventana.attributes("-topmost", True)
+        ventana.after(700, lambda: ventana.attributes("-topmost", False))
+        ventana.focus_force()
+    except tk.TclError:
+        pass
+
+    # Mantiene el diálogo modal, pero ya visible y enfocado.
     ventana.grab_set()
 
     # No se puede cerrar con X
