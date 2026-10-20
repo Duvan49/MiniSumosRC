@@ -667,23 +667,35 @@ def reiniciar_batalla_en_bd(id_batalla):
             (id_batalla,)
         )
 
-        # Mantener sincronizada únicamente la casilla de esta batalla en el
-        # cuadro existente. No se recalculan clasificados ni emparejamientos.
-        cursor.execute("""
-            SELECT COUNT(*) FROM sqlite_master
-            WHERE type = 'table' AND name = 'llaves'
-        """)
-        if cursor.fetchone()[0] and etapa not in ("Grupo", "Todos", "Final"):
+        # Si se reinicia una batalla de la fase inicial, cualquier cuadro
+        # eliminatorio todavía no iniciado deja de ser válido. Eliminarlo permite
+        # que, al completar nuevamente la última batalla de grupos, se repita
+        # el flujo original: Clasificaciones -> Continuar -> Eliminatorias.
+        if etapa in ("Grupo", "Todos"):
             cursor.execute("""
-                SELECT COUNT(*) FROM enfrentamientos
-                WHERE etapa = ? AND id <= ?
-            """, (etapa, id_batalla))
-            posicion = cursor.fetchone()[0]
+                DELETE FROM enfrentamientos
+                WHERE etapa NOT IN ('Grupo', 'Todos')
+                  AND estado = 'Pendiente'
+            """)
+            cursor.execute("DELETE FROM llaves")
+        else:
+            # Mantener sincronizada únicamente la casilla de esta batalla en el
+            # cuadro existente. No se recalculan clasificados ni emparejamientos.
             cursor.execute("""
-                UPDATE llaves
-                SET ganador = NULL, estado = 'Pendiente'
-                WHERE ronda = ? AND posicion = ?
-            """, (etapa, posicion))
+                SELECT COUNT(*) FROM sqlite_master
+                WHERE type = 'table' AND name = 'llaves'
+            """)
+            if cursor.fetchone()[0] and etapa != "Final":
+                cursor.execute("""
+                    SELECT COUNT(*) FROM enfrentamientos
+                    WHERE etapa = ? AND id <= ?
+                """, (etapa, id_batalla))
+                posicion = cursor.fetchone()[0]
+                cursor.execute("""
+                    UPDATE llaves
+                    SET ganador = NULL, estado = 'Pendiente'
+                    WHERE ronda = ? AND posicion = ?
+                """, (etapa, posicion))
 
         conexion.commit()
     except Exception as error:
@@ -1537,9 +1549,12 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 titulo_fase = f"FASE {str(ultima[0]).upper()} FINALIZADA"
                 detalle_fase = "Cuando estés listo, continúa con la siguiente ronda."
 
-        # Tras registrar un ganador, la pestaña Batallas debe mostrar de inmediato
-        # la siguiente batalla o la transición de fase. No redirigir automáticamente:
-        # el organizador puede continuar desde aquí mientras el dashboard muestra al ganador.
+        # Al terminar la fase inicial, conserva el flujo habitual: muestra brevemente
+        # la transición y luego lleva a Clasificaciones, mientras el dashboard mantiene
+        # el anuncio del ganador durante sus 10 segundos. Solo se hace en la actualización
+        # inmediata posterior a registrar el resultado, no cada vez que se abre Batallas.
+        if resultado_recien_guardado and accion_tipo in ("llaves", "final") and al_terminar_fase:
+            al_terminar_fase("clasificaciones", detalle_fase, 3000)
 
         if campeon:
             tk.Label(
