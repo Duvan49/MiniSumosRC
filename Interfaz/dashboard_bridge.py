@@ -23,6 +23,7 @@ class DashboardBridge:
         self._time_running = False
         self._event_id = int(time.time() * 1000)
         self._event = {"ui_action": "", "ui_action_id": 0}
+        self._event_queue = []
         self._attacks = (0, 0)
         self._attacks_callback = None
         self._ui_callback = None
@@ -91,7 +92,9 @@ class DashboardBridge:
         """Encola una acción visual para enviarla inmediatamente."""
         with self._condition:
             self._event_id += 1
-            self._event = {"ui_action": str(action), "ui_action_id": self._event_id, **payload}
+            event = {"ui_action": str(action), "ui_action_id": self._event_id, **payload}
+            self._event = event
+            self._event_queue.append(event)
             self._dirty = True
             self._condition.notify()
 
@@ -117,17 +120,23 @@ class DashboardBridge:
                 elapsed = self._elapsed
                 if self._time_running:
                     elapsed += max(0.0, now - self._time_anchor)
-                event = dict(self._event)
+                event = dict(self._event_queue.pop(0)) if self._event_queue else dict(self._event)
                 dirty = self._dirty
                 if dirty:
                     self._dirty = False
+                    if self._event_queue:
+                        self._dirty = True
+                        self._condition.notify()
             if state is not None and now >= retry_after:
                 try:
                     # Prioriza los cambios visuales y las acciones de la interfaz
                     # para que no esperen al envío periódico del reloj.
                     if dirty:
                         payload = {**state, **event}
+                        event_elapsed = event.get("elapsed_seconds") if event.get("ui_action") == "winner" else None
                         payload.pop("elapsed_seconds", None)
+                        if event_elapsed is not None:
+                            payload["elapsed_seconds"] = event_elapsed
                         self._request("/api/python/sync", "POST", payload, timeout=0.15)
                     if now - last_time >= 0.08:
                         self._request("/api/python/time", "POST", {"elapsed_seconds": elapsed}, timeout=0.10)
