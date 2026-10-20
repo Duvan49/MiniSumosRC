@@ -123,13 +123,15 @@ class DashboardBridge:
                     self._dirty = False
             if state is not None and now >= retry_after:
                 try:
-                    if now - last_time >= 0.08:
-                        self._request("/api/python/time", "POST", {"elapsed_seconds": elapsed}, timeout=0.10)
-                        last_time = now
+                    # Prioriza los cambios visuales y las acciones de la interfaz
+                    # para que no esperen al envío periódico del reloj.
                     if dirty:
                         payload = {**state, **event}
                         payload.pop("elapsed_seconds", None)
                         self._request("/api/python/sync", "POST", payload, timeout=0.15)
+                    if now - last_time >= 0.08:
+                        self._request("/api/python/time", "POST", {"elapsed_seconds": elapsed}, timeout=0.10)
+                        last_time = now
                 except (URLError, HTTPError, TimeoutError, OSError, ValueError):
                     retry_after = time.monotonic() + 1.0
                     with self._condition:
