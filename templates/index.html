@@ -176,6 +176,171 @@ input{width:100%;padding:13px 12px;background:#071a2c;border:1px solid #31536f;b
   #winnerAnnouncement .announcement-reason{font-size:clamp(17px,5.5vw,22px)}
 }
 
+
+/* Pantalla GANADOR: diseño único adaptable a monitor, tablet y teléfono. */
+#winnerAnnouncement{
+  overflow:auto;
+  padding:clamp(10px,2.5vw,34px);
+  align-items:stretch;
+}
+#winnerAnnouncement .announcement-content{
+  width:100%;
+  height:100%;
+  min-height:100%;
+  display:grid;
+  grid-template-columns:minmax(0,1fr);
+  grid-template-rows:minmax(0,1fr) auto auto;
+  align-content:stretch;
+  justify-items:stretch;
+  align-items:center;
+  gap:clamp(6px,1.2vh,16px);
+  padding:clamp(4px,1vh,12px) 0;
+  text-align:center;
+}
+#winnerAnnouncement .winner-robot-image{
+  grid-column:1;
+  grid-row:1;
+  width:min(88vw,760px);
+  max-width:100%;
+  height:min(40vh,430px);
+  min-height:0;
+  justify-self:center;
+  align-self:center;
+  object-fit:contain;
+}
+#winnerAnnouncement .winner-details{
+  grid-column:1;
+  grid-row:2;
+  width:100%;
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:clamp(2px,.6vh,8px);
+  text-align:center;
+}
+#winnerAnnouncement .winner-heading{
+  width:100%;
+  font-size:clamp(28px,4.8vw,66px);
+  line-height:.95;
+  letter-spacing:clamp(1px,.25vw,4px);
+  text-align:center;
+  overflow-wrap:anywhere;
+  -webkit-text-stroke:2px #000;
+}
+#winnerAnnouncement .announcement-name{
+  display:block;
+  width:100%;
+  max-width:100%;
+  padding:0 1vw;
+  font-size:clamp(30px,7vw,112px);
+  line-height:1;
+  letter-spacing:0;
+  text-align:center;
+  text-transform:none;
+  white-space:nowrap;
+  overflow-wrap:normal;
+  word-break:normal;
+  -webkit-text-stroke:clamp(1px,.18vw,3px) #000;
+}
+#winnerAnnouncement .winner-data-panel{
+  grid-column:1;
+  grid-row:3;
+  width:min(100%,1280px);
+  justify-self:center;
+  align-self:end;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:0;
+  margin:0;
+  padding:0;
+  transform:none;
+}
+#winnerAnnouncement .winner-data-cell{
+  min-width:0;
+  padding:clamp(7px,1.5vh,18px) clamp(5px,2vw,26px);
+  display:grid;
+  grid-template-rows:auto minmax(0,auto);
+  align-content:start;
+  justify-items:center;
+  gap:clamp(4px,.7vh,9px);
+  text-align:center;
+  overflow-wrap:anywhere;
+}
+#winnerAnnouncement .winner-data-cell+.winner-data-cell{border-left:1px solid #ffffff45}
+#winnerAnnouncement .winner-data-label{
+  font-size:clamp(11px,1.5vw,20px);
+  letter-spacing:clamp(1px,.2vw,3px);
+  line-height:1.1;
+}
+#winnerAnnouncement .winner-duration,
+#winnerAnnouncement .announcement-reason{
+  max-width:100%;
+  font-size:clamp(20px,3.1vw,48px);
+  line-height:1.05;
+  letter-spacing:0;
+  text-align:center;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+@media(max-width:700px){
+  #winnerAnnouncement{padding:8px}
+  #winnerAnnouncement .announcement-content{
+    gap:5px;
+    padding:6px 0;
+    grid-template-rows:minmax(0,1fr) auto auto;
+  }
+  #winnerAnnouncement .winner-robot-image{
+    width:min(90vw,480px);
+    height:min(31vh,250px);
+  }
+  #winnerAnnouncement .winner-heading{
+    font-size:clamp(26px,7vw,44px);
+    letter-spacing:1px;
+    -webkit-text-stroke:1.5px #000;
+  }
+  #winnerAnnouncement .announcement-name{
+    padding:0;
+    font-size:clamp(28px,8vw,58px);
+    line-height:1;
+    -webkit-text-stroke:1.5px #000;
+  }
+  #winnerAnnouncement .winner-data-panel{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    width:100%;
+  }
+  #winnerAnnouncement .winner-data-cell{
+    padding:7px 5px;
+    gap:5px;
+  }
+  #winnerAnnouncement .winner-data-cell+.winner-data-cell{border-left:0}
+  #winnerAnnouncement .winner-data-cell:nth-child(2){border-left:1px solid #ffffff45}
+  #winnerAnnouncement .winner-data-cell:nth-child(3){
+    grid-column:1/-1;
+    border-top:1px solid #ffffff45;
+  }
+  #winnerAnnouncement .winner-data-label{
+    font-size:clamp(10px,3vw,13px);
+    letter-spacing:1px;
+  }
+  #winnerAnnouncement .winner-duration,
+  #winnerAnnouncement .announcement-reason{
+    font-size:clamp(18px,5.2vw,30px);
+    -webkit-text-stroke:1px #000;
+  }
+}
+@media(max-height:520px){
+  #winnerAnnouncement .announcement-content{gap:3px;padding:0}
+  #winnerAnnouncement .winner-robot-image{height:27vh}
+  #winnerAnnouncement .winner-heading{font-size:clamp(22px,4vh,34px)}
+  #winnerAnnouncement .announcement-name{font-size:clamp(24px,5.2vw,52px)}
+  #winnerAnnouncement .winner-data-cell{padding-top:4px;padding-bottom:4px}
+  #winnerAnnouncement .winner-duration,
+  #winnerAnnouncement .announcement-reason{font-size:clamp(17px,3.5vh,28px)}
+}
+
 </style>
 </head>
 <body>
@@ -339,9 +504,17 @@ $('finish').addEventListener('click',async()=>{try{render(await api('/api/finish
 function hideAnnouncements(){ $('winnerAnnouncement').hidden=true; $('nextAnnouncement').hidden=true; $('noBattlesAnnouncement').hidden=true; }
 async function enterAnnouncementFullscreen(){try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen()}catch(e){/* Algunos navegadores bloquean la pantalla completa; la pantalla de anuncio sigue funcionando. */}}
 function showWinnerAnnouncement(s){
- const winnerRobot=String(s.winner||'').trim();
- const winner=String(s.winner_person||winnerRobot||$('winnerInput').value||'').trim();
- if(!winner){console.warn('No hay un ganador disponible para mostrar.');return}
+ let winnerRobot=String(s.winner||'').trim();
+ const winnerPerson=String(s.winner_person||'').trim();
+
+ // El anuncio debe mostrar el robot. Si solo llega el nombre de la persona,
+ // lo relacionamos con su robot usando los participantes de esta batalla.
+ if(!winnerRobot&&winnerPerson){
+  if(winnerPerson.toLocaleLowerCase()===String(s.person1||'').trim().toLocaleLowerCase())winnerRobot=String(s.robot1||'').trim();
+  else if(winnerPerson.toLocaleLowerCase()===String(s.person2||'').trim().toLocaleLowerCase())winnerRobot=String(s.robot2||'').trim();
+ }
+ if(!winnerRobot)winnerRobot=String($('winnerInput').value||'').trim();
+ if(!winnerRobot){console.warn('No hay un robot ganador disponible para mostrar.');return}
  const reason=String(s.reason||$('reasonInput').value||'').trim();
  let winnerImage=s.robot1_image||'/Imagenes/R_Amarillo.png';
  if(winnerRobot.toLocaleLowerCase()===String(s.robot2||'').trim().toLocaleLowerCase())winnerImage=s.robot2_image||'/Imagenes/R_Morado.png';
@@ -354,13 +527,35 @@ function showWinnerAnnouncement(s){
  }
  $('winnerRobotImage').src=winnerImage;
  $('winnerRobotImage').alt='Robot ganador: '+winnerRobot;
- $('winnerAnnouncement').style.setProperty('--winner-glow',robotColor(winnerImage,winner));
- $('winnerAnnouncementName').textContent=winner;
- $('winnerAnnouncementTime').innerHTML=fmt(s.elapsed_seconds);$('winnerAnnouncementAttacks').textContent=String(s.attacks1??0)+' — '+String(s.attacks2??0);
+ $('winnerAnnouncement').style.setProperty('--winner-glow',robotColor(winnerImage,winnerRobot));
+ const nameElement=$('winnerAnnouncementName');
+ nameElement.textContent=winnerRobot;
+ $('winnerAnnouncementTime').textContent=fmt(s.elapsed_seconds);$('winnerAnnouncementAttacks').textContent=String(s.attacks1??0)+' — '+String(s.attacks2??0);
  $('winnerAnnouncementReason').textContent=reason||'¡Victoria en la arena!';
  $('winnerAnnouncement').hidden=false;
  $('nextAnnouncement').hidden=true;
  $('noBattlesAnnouncement').hidden=true;
+ requestAnimationFrame(fitWinnerName);
+}
+function fitWinnerName(){
+ const el=$('winnerAnnouncementName');
+ if(!el||$('winnerAnnouncement').hidden)return;
+ el.style.whiteSpace='nowrap';
+ el.style.overflowWrap='normal';
+ const minSize=18;
+ let size=parseFloat(getComputedStyle(el).fontSize)||48;
+ el.style.fontSize=size+'px';
+ while(el.scrollWidth>el.clientWidth&&size>minSize){
+  size=Math.max(minSize,size-2);
+  el.style.fontSize=size+'px';
+ }
+ if(el.scrollWidth>el.clientWidth){
+  el.style.whiteSpace='normal';
+  el.style.overflowWrap='anywhere';
+ }else{
+  el.style.whiteSpace='nowrap';
+  el.style.overflowWrap='normal';
+ }
 }
 function fitNextRobotNames(){const els=[$('nextRobotName1'),$('nextRobotName2')];const raw=els.map(el=>String(el.dataset.fullName??el.textContent??'').trim());const splitName=name=>{const chars=Array.from(name);if(chars.length<=12)return[name];const cut=Math.ceil(chars.length/2);return[chars.slice(0,cut).join(''),chars.slice(cut).join('')]};const lines=raw.map(splitName);$('nextRobotName1').closest('.next-matchup').classList.toggle('names-two-lines',lines.some(parts=>parts.length>1));els.forEach((el,i)=>{el.replaceChildren();lines[i].forEach(line=>{const span=document.createElement('span');span.textContent=line;span.style.display='block';span.style.width='100%';span.style.textAlign='center';el.appendChild(span)})});const mobile=window.innerWidth<=700;const max=mobile?32:Math.min(76,window.innerWidth*.052);const min=mobile?14:16;const widths=els.map(el=>el.clientWidth||el.parentElement.clientWidth||100);const lineLengths=lines.map(parts=>Math.max(1,...parts.map(part=>Array.from(part).length)));const shared=Math.max(min,Math.min(max,...widths.map((w,i)=>w/(lineLengths[i]*.58))));els.forEach(el=>el.style.fontSize=shared+'px')}
 window.addEventListener('resize',fitNextRobotNames);
@@ -411,6 +606,7 @@ async function openDirectWinnerPage(){
   }
  }catch(e){alert('No se pudo cargar el resultado de la batalla. Comprueba que el dashboard esté activo.')}
 }
+window.addEventListener('resize',()=>{if(!$('winnerAnnouncement').hidden)fitWinnerName()});
 connectEvents();openDirectWinnerPage();setInterval(updateClock,80);</script>
 </body>
 </html>
