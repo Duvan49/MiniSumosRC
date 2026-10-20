@@ -120,7 +120,8 @@ class DashboardBridge:
                 elapsed = self._elapsed
                 if self._time_running:
                     elapsed += max(0.0, now - self._time_anchor)
-                event = dict(self._event_queue.pop(0)) if self._event_queue else dict(self._event)
+                event_from_queue = bool(self._event_queue)
+                event = dict(self._event_queue.pop(0)) if event_from_queue else dict(self._event)
                 dirty = self._dirty
                 if dirty:
                     self._dirty = False
@@ -144,6 +145,8 @@ class DashboardBridge:
                 except (URLError, HTTPError, TimeoutError, OSError, ValueError):
                     retry_after = time.monotonic() + 1.0
                     with self._condition:
+                        if event_from_queue:
+                            self._event_queue.insert(0, event)
                         self._dirty = True
             with self._condition:
                 self._condition.wait(timeout=max(0.001, 0.08 - (time.monotonic() - now)))
