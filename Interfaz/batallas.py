@@ -1549,11 +1549,15 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 titulo_fase = f"FASE {str(ultima[0]).upper()} FINALIZADA"
                 detalle_fase = "Cuando estés listo, continúa con la siguiente ronda."
 
-        # Al terminar la fase inicial, conserva el flujo habitual: muestra brevemente
-        # la transición y luego lleva a Clasificaciones, mientras el dashboard mantiene
-        # el anuncio del ganador durante sus 10 segundos. Solo se hace en la actualización
-        # inmediata posterior a registrar el resultado, no cada vez que se abre Batallas.
-        if resultado_recien_guardado and accion_tipo in ("llaves", "final") and al_terminar_fase:
+        # Al terminar la fase inicial, muestra el aviso con CONTINUAR deshabilitado
+        # y redirige a Clasificaciones automáticamente. Al regresar manualmente a Batallas,
+        # el botón estará habilitado para pasar a Eliminatorias.
+        redireccion_clasificaciones_pendiente = (
+            resultado_recien_guardado
+            and accion_tipo in ("llaves", "final")
+            and al_terminar_fase
+        )
+        if redireccion_clasificaciones_pendiente:
             al_terminar_fase("clasificaciones", detalle_fase, 3000)
 
         if campeon:
@@ -1626,15 +1630,24 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                         parent=contenedor.winfo_toplevel()
                     )
 
+            texto_continuar = (
+                "SERÁS DIRIGIDO A CLASIFICACIONES"
+                if redireccion_clasificaciones_pendiente
+                else "REVISA LAS ELIMINATORIAS"
+                if accion_tipo == "llaves"
+                else "CONTINUAR A LA FINAL"
+                if accion_tipo == "final"
+                else "CONTINUAR A LA SIGUIENTE RONDA"
+            )
             boton_continuar = RoundedButton(
-                principal, text="CONTINUAR",
+                principal, text=texto_continuar,
                 command=continuar_desde_batallas,
-                width=230, height=54,
+                width=330, height=54,
                 bg="#C62828", fg="#FFFFFF",
                 activebackground="#8E1B1B", activeforeground="#FFFFFF",
                 disabledbackground="#CBD5E1",
                 font=("Segoe UI", 13, "bold"), radius=14,
-                state="normal"
+                state="disabled" if redireccion_clasificaciones_pendiente else "normal"
             )
             boton_continuar.pack()
         else:
