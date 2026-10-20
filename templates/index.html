@@ -77,7 +77,7 @@ input{width:100%;padding:13px 12px;background:#071a2c;border:1px solid #31536f;b
 .next-matchup{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:clamp(8px,3vw,48px);flex:1;min-height:0}
 .next-robot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(8px,2vh,24px);min-width:0;min-height:0}
 .next-robot img{width:100%;height:min(50vh,470px);object-fit:contain;filter:drop-shadow(0 14px 25px #000c);animation:float 4.5s ease-in-out infinite}
-.next-robot-name{max-width:100%;font:1000 clamp(38px,7.5vw,112px)/.9 Impact,'Arial Black',sans-serif;overflow-wrap:anywhere;color:#fff;-webkit-text-stroke:3px #000;paint-order:stroke fill;text-shadow:0 5px 0 #000,0 0 24px #00dfff,0 0 44px #167dff;text-transform:uppercase}
+.next-robot-name{max-width:100%;width:100%;font:1000 clamp(38px,7.5vw,112px)/.9 Impact,'Arial Black',sans-serif;white-space:normal;overflow-wrap:anywhere;color:#fff;-webkit-text-stroke:3px #000;paint-order:stroke fill;text-shadow:0 5px 0 #000,0 0 24px #00dfff,0 0 44px #167dff;text-transform:none;text-align:center}
 .next-vs{font:1000 italic clamp(48px,9vw,132px)/.9 Impact,'Arial Black',sans-serif;color:#fff;-webkit-text-stroke:3px #000;paint-order:stroke fill;text-shadow:0 5px 0 #000,0 0 25px #00dfff}
 @media(max-width:700px){.announcement{padding:12px}#winnerAnnouncement .announcement-content{grid-template-columns:minmax(125px,.85fr) minmax(0,1.15fr);grid-template-rows:minmax(0,1fr) auto;column-gap:12px;row-gap:5px;padding:44px 0 0}#winnerAnnouncement .winner-heading{font-size:clamp(31px,8vw,52px);-webkit-text-stroke:2px #000}#winnerAnnouncement .winner-robot-image{width:145%;height:min(50vh,380px)}#winnerAnnouncement .announcement-name{font-size:clamp(31px,8vw,52px);-webkit-text-stroke:2px #000}.winner-details{gap:0}.winner-data-panel{margin-top:0}.winner-data-cell{padding:8px 9px;gap:7px}.winner-data-label{font-size:12px;letter-spacing:1.5px}.winner-duration,.announcement-reason{font-size:clamp(22px,5vw,34px)}.no-battles-message{font-size:clamp(32px,8vw,58px);-webkit-text-stroke:2px #000}.announcement-title{font-size:clamp(26px,8vw,48px)}.announcement-name{font-size:clamp(38px,12vw,76px);-webkit-text-stroke:2px #000}.announcement-button{min-width:120px;padding:12px 16px}.next-matchup{gap:5px}.next-robot img{height:clamp(150px,37vh,300px)}.next-robot-name{font-size:clamp(25px,7.5vw,48px);-webkit-text-stroke:1.5px #000}.next-vs{font-size:clamp(34px,9vw,60px);-webkit-text-stroke:2px #000}}
 @media(max-height:520px){.announcement-content{gap:8px}#winnerAnnouncement .announcement-content{padding-top:42px;grid-template-rows:minmax(0,1fr) auto}#winnerAnnouncement .winner-robot-image{height:42vh}.winner-data-cell{padding-top:7px;padding-bottom:7px}.winner-duration,.announcement-reason{font-size:clamp(25px,4vw,44px)}.next-robot img{height:36vh}.announcement-title{font-size:clamp(24px,5vw,48px)}.announcement-actions{margin-top:0}}
@@ -361,7 +361,38 @@ function showWinnerAnnouncement(s){
  $('nextAnnouncement').hidden=true;
  $('noBattlesAnnouncement').hidden=true;
 }
+function fitNextRobotNames(){
+ const els=[$('nextRobotName1'),$('nextRobotName2')];
+ const raw=els.map(el=>(el.dataset.fullName??el.textContent??'').trim());
+ const splitName=name=>{
+  const chars=[...name];
+  if(chars.length<=12)return[name];
+  const cut=Math.ceil(chars.length/2);
+  return[name.slice(0,cut),name.slice(cut)];
+ };
+ const lines=raw.map(splitName);
+ const twoLines=lines.some(parts=>parts.length>1);
+ els.forEach((el,i)=>{
+  el.replaceChildren();
+  const parts=lines[i];
+  parts.forEach((line,j)=>{
+   if(j)el.appendChild(document.createElement('br'));
+   el.appendChild(document.createTextNode(line));
+  });
+  if(twoLines&&parts.length===1)el.appendChild(document.createElement('br'));
+ });
+ const mobile=window.innerWidth<=700;
+ const max=mobile?38:Math.min(112,window.innerWidth*.075);
+ const min=mobile?18:24;
+ const widths=els.map(el=>el.clientWidth||el.parentElement.clientWidth||100);
+ const lineLengths=lines.map(parts=>Math.max(1,...parts.map(part=>[...part].length)));
+ const shared=Math.max(min,Math.min(max,...widths.map((w,i)=>w/(lineLengths[i]*.62))));
+ els.forEach(el=>el.style.fontSize=shared+'px');
+}
+window.addEventListener('resize',fitNextRobotNames);
 function showNextAnnouncement(s){
+ $('nextRobotName1').dataset.fullName=s.robot1||'POR DEFINIR';
+ $('nextRobotName2').dataset.fullName=s.robot2||'POR DEFINIR';
  $('nextRobotName1').textContent=s.robot1||'POR DEFINIR';
  $('nextRobotName2').textContent=s.robot2||'POR DEFINIR';
  $('nextRobotImage1').src=s.robot1_image||'/Imagenes/R_Rojo.png';
@@ -371,6 +402,7 @@ function showNextAnnouncement(s){
  $('winnerAnnouncement').hidden=true;
  $('noBattlesAnnouncement').hidden=true;
  $('nextAnnouncement').hidden=false;
+ fitNextRobotNames();
 }
 function showNoBattlesAnnouncement(){
  $('winnerAnnouncement').hidden=true;
