@@ -1771,23 +1771,9 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         font=("Segoe UI", 12, "bold"), fg="#7a858e", bg="white"
     ).grid(row=1, column=0, pady=(0, 2))
 
-    # Mantiene los nombres de los robots legibles y alineados entre ambas tarjetas.
-    nombres_robot = [str(robot1 or ""), str(robot2 or "")]
-    usar_dos_lineas = any(len(nombre) > 12 for nombre in nombres_robot)
-
-    def formato_nombre_robot(nombre):
-        nombre = str(nombre or "")
-        if not usar_dos_lineas:
-            return nombre
-        if len(nombre) <= 12:
-            return nombre + "\n"
-        corte = (len(nombre) + 1) // 2
-        return nombre[:corte].rstrip() + "\n" + nombre[corte:].lstrip()
-
     tk.Label(
-        tarjeta1, text=formato_nombre_robot(robot1),
-        font=("Segoe UI", 19, "bold"), fg="#17202a", bg="white",
-        justify="center", anchor="center"
+        tarjeta1, text=robot1,
+        font=("Segoe UI", 19, "bold"), fg="#17202a", bg="white"
     ).grid(row=2, column=0)
 
     tk.Label(
@@ -1830,9 +1816,8 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
     ).grid(row=1, column=0, pady=(0, 2))
 
     tk.Label(
-        tarjeta2, text=formato_nombre_robot(robot2),
-        font=("Segoe UI", 19, "bold"), fg="#17202a", bg="white",
-        justify="center", anchor="center"
+        tarjeta2, text=robot2,
+        font=("Segoe UI", 19, "bold"), fg="#17202a", bg="white"
     ).grid(row=2, column=0)
 
     tk.Label(
