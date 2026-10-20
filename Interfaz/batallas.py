@@ -8,6 +8,10 @@ from logica import RelojBatalla
 from dashboard_bridge import dashboard_bridge
 from llaves import (actualizar_llaves_tras_resultado, generar_llaves_manualmente, generar_final_todos_manualmente, avanzar_ronda_manualmente)
 
+# Bloqueo temporal de controles de la siguiente batalla mientras el dashboard
+# muestra el anuncio del ganador.
+BLOQUEO_CONTROLES_HASTA = 0.0
+
 def _separar_tiempo_visual(valor):
     """Devuelve minutos:segundos y centésimas para mostrar con tamaños distintos."""
     try:
@@ -1266,6 +1270,7 @@ def abrir_resultado(
     # --------------------------------------------------------
 
     def registrar():
+        global BLOQUEO_CONTROLES_HASTA
         nonlocal ataques1, ataques2
         ataques1, ataques2 = dashboard_bridge.attacks()
 
@@ -1303,12 +1308,18 @@ def abrir_resultado(
 
         ganador_robot = robot1 if ganador_id == participante1 else robot2
         ganador_persona = nombre1 if ganador_id == participante1 else nombre2
+        imagen_ganador1 = _imagen_dashboard(robot1, participante1)
+        imagen_ganador2 = _imagen_dashboard(robot2, participante2, imagen_ganador1)
+        BLOQUEO_CONTROLES_HASTA = time.monotonic() + 10.0
         dashboard_bridge.set_time(_tiempo_a_segundos(tiempo), running=False)
         dashboard_bridge.trigger(
             "winner", winner=ganador_robot, winner_person=ganador_persona,
             reason=criterio_texto, elapsed_seconds=_tiempo_a_segundos(tiempo),
             attacks1=ataques1, attacks2=ataques2, phase="finished",
-            status="BATALLA FINALIZADA"
+            status="BATALLA FINALIZADA", battle_id=id_batalla,
+            battle_number=id_batalla, robot1=robot1, robot2=robot2,
+            person1=nombre1, person2=nombre2,
+            robot1_image=imagen_ganador1, robot2_image=imagen_ganador2
         )
 
         ventana.grab_release()
@@ -1526,8 +1537,9 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 titulo_fase = f"FASE {str(ultima[0]).upper()} FINALIZADA"
                 detalle_fase = "Cuando estés listo, continúa con la siguiente ronda."
 
-        if resultado_recien_guardado and al_terminar_fase and destino_fase and not campeon:
-            al_terminar_fase(destino_fase, detalle_fase)
+        # Tras registrar un ganador, la pestaña Batallas debe mostrar de inmediato
+        # la siguiente batalla o la transición de fase. No redirigir automáticamente:
+        # el organizador puede continuar desde aquí mientras el dashboard muestra al ganador.
 
         if campeon:
             tk.Label(
@@ -1599,12 +1611,6 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                         parent=contenedor.winfo_toplevel()
                     )
 
-            bloquear_continuar = (
-                resultado_recien_guardado
-                and bool(destino_fase)
-                and not campeon
-            )
-
             boton_continuar = RoundedButton(
                 principal, text="CONTINUAR",
                 command=continuar_desde_batallas,
@@ -1613,7 +1619,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 activebackground="#8E1B1B", activeforeground="#FFFFFF",
                 disabledbackground="#CBD5E1",
                 font=("Segoe UI", 13, "bold"), radius=14,
-                state="disabled" if bloquear_continuar else "normal"
+                state="normal"
             )
             boton_continuar.pack()
         else:
@@ -2259,14 +2265,14 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
         batalla_resultado[14] = ataques_finales2
 
         def despues_resultado():
-            def cargar_siguiente():
+            # Actualizar Batallas en segundo plano inmediatamente; los controles
+            # de una nueva batalla permanecen bloqueados hasta que pasen 10 s.
+            try:
                 mostrar_batallas(
                     contenedor,
                     al_terminar_fase=al_terminar_fase,
                     resultado_recien_guardado=True
                 )
-            try:
-                contenedor.after(10000, cargar_siguiente)
             except tk.TclError:
                 pass
 
@@ -2359,21 +2365,44 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
 
     elif estado == "Pendiente":
 
-        boton_iniciar.config(
-            state="normal"
-        )
+        bloqueo_restante = max(0.0, BLOQUEO_CONTROLES_HASTA - time.monotonic())
+        if bloqueo_restante > 0:
+            boton_iniciar.config(state="disabled")
+            boton_pausar.config(state="disabled")
+            boton_continuar.config(state="disabled")
+            boton_finalizar.config(state="disabled")
 
-        boton_pausar.config(
-            state="disabled"
-        )
+            def desbloquear_controles_siguiente():
+                if not interfaz_batallas_disponible():
+                    return
+                estado_actual = obtener_estado_batalla(id_batalla)
+                if estado_actual == "Pendiente":
+                    boton_iniciar.config(state="normal")
+                    boton_pausar.config(state="disabled")
+                    boton_continuar.config(state="disabled")
+                    boton_finalizar.config(state="disabled")
+                elif estado_actual == "En curso":
+                    boton_iniciar.config(state="disabled")
+                    boton_pausar.config(state="normal")
+                    boton_continuar.config(state="disabled")
+                    boton_finalizar.config(state="normal")
+                elif estado_actual == "Pausada":
+                    boton_iniciar.config(state="disabled")
+                    boton_pausar.config(state="disabled")
+                    boton_continuar.config(state="normal")
+                    boton_finalizar.config(state="normal")
+                elif estado_actual == "Preparando":
+                    boton_iniciar.config(state="disabled")
+                    boton_pausar.config(state="disabled")
+                    boton_continuar.config(state="disabled")
+                    boton_finalizar.config(state="disabled")
 
-        boton_continuar.config(
-            state="disabled"
-        )
-
-        boton_finalizar.config(
-            state="disabled"
-        )
+            ventana_raiz.after(max(1, int(bloqueo_restante * 1000)), desbloquear_controles_siguiente)
+        else:
+            boton_iniciar.config(state="normal")
+            boton_pausar.config(state="disabled")
+            boton_continuar.config(state="disabled")
+            boton_finalizar.config(state="disabled")
 
     elif estado == "En curso":
 
