@@ -2266,7 +2266,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                     resultado_recien_guardado=True
                 )
             try:
-                contenedor.after(3000, cargar_siguiente)
+                contenedor.after(10000, cargar_siguiente)
             except tk.TclError:
                 pass
 
