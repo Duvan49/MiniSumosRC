@@ -1547,7 +1547,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 accion_tipo = "ronda"
                 destino_fase = "eliminatorias"
                 titulo_fase = f"FASE {str(ultima[0]).upper()} FINALIZADA"
-                detalle_fase = "Cuando estés listo, continúa con la siguiente ronda."
+                detalle_fase = ""
 
         # Al terminar la fase inicial, muestra el aviso con CONTINUAR deshabilitado
         # y redirige a Clasificaciones automáticamente. Al regresar manualmente a Batallas,
@@ -1614,7 +1614,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                     exito, mensaje = avanzar_ronda_manualmente()
 
                 if exito:
-                    if accion_tipo == "llaves" and al_terminar_fase:
+                    if accion_tipo in ("llaves", "ronda") and al_terminar_fase:
                         boton_continuar.config(
                             state="disabled",
                             text="ABRIENDO ELIMINATORIAS..."
