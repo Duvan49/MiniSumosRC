@@ -1523,7 +1523,7 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
             accion_tipo = "llaves"
             destino_fase = "clasificaciones"
             titulo_fase = "FASE DE GRUPOS FINALIZADA"
-            detalle_fase = "Revisa la clasificación y continúa cuando estés listo."
+            detalle_fase = ""
         elif total_todos > 0 and todos_pendientes == 0 and total_finales_actual == 0:
             accion_tipo = "final"
             destino_fase = "clasificaciones"
@@ -1596,11 +1596,12 @@ def mostrar_batallas(contenedor, al_terminar_fase=None, resultado_recien_guardad
                 font=("Segoe UI", 25, "bold"), fg="#17202a", bg="#f3f5f7",
                 wraplength=900, justify="center"
             ).pack(pady=(0, 12))
-            tk.Label(
-                principal, text=detalle_fase,
-                font=("Segoe UI", 15), fg="#475569", bg="#f3f5f7",
-                wraplength=820, justify="center"
-            ).pack(pady=(0, 24))
+            if detalle_fase:
+                tk.Label(
+                    principal, text=detalle_fase,
+                    font=("Segoe UI", 15), fg="#475569", bg="#f3f5f7",
+                    wraplength=820, justify="center"
+                ).pack(pady=(0, 24))
 
             boton_continuar = None
 
