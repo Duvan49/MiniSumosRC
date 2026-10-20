@@ -354,85 +354,76 @@ input{width:100%;padding:13px 12px;background:#071a2c;border:1px solid #31536f;b
 }
 
 
-/* Pantalla de ganador: tiempo a la izquierda, robot centrado y ataques a la derecha. */
+/* Ganador: aprovechar toda la pantalla y dar prioridad visual al robot y su nombre. */
 #winnerAnnouncement .announcement-content{
  display:grid;
- grid-template-columns:minmax(0,1fr) minmax(0,1.35fr) minmax(0,1fr);
+ grid-template-columns:minmax(0,.9fr) minmax(0,1.8fr) minmax(0,.9fr);
  grid-template-rows:minmax(0,1fr);
- align-items:center;
- justify-items:center;
- align-content:stretch;
- column-gap:clamp(8px,2.5vw,36px);
- row-gap:0;
- padding:clamp(18px,4vh,48px) clamp(12px,3vw,44px);
+ align-items:center;justify-items:stretch;align-content:stretch;
+ column-gap:clamp(4px,1.5vw,22px);row-gap:0;
+ padding:clamp(12px,2.5vh,30px) clamp(10px,2vw,28px);
  text-align:center;
 }
 #winnerAnnouncement .winner-side{
- min-width:0;
- width:100%;
- display:flex;
- flex-direction:column;
- align-items:center;
- justify-content:center;
- gap:clamp(8px,2vh,22px);
+ min-width:0;width:100%;display:flex;flex-direction:column;
+ align-items:center;justify-content:center;gap:clamp(10px,2vh,24px);
 }
 #winnerAnnouncement .winner-time{grid-column:1;grid-row:1}
 #winnerAnnouncement .winner-center{
- grid-column:2;grid-row:1;
- width:100%;min-width:0;height:100%;
+ grid-column:2;grid-row:1;width:100%;min-width:0;height:100%;
  display:flex;flex-direction:column;align-items:center;justify-content:center;
- gap:clamp(4px,1.2vh,14px);
+ gap:clamp(2px,.7vh,10px);
 }
 #winnerAnnouncement .winner-attacks{grid-column:3;grid-row:1}
 #winnerAnnouncement .winner-robot-image{
- width:min(100%,clamp(110px,24vw,360px));
- height:clamp(110px,34vh,380px);
- max-width:100%;object-fit:contain;justify-self:auto;
+ display:block;width:min(100%,clamp(180px,34vw,560px));
+ height:clamp(160px,42vh,480px);max-width:100%;object-fit:contain;
+ justify-self:auto;flex:0 1 auto;
 }
 #winnerAnnouncement .winner-heading{
- text-align:center;
- font-size:clamp(28px,5vw,76px);
- line-height:.95;
+ width:100%;text-align:center;
+ font:1000 italic clamp(42px,6.4vw,94px)/.9 Impact,'Arial Black',sans-serif;
  letter-spacing:clamp(0px,.2vw,3px);
 }
 #winnerAnnouncement .announcement-name{
- width:100%;max-width:100%;min-width:0;
- text-align:center;
- font-size:clamp(22px,4.3vw,64px);
- line-height:1;
- letter-spacing:clamp(0px,.15vw,2px);
- overflow-wrap:anywhere;
+ width:100%;max-width:100%;min-width:0;text-align:center;
+ font:1000 italic clamp(48px,7.2vw,116px)/.92 Impact,'Arial Black',sans-serif;
+ letter-spacing:clamp(0px,.12vw,2px);overflow-wrap:anywhere;
 }
 #winnerAnnouncement .winner-data-label{
- font-size:clamp(12px,1.9vw,25px);
- letter-spacing:clamp(.5px,.25vw,3px);
- text-align:center;
+ font-size:clamp(15px,2.1vw,30px);
+ letter-spacing:clamp(.5px,.2vw,3px);text-align:center;
 }
 #winnerAnnouncement .winner-duration{
- max-width:100%;
- font-size:clamp(25px,4.5vw,66px);
- line-height:1;
- letter-spacing:0;
- text-align:center;
+ max-width:100%;font-size:clamp(30px,5.2vw,76px);
+ line-height:1;letter-spacing:0;text-align:center;
 }
 #winnerAnnouncement #winnerAnnouncementTime{white-space:nowrap}
 #winnerAnnouncement #winnerAnnouncementReason{display:none}
-@media(max-width:520px){
+@media(max-width:700px){
  #winnerAnnouncement .announcement-content{
-  grid-template-columns:minmax(0,.9fr) minmax(0,1.25fr) minmax(0,.9fr);
-  column-gap:4px;
-  padding:clamp(12px,3vh,24px) 7px;
+  grid-template-columns:minmax(0,.78fr) minmax(0,1.5fr) minmax(0,.78fr);
+  column-gap:3px;padding:12px 5px;
  }
- #winnerAnnouncement .winner-robot-image{width:100%;height:clamp(100px,25vh,210px)}
- #winnerAnnouncement .winner-heading{font-size:clamp(23px,5.5vw,36px);-webkit-text-stroke:1.5px #000}
- #winnerAnnouncement .announcement-name{font-size:clamp(18px,4.5vw,28px);-webkit-text-stroke:1.5px #000}
- #winnerAnnouncement .winner-data-label{font-size:clamp(10px,2.7vw,13px);letter-spacing:0}
- #winnerAnnouncement .winner-duration{font-size:clamp(19px,4.6vw,27px);-webkit-text-stroke:1px #000}
+ #winnerAnnouncement .winner-side{gap:clamp(8px,2vh,16px)}
+ #winnerAnnouncement .winner-robot-image{width:100%;height:clamp(130px,29vh,260px)}
+ #winnerAnnouncement .winner-heading{font-size:clamp(28px,6vw,44px);-webkit-text-stroke:1.5px #000}
+ #winnerAnnouncement .announcement-name{font-size:clamp(26px,6.3vw,46px);-webkit-text-stroke:1.5px #000;letter-spacing:0}
+ #winnerAnnouncement .winner-data-label{font-size:clamp(10px,2.8vw,16px);letter-spacing:0}
+ #winnerAnnouncement .winner-duration{font-size:clamp(20px,4.8vw,34px);-webkit-text-stroke:1px #000}
+}
+@media(max-width:380px){
+ #winnerAnnouncement .announcement-content{grid-template-columns:minmax(0,.72fr) minmax(0,1.4fr) minmax(0,.72fr);padding-left:3px;padding-right:3px}
+ #winnerAnnouncement .winner-heading{font-size:clamp(24px,5.8vw,32px)}
+ #winnerAnnouncement .announcement-name{font-size:clamp(22px,5.6vw,28px)}
+ #winnerAnnouncement .winner-duration{font-size:clamp(17px,4.4vw,22px)}
 }
 @media(max-height:480px){
- #winnerAnnouncement .announcement-content{padding-top:8px;padding-bottom:8px}
- #winnerAnnouncement .winner-robot-image{height:clamp(85px,38vh,180px)}
- #winnerAnnouncement .winner-center{gap:3px}
+ #winnerAnnouncement .announcement-content{padding-top:5px;padding-bottom:5px}
+ #winnerAnnouncement .winner-robot-image{height:clamp(100px,42vh,220px)}
+ #winnerAnnouncement .winner-center{gap:2px}
+ #winnerAnnouncement .winner-heading{font-size:clamp(28px,5vh,54px)}
+ #winnerAnnouncement .announcement-name{font-size:clamp(30px,6vh,64px)}
 }
 
 </style>
