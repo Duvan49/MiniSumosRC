@@ -519,7 +519,6 @@ crear_boton_menu(
 URL_DASHBOARD = "http://127.0.0.1:8000"
 RUTA_APP_DASHBOARD = os.path.join(BASE_DIR, "Interfaz", "app.py")
 proceso_dashboard = None
-dashboard_iniciado_por_minisumos = False
 
 
 def dashboard_disponible():
@@ -533,24 +532,62 @@ def dashboard_disponible():
         return False
 
 
-def iniciar_dashboard():
-    global proceso_dashboard, dashboard_iniciado_por_minisumos
+def detener_dashboard_anterior():
+    """Cierra únicamente procesos que ejecuten el app.py de este repositorio."""
+    if os.name != "nt":
+        return
 
-    if not dashboard_disponible():
-        opciones = {}
+    ruta_objetivo = os.path.normcase(os.path.abspath(RUTA_APP_DASHBOARD))
+    ruta_ps = ruta_objetivo.replace("'", "''")
+    script = (
+        "$needle = [regex]::Escape('" + ruta_ps + "'); "
+        "Get-CimInstance Win32_Process | "
+        "Where-Object { $_.CommandLine -and $_.CommandLine -match $needle } | "
+        "ForEach-Object { "
+        "if ($_.ProcessId -ne $PID) { "
+        "Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue "
+        "} }"
+    )
 
-        # En Windows, ejecuta el servidor sin abrir una ventana de consola.
-        if os.name == "nt":
-            opciones["creationflags"] = subprocess.CREATE_NO_WINDOW
-
-        proceso_dashboard = subprocess.Popen(
-            [sys.executable, RUTA_APP_DASHBOARD],
-            cwd=BASE_DIR,
+    try:
+        subprocess.run(
+            [
+                "powershell",
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy", "Bypass",
+                "-Command", script
+            ],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            **opciones
+            timeout=8,
+            check=False
         )
-        dashboard_iniciado_por_minisumos = True
+        # Da tiempo a Windows para liberar el puerto del servidor anterior.
+        time.sleep(0.5)
+    except (OSError, subprocess.TimeoutExpired):
+        # Si no se puede consultar PowerShell, el inicio normal aún puede funcionar.
+        pass
+
+
+def iniciar_dashboard():
+    global proceso_dashboard
+
+    # Elimina una instancia huérfana de este mismo dashboard si quedó abierta
+    # después de cerrar MiniSumos de forma inesperada.
+    detener_dashboard_anterior()
+
+    opciones = {}
+    if os.name == "nt":
+        opciones["creationflags"] = subprocess.CREATE_NO_WINDOW
+
+    proceso_dashboard = subprocess.Popen(
+        [sys.executable, RUTA_APP_DASHBOARD],
+        cwd=BASE_DIR,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        **opciones
+    )
 
     def esperar_y_abrir_dashboard():
         limite = time.time() + 20
@@ -560,11 +597,7 @@ def iniciar_dashboard():
                 webbrowser.open(URL_DASHBOARD)
                 return
 
-            if (
-                proceso_dashboard is not None
-                and proceso_dashboard.poll() is not None
-                and dashboard_iniciado_por_minisumos
-            ):
+            if proceso_dashboard is not None and proceso_dashboard.poll() is not None:
                 return
 
             time.sleep(0.25)
@@ -580,22 +613,19 @@ def iniciar_dashboard():
 # ============================================================
 
 def cerrar_programa():
+    try:
+        cerrar_registro()
+    finally:
+        if proceso_dashboard is not None and proceso_dashboard.poll() is None:
+            proceso_dashboard.terminate()
 
-    cerrar_registro()
+            try:
+                proceso_dashboard.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                proceso_dashboard.kill()
+                proceso_dashboard.wait(timeout=2)
 
-    if (
-        dashboard_iniciado_por_minisumos
-        and proceso_dashboard is not None
-        and proceso_dashboard.poll() is None
-    ):
-        proceso_dashboard.terminate()
-
-        try:
-            proceso_dashboard.wait(timeout=3)
-        except subprocess.TimeoutExpired:
-            proceso_dashboard.kill()
-
-    ventana.destroy()
+        ventana.destroy()
 
 
 ventana.protocol(
