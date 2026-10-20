@@ -26,14 +26,14 @@ def publish_event(kind, data):
 
 
 state = {
-    "robot1": "AMARILLO", "robot2": "MORADO",
-    "robot1_image": "/Imagenes/R_Amarillo.png", "robot2_image": "/Imagenes/R_Morado.png",
-    "battle_number": 1,
+    "robot1": "POR DEFINIR", "robot2": "POR DEFINIR",
+    "robot1_image": "/Imagenes/No_Batalla.png", "robot2_image": "/Imagenes/No_Batalla.png",
+    "battle_number": 0,
     "attacks1": 0, "attacks2": 0,
-    "status": "PREPARADOS PARA LA BATALLA",
+    "status": "NO HAY BATALLAS PENDIENTES",
     "elapsed_seconds": 0, "started_at": None,
-    "winner": "", "winner_person": "", "reason": "", "phase": "ready",
-    "ui_action": "", "ui_action_id": 0,
+    "winner": "", "winner_person": "", "reason": "", "phase": "no_battles",
+    "ui_action": "no_battles", "ui_action_id": 1,
     "battle_id": None, "person1": "", "person2": "",
     "countdown_active": False, "countdown_value": "3",
     "time_source": "dashboard", "python_mode": False
