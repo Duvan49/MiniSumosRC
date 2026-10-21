@@ -145,7 +145,7 @@ tk.Label(
 
 tk.Label(
     marco_titulo,
-    text="CATEGORÍA 1",
+    text="CATEGORÍA INFANTIL",
     font=("Arial", 30, "bold"),
     fg=ROJO_OSCURO,
     bg=FONDO
